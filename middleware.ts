@@ -28,21 +28,31 @@ export async function middleware(request: NextRequest) {
   // 1. Refresh Auth Token
   const { data: { user } } = await supabase.auth.getUser();
 
+  const { data: profile } = await supabase.from('profiles').select('*').eq('id', user?.id).single();
+
+
+
   const path = request.nextUrl.pathname;
 
+  const publicRoutes = ['/login', '/'];
+
+  const protectedRoutes = ["/admin/dashboard/overview"];
+
   // 2. Unauthenticated Redirects
-  if (!user && path.startsWith('/dashboard')) {
+  if (!user && protectedRoutes.includes(path)) {
     return NextResponse.redirect(new URL('/login', request.url));
   }
 
-  // 3. Prevent logged-in users from seeing the login page
-  if (user && path === '/login') {
-    return NextResponse.redirect(new URL('/dashboard', request.url));
+  // 3. Prevent logged-in users from seeing the login page and landing page
+  if (user && publicRoutes.includes(path)) {
+    return NextResponse.redirect(new URL(`${profile?.role}/dashboard/overview`, request.url));
   }
+
+
 
   return supabaseResponse;
 }
 
 export const config = {
-  matcher: ['/dashboard/:path*', '/login'],
+  matcher: ['/:path*/dashboard', '/login', '/'],
 };

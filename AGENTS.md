@@ -23,4 +23,18 @@ This version has breaking changes — APIs, conventions, and file structure may 
 - Supabase clients: `lib/supabase/client.ts` (browser), `lib/supabase/server.ts` (server via cookies)
 - `middleware.ts` refreshes session on every request; redirects unauthed `/dashboard/*` → `/login`, authed `/login` → `/dashboard`
 - Path alias `@/*` → project root
-- `/dashboard` route does not exist yet; only `app/page.tsx` (boilerplate) and `app/login/page.tsx` (stub `<div>Login</div>`)
+
+## Database Schema (Supabase/Postgres)
+
+```sql
+CREATE TYPE user_role AS ENUM ('student', 'teacher', 'admin');
+
+CREATE TABLE public.profiles (
+  id uuid PRIMARY KEY REFERENCES auth.users(id),
+  full_name text NOT NULL DEFAULT 'New User',
+  email text NOT NULL UNIQUE,
+  role user_role NOT NULL DEFAULT 'student',
+  avatar_url text,
+  created_at timestamptz DEFAULT now()
+);
+```
