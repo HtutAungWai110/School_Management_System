@@ -13,6 +13,8 @@ export default async function ProtectedLayout({
   const { data: { user } } = await supabase.auth.getUser();
   const { data: profile } = await supabase.from("profiles").select("*").eq("id", user?.id).single();
 
+  console.log(user)
+
   return (
     <main>
       <ProfileStoreSync profile={profile} />

@@ -1,9 +1,7 @@
-
-
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
 
   const supabase = createServerClient(
@@ -26,33 +24,36 @@ export async function middleware(request: NextRequest) {
   );
 
   // 1. Refresh Auth Token
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  const { data: profile } = await supabase.from('profiles').select('*').eq('id', user?.id).single();
-
-
+  const { data: profile } = user
+    ? await supabase.from('profiles').select('*').eq('id', user.id).single()
+    : { data: null };
 
   const path = request.nextUrl.pathname;
 
   const publicRoutes = ['/login', '/'];
 
-  const protectedRoutes = ["/admin/dashboard/overview"];
+  const protectedRoutes = ['/admin/dashboard/overview', '/admin/dashboard/students'];
+
+  const isProtected = protectedRoutes.some((route) => path === route || path.startsWith(`${route}/`));
 
   // 2. Unauthenticated Redirects
-  if (!user && protectedRoutes.includes(path)) {
+  if (!user && isProtected) {
     return NextResponse.redirect(new URL('/login', request.url));
   }
 
   // 3. Prevent logged-in users from seeing the login page and landing page
   if (user && publicRoutes.includes(path)) {
-    return NextResponse.redirect(new URL(`${profile?.role}/dashboard/overview`, request.url));
+    const home = profile?.role ? `${profile.role}/dashboard/overview` : 'admin/dashboard/overview';
+    return NextResponse.redirect(new URL(`/${home}`, request.url));
   }
-
-
 
   return supabaseResponse;
 }
 
 export const config = {
-  matcher: ['/:path*/dashboard', '/login', '/'],
+  matcher: ['/', '/login', '/admin/:path*', '/:path*/dashboard/:path*'],
 };

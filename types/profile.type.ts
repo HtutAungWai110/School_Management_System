@@ -11,4 +11,7 @@ export type Profile = {
   full_name: string;
   id: string;
   role: string;
+  phone: string;
+  address: string;
+  date_of_birth: string;
 }

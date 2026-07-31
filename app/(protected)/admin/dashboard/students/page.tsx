@@ -1,19 +1,39 @@
-import Image from "next/image"
+
+
 import { MetricCard } from "../metric-card"
-import { Search, CircleHelp, Bell, User, UserPlus, ClipboardCheck, Filter, Plus, MoreVertical, ChevronLeft, ChevronRight } from "lucide-react"
+import { PaginationNav } from "@/components/PaginationNav"
+import { ProfileTemplate } from "@/components/ProfileTemplate"
+import { Search, CircleHelp, Bell, User, UserPlus, ClipboardCheck, Filter, Plus } from "lucide-react"
 
 import { serverFetch } from "@/lib/server.fetch"
+import type { Profile } from "@/types/profile.type"
 
-function getInitials(name: string) {
-  return name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2)
+interface PageProps {
+  searchParams: Promise<{page?: string}>
 }
 
-export default async function StudentsPage() {
-  const data = await serverFetch("http://localhost:3000/api/school/students").then(res => res.json())
+export default async function StudentsPage({ searchParams }: PageProps) {
+
+  const { page } = await searchParams;
+
+  const currentPage = page || 1;
+
+  const data = await serverFetch(`http://localhost:3000/api/students?page=${currentPage}`, {next: {revalidate: 120}}).then(res => res.json())
+
 
   const students = data?.students ?? []
   const totalCount = data?.totalCount ?? 0
   const newEnrollments = data?.newEnrollments ?? 0
+  const totalPages = data?.totalPages ?? 0
+
+  const percentIncrease = Math.trunc((newEnrollments / totalCount) * 100)
+
+
+
+
+  console.log(data)
+
+  // return (<div>Students</div>)
 
   return (
     <div className="min-h-screen bg-background flex">
@@ -48,7 +68,7 @@ export default async function StudentsPage() {
               icon={User}
               label="Active Students"
               value={totalCount}
-              badge="+12%"
+              badge={"+" + percentIncrease.toString() + "%" }
               badgeClass="text-green-600 bg-green-50"
               iconBg="bg-secondary-container/50"
               iconColor="text-secondary"
@@ -102,41 +122,8 @@ export default async function StudentsPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-outline-variant/10">
-                  {students.map((student: { id: string; full_name: string; email: string; avatar_url: string | null; created_at: string }) => (
-                    <tr key={student.id} className="hover:bg-surface-container-low transition-colors group">
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
-                          {student.avatar_url ? (
-                            <Image
-                              className="w-10 h-10 rounded-full object-cover border border-outline-variant/20"
-                              src={student.avatar_url}
-                              alt={student.full_name}
-                              width={40}
-                              height={40}
-                              unoptimized
-                            />
-                          ) : (
-                            <div className="w-10 h-10 rounded-full bg-surface-dim flex items-center justify-center font-bold text-on-surface-variant text-sm">
-                              {getInitials(student.full_name)}
-                            </div>
-                          )}
-                          <div>
-                            <p className="text-[16px] leading-[24px] font-bold text-on-surface">{student.full_name}</p>
-                            <p className="text-[14px] leading-[20px] text-on-surface-variant">ID: {student.id.slice(0, 4).toUpperCase()}-{student.id.slice(4, 8)}</p>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 text-[14px] leading-[20px] text-on-surface-variant">{student.email}</td>
-                      <td className="px-6 py-4">
-                        <span className="px-2.5 py-0.5 rounded-full bg-secondary-container/30 text-secondary border border-secondary-container text-[12px] font-[500] leading-[16px]">Student</span>
-                      </td>
-                      <td className="px-6 py-4 text-[14px] leading-[20px] text-on-surface-variant">
-                        {new Date(student.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
-                      </td>
-                      <td className="px-6 py-4 text-right">
-                        <MoreVertical className="w-5 h-5 text-on-surface-variant cursor-pointer hover:text-primary transition-colors inline-block" />
-                      </td>
-                    </tr>
+                  {students.map((student: Profile) => (
+                    <ProfileTemplate key={student.id} profile={student} />
                   ))}
                 </tbody>
               </table>
@@ -145,17 +132,7 @@ export default async function StudentsPage() {
               <p className="text-[12px] font-[500] leading-[16px] text-on-surface-variant">
                 Showing 1-{students.length} of {totalCount} students
               </p>
-              <div className="flex items-center gap-2">
-                <button className="p-2 border border-outline-variant/30 rounded-lg text-on-surface-variant hover:bg-surface-container transition-colors disabled:opacity-50" disabled>
-                  <ChevronLeft className="w-4 h-4" />
-                </button>
-                <button className="px-4 py-2 bg-primary text-on-primary rounded text-[12px] font-[500] leading-[16px]">1</button>
-                <button className="px-4 py-2 hover:bg-surface-container-low rounded text-[12px] font-[500] leading-[16px] transition-colors text-on-surface-variant">2</button>
-                <button className="px-4 py-2 hover:bg-surface-container-low rounded text-[12px] font-[500] leading-[16px] transition-colors text-on-surface-variant">3</button>
-                <button className="p-2 border border-outline-variant/30 rounded-lg text-on-surface-variant hover:bg-surface-container transition-colors">
-                  <ChevronRight className="w-4 h-4" />
-                </button>
-              </div>
+              <PaginationNav page={Number(currentPage)} totalPages={Number(totalPages)} />
             </div>
           </div>
         </div>

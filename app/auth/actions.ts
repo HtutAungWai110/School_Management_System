@@ -16,7 +16,7 @@ export async function loginWithEmail(formData: FormData) {
   }
 
   revalidatePath('/', 'layout');
-  redirect('/dashboard');
+  redirect('/');
 }
 
 export async function signUpWithEmail(formData: FormData) {
@@ -32,7 +32,7 @@ export async function signUpWithEmail(formData: FormData) {
     password,
     options: {
       data: { full_name: fullName },
-      emailRedirectTo: `${origin}/auth/callback?next=/dashboard`,
+      emailRedirectTo: `${origin}/auth/callback?next=/`,
     },
   });
 
