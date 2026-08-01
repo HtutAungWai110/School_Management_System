@@ -36,24 +36,38 @@ export async function proxy(request: NextRequest) {
 
   const publicRoutes = ['/login', '/'];
 
-  const protectedRoutes = ['/admin/dashboard/overview', '/admin/dashboard/students'];
+  const roleRoutes: Record<string, string> = {
+    admin: '/admin',
+    teacher: '/teacher',
+    student: '/student',
+  };
 
-  const isProtected = protectedRoutes.some((route) => path === route || path.startsWith(`${route}/`));
+  const currentRolePrefix = Object.values(roleRoutes).find(
+    (prefix) => path === prefix || path.startsWith(`${prefix}/`)
+  );
+
+  const home = profile?.role
+    ? `/${profile.role}/dashboard/overview`
+    : '/admin/dashboard/overview';
 
   // 2. Unauthenticated Redirects
-  if (!user && isProtected) {
+  if (!user && currentRolePrefix) {
     return NextResponse.redirect(new URL('/login', request.url));
   }
 
   // 3. Prevent logged-in users from seeing the login page and landing page
   if (user && publicRoutes.includes(path)) {
-    const home = profile?.role ? `${profile.role}/dashboard/overview` : 'admin/dashboard/overview';
-    return NextResponse.redirect(new URL(`/${home}`, request.url));
+    return NextResponse.redirect(new URL(home, request.url));
+  }
+
+  // 4. Role-based Access Control - redirect to own home on role mismatch
+  if (user && currentRolePrefix && currentRolePrefix !== `/${profile?.role}`) {
+    return NextResponse.redirect(new URL(home, request.url));
   }
 
   return supabaseResponse;
 }
 
 export const config = {
-  matcher: ['/', '/login', '/admin/:path*', '/:path*/dashboard/:path*'],
+  matcher: ['/', '/login', '/admin/:path*', '/teacher/:path*', '/student/:path*'],
 };
