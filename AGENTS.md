@@ -20,7 +20,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 ## Architecture
 - Root layout: `app/layout.tsx` (Geist fonts, `h-full` body)
-- Supabase clients: `lib/supabase/client.ts` (browser), `lib/supabase/server.ts` (server via cookies)
+- Supabase clients: `lib/supabase/browser.client.ts` (browser), `lib/supabase/server.client.ts` (server via cookies)
 - `middleware.ts` refreshes session on every request; redirects unauthed `/dashboard/*` → `/login`, authed `/login` → `/dashboard`
 - Path alias `@/*` → project root
 

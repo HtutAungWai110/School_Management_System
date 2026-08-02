@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react"
 import Image from "next/image"
 import { X, Fingerprint } from "lucide-react"
-import { cn } from "@/lib/utils"
+import { cn } from "@/lib/utils.util"
 import type { Profile } from "@/types/profile.type"
 
 function getInitials(name: string) {

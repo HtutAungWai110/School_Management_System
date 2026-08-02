@@ -3,7 +3,7 @@
 "use client"
 
 import { usePathname } from "next/navigation"
-import { cn } from "@/lib/utils"
+import { cn } from "@/lib/utils.util"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 
 import {
@@ -12,7 +12,7 @@ import {
   PaginationEllipsis,
   PaginationItem,
   PaginationLink,
-} from "@/components/ui/pagination"
+} from "@/components/ui/pagination.component"
 
 type PageItem = number | "start-ellipsis" | "end-ellipsis"
 

@@ -3,11 +3,11 @@
 import { useEffect, useRef } from "react"
 import { useForm, useWatch } from "react-hook-form"
 import { X, User, Mail, Phone } from "lucide-react"
-import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
-import { cn } from "@/lib/utils"
+import { Input } from "@/components/ui/input.component"
+import { Button } from "@/components/ui/button.component"
+import { cn } from "@/lib/utils.util"
 import type { Profile } from "@/types/profile.type"
-import { refetchData } from "@/lib/action"
+import { refetchData } from "@/lib/action.action"
 
 type Role = "student" | "teacher" | "admin"
 

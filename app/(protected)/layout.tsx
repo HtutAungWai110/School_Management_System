@@ -1,6 +1,6 @@
-import { createClient } from "@/lib/supabase/server";
-import ProfileStoreSync from "@/components/ProfileStoreSync";
-import Sidebar from "./sidebar";
+import { createClient } from "@/lib/supabase/server.client";
+import ProfileStoreSync from "@/components/profile/profile-store-sync.component";
+import Sidebar from "@/components/admin/admin-sidebar.component";
 
 export default async function ProtectedLayout({
   children,

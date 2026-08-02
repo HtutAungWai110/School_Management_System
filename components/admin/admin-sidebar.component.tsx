@@ -1,7 +1,7 @@
 'use client'
 
 import Image from "next/image"
-import ProfileCard from "@/components/ProfileCard"
+import ProfileCard from "@/components/profile/profile-card.component"
 import { LayoutDashboard, GraduationCap, User, Users, Calendar, Settings } from "lucide-react"
 import { usePathname } from "next/navigation"
 import Link from "next/link"

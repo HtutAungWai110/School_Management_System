@@ -3,10 +3,10 @@
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Mail, Lock, User, Eye, EyeOff } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { loginWithEmail, signUpWithEmail } from '@/app/auth/actions';
-import { createClient } from '@/lib/supabase/client';
+import { Button } from '@/components/ui/button.component';
+import { Input } from '@/components/ui/input.component';
+import { loginWithEmail, signUpWithEmail } from '@/app/auth/auth.action';
+import { createClient } from '@/lib/supabase/browser.client';
 import Image from 'next/image';
 
 type FormValues = {

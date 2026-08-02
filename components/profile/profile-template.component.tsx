@@ -4,8 +4,8 @@ import { useEffect, useRef, useState } from "react"
 import Image from "next/image"
 import { MoreVertical, Eye, Pencil, Trash2 } from "lucide-react"
 import type { Profile } from "@/types/profile.type"
-import { ProfileViewPanel } from "./ProfileViewPanel"
-import { EditProfilePanel } from "./EditProfilePanel"
+import { ProfileViewPanel } from "./profile-view-panel.component"
+import { EditProfilePanel } from "./edit-profile-panel.component"
 
 function getInitials(name: string) {
   return name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)

@@ -1,11 +1,9 @@
-
-
-import { MetricCard } from "../metric-card"
-import { PaginationNav } from "@/components/PaginationNav"
-import { ProfileTemplate } from "@/components/ProfileTemplate"
+import { MetricCard } from "@/components/admin/metric-card.component"
+import { PaginationNav } from "@/components/navigation/pagination-nav.component"
+import { ProfileTemplate } from "@/components/profile/profile-template.component"
 import { Search, CircleHelp, Bell, User, UserPlus, ClipboardCheck, Filter, Plus } from "lucide-react"
 
-import { serverFetch } from "@/lib/server.fetch"
+import { serverFetch } from "@/lib/server.service"
 import type { Profile } from "@/types/profile.type"
 
 interface PageProps {

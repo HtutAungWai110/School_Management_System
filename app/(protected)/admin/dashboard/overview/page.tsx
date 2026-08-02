@@ -1,10 +1,10 @@
 
-import { MetricCard } from "../metric-card"
-import { ActivityItem } from "../activity-item"
-import { AdmissionRow } from "../admission-row"
+import { MetricCard } from "@/components/admin/metric-card.component"
+import { ActivityItem } from "@/components/admin/activity-item.component"
+import { AdmissionRow } from "@/components/admin/admission-row.component"
 import { Search, CircleHelp, Bell, GraduationCap, User, Users, ClipboardList, AlertTriangle, Mail } from "lucide-react"
 
-import { serverFetch } from "@/lib/server.fetch"
+import { serverFetch } from "@/lib/server.service"
 
 
 export default async function AdminPage() {
