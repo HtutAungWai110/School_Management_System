@@ -10,13 +10,20 @@ interface PageProps {
   searchParams: Promise<{page?: string}>
 }
 
+interface StudentsData {
+  students: Profile[]
+  totalCount: number
+  newEnrollments: number
+  totalPages: number
+}
+
 export default async function StudentsPage({ searchParams }: PageProps) {
 
   const { page } = await searchParams;
 
   const currentPage = page || 1;
 
-  const data = await serverFetch(`http://localhost:3000/api/students?page=${currentPage}`, {next: {revalidate: 120}}).then(res => res.json())
+  const data = await serverFetch(`http://localhost:3000/api/students?page=${currentPage}`, {next: {revalidate: 120}}).then(res => res.json()) as StudentsData
 
 
   const students = data?.students ?? []

@@ -1,4 +1,5 @@
 "use client"
+import { usePathname } from "next/navigation"
 
 import { useEffect, useRef } from "react"
 import { useForm, useWatch } from "react-hook-form"
@@ -8,6 +9,7 @@ import { Button } from "@/components/ui/button.component"
 import { cn } from "@/lib/utils.util"
 import type { Profile } from "@/types/profile.type"
 import { refetchData } from "@/lib/action.action"
+import { useState } from "react"
 
 type Role = "student" | "teacher" | "admin"
 
@@ -31,6 +33,11 @@ interface EditProfilePanelProps {
 
 export function EditProfilePanel({ profile, onClose }: EditProfilePanelProps) {
   const closeRef = useRef<HTMLButtonElement>(null)
+
+  const pathname = usePathname()
+
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false)
+
 
   const {
     control,
@@ -76,6 +83,7 @@ export function EditProfilePanel({ profile, onClose }: EditProfilePanelProps) {
   }, [onClose])
 
   async function onSubmit(data: EditFormValues) {
+    setIsSubmitting(true)
     const res = await fetch(`/api/profile/${profile.id}`, {
       method: "POST",
       credentials: "include",
@@ -87,8 +95,9 @@ export function EditProfilePanel({ profile, onClose }: EditProfilePanelProps) {
 
 
     console.log(profileData)
-    await refetchData("/admin/dashboard/students")
+    await refetchData(pathname)
     onClose()
+    setIsSubmitting(false)
   }
 
   const inputErrorClass = "aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/30"
@@ -261,7 +270,7 @@ export function EditProfilePanel({ profile, onClose }: EditProfilePanelProps) {
             <Button type="button" variant="outline" onClick={onClose}>
               Cancel
             </Button>
-            <Button type="submit">Save changes</Button>
+            <Button disabled={isSubmitting} type="submit">Save changes</Button>
           </footer>
         </form>
       </div>

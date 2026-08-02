@@ -2,7 +2,7 @@
 
 import Image from "next/image"
 import ProfileCard from "@/components/profile/profile-card.component"
-import { LayoutDashboard, GraduationCap, User, Users, Calendar, Settings } from "lucide-react"
+import { LayoutDashboard, GraduationCap, User, Users, Calendar, Settings, Book } from "lucide-react"
 import { usePathname } from "next/navigation"
 import Link from "next/link"
 
@@ -14,7 +14,8 @@ export default function Sidebar() {
   const navLinks = [
     { href: "/admin/dashboard/overview", label: "Overview", icon: LayoutDashboard, active: path === "/admin/dashboard/overview" },
     { href: "/admin/dashboard/students", label: "Students", icon: GraduationCap, active: path === "/admin/dashboard/students" },
-    { href: "#", label: "Teachers", icon: User },
+    { href: "/admin/dashboard/teachers", label: "Teachers", icon: User, active: path === "/admin/dashboard/teachers" },
+    { href: "/admin/dashboard/modules", label: "Modules", icon: Book, active: path === "/admin/dashboard/modules"  },
     { href: "#", label: "Batches", icon: Users },
     { href: "#", label: "Schedule", icon: Calendar },
     { href: "#", label: "Settings", icon: Settings },
