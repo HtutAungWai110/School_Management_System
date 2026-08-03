@@ -1,3 +1,8 @@
+export type Level = {
+  id: string
+  description: string
+}
+
 export type ModuleLevel = {
   required: string
   levels: {
