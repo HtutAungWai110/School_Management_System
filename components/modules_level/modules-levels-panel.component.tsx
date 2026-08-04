@@ -127,6 +127,7 @@ export function ModulesLevelsPanel({ module, levels, onClose }: ModulesLevelsPan
         .map((row) => ({ level_id: row.levelId, required: row.required })),
     }
 
+
     try {
       const res = await fetch(`/api/modules_level/${module.id}`, {
         method: "PATCH",
@@ -140,6 +141,9 @@ export function ModulesLevelsPanel({ module, levels, onClose }: ModulesLevelsPan
         setSubmitError(data?.error ?? "Something went wrong while saving the levels.")
         return
       }
+
+      const patchData = await res.json().catch(() => null)
+      console.log(patchData)
 
       await refetchData(pathname)
       onClose()

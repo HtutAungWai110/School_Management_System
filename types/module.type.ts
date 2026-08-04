@@ -5,10 +5,7 @@ export type Level = {
 
 export type ModuleLevel = {
   required: string
-  levels: {
-    id: string
-    description: string
-  }
+  levels: Level
 }
 
 export type Module = {
