@@ -2,7 +2,7 @@
 
 import Image from "next/image"
 import ProfileCard from "@/components/profile/profile-card.component"
-import { LayoutDashboard, GraduationCap, User, Users, Calendar, Settings, Book } from "lucide-react"
+import { LayoutDashboard, GraduationCap, User, Users, Calendar, Settings, Book, BookOpenCheck } from "lucide-react"
 import { usePathname } from "next/navigation"
 import Link from "next/link"
 
@@ -16,9 +16,10 @@ export default function Sidebar() {
     { href: "/admin/dashboard/students", label: "Students", icon: GraduationCap, active: path === "/admin/dashboard/students" },
     { href: "/admin/dashboard/teachers", label: "Teachers", icon: User, active: path === "/admin/dashboard/teachers" },
     { href: "/admin/dashboard/modules", label: "Modules", icon: Book, active: path === "/admin/dashboard/modules"  },
+    { href: "/admin/dashboard/enrollments", label: "Enrollments", icon: BookOpenCheck, active: path === "/admin/dashboard/enrollments" },
     { href: "#", label: "Batches", icon: Users },
     { href: "#", label: "Schedule", icon: Calendar },
-    { href: "#", label: "Settings", icon: Settings },
+    { href: "/admin/dashboard/settings", label: "Settings", icon: Settings, active: path === "/admin/dashboard/settings"  },
   ]
   return (
     <aside className="w-64 bg-surface-container-lowest border-r border-outline-variant/10 flex flex-col fixed h-full z-20">

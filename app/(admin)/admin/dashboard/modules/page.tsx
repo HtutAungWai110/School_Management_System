@@ -3,11 +3,20 @@ import { Search, CircleHelp, Bell, Filter } from "lucide-react"
 import { serverFetch } from "@/lib/server.service"
 import { ModulesRow } from "@/components/modules_level/modules-row.component"
 import type { Level, Module } from "@/types/module.type"
+import SearchBar from "@/components/search/searchbar.component"
 
-export default async function ModulesPage() {
+export default async function ModulesPage({ searchParams }: { searchParams: Promise<{ search?: string }> }) {
+  const { search } = await searchParams;
+
+  let url = "http://localhost:3000/api/modules_level"
+
+  if (search) {
+    url += `?search=${search}`;
+  }
 
   const [modules, levels] = await Promise.all([
-    serverFetch(`http://localhost:3000/api/modules_level`, { next: { revalidate: 120 } }).then(res => res.json()) as Promise<Module[]>,
+
+    serverFetch(url, { next: { revalidate: 120 } }).then(res => res.json()) as Promise<Module[]>,
     serverFetch(`http://localhost:3000/api/levels`, { next: { revalidate: 120 } }).then(res => res.json()) as Promise<Level[]>,
   ])
 
@@ -19,14 +28,15 @@ export default async function ModulesPage() {
           <div className="flex justify-between items-center px-12 py-4 max-w-[1440px] mx-auto">
             <h1 className="text-[24px] font-[600] leading-[32px] text-primary">Modules</h1>
             <div className="flex items-center gap-6">
-              <div className="flex items-center bg-surface-container-low px-4 py-2 rounded-lg border border-outline-variant/10">
+              {/*<div className="flex items-center bg-surface-container-low px-4 py-2 rounded-lg border border-outline-variant/10">
                 <Search className="w-5 h-5 text-on-surface-variant mr-2" />
                 <input
                   className="bg-transparent border-none focus:outline-none text-[14px] leading-[20px] text-on-surface placeholder:text-on-surface-variant w-48"
                   placeholder="Search modules..."
                   type="text"
                 />
-              </div>
+              </div>*/}
+              <SearchBar placeholder="Search Modules..."/>
               <button className="text-on-surface-variant hover:text-primary transition-colors duration-200 flex items-center gap-1">
                 <CircleHelp className="w-5 h-5" />
                 <span className="text-[14px] font-[600] leading-[16px] tracking-[0.05em]">Help</span>

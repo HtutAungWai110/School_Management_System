@@ -5,7 +5,7 @@
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils.util"
 import { ChevronLeft, ChevronRight } from "lucide-react"
-
+import { useSearchParams } from "next/navigation"
 import {
   Pagination,
   PaginationContent,
@@ -30,6 +30,9 @@ function getPageItems(page: number, totalPages: number): PageItem[] {
   return items
 }
 
+
+
+
 interface PaginationNavProps {
   page: number
   totalPages: number
@@ -38,9 +41,18 @@ interface PaginationNavProps {
 
 export function PaginationNav({ page, totalPages, className }: PaginationNavProps) {
   const path = usePathname()
+  const searchParams = useSearchParams()
+  const search = searchParams.get("search")
+  const filter = searchParams.get("filter")
   const currentPage = Math.min(Math.max(page, 1), Math.max(totalPages, 1))
   const items = getPageItems(currentPage, totalPages)
-  const buildHref = (value: number) => `${path}?page=${value}`
+  const buildHref = (value: number) => {
+    const params = new URLSearchParams()
+    params.set("page", String(value))
+    if (search) params.set("search", search)
+    if (filter) params.set("filter", filter)
+    return `${path}?${params.toString()}`
+  }
 
   return (
     <Pagination className={cn("w-auto", className)}>

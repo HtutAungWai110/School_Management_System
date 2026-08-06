@@ -5,34 +5,59 @@ export async function GET(req: NextRequest) {
   const supabase = await createClient();
 
   const params = req.nextUrl.searchParams;
-  const page = params.get("page") ?? "1"
+  const page = Math.max(parseInt(params.get("page") ?? "1", 10) || 1, 1);
+  const search = params.get("search") ?? "";
+  const filter = params.get("filter") ?? "";
+
+  const recentSince = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
 
   const pageSize = 20;
 
-  const from = Math.max((parseInt(page, 10) - 1) * pageSize, 1);
-  const to = from + pageSize - 1
+  const from = (page - 1) * pageSize;
+  const to = from + pageSize - 1;
 
-  const { data: students, error } = await supabase
+  let query = supabase
     .from("profiles")
     .select("*", { count: "exact" })
     .eq("role", "student")
-    .range(from, to)
-    .order("created_at", { ascending: false });
+    .range(from, to);
 
-  const { count } = await supabase
+  if (search) {
+    query = query.ilike("full_name", `%${search}%`);
+  }
+
+  if (filter === "recent") {
+    query = query.gte("created_at", recentSince);
+  }
+
+  query = query.order("created_at", { ascending: false });
+
+  const { data: students, error } = await query;
+
+  let countQuery = supabase
     .from("profiles")
     .select("*", { count: "exact", head: true })
     .eq("role", "student");
+
+  if (search) {
+    countQuery = countQuery.ilike("full_name", `%${search}%`);
+  }
+
+  if (filter === "recent") {
+    countQuery = countQuery.gte("created_at", recentSince);
+  }
+
+  const { count } = await countQuery;
 
   const { count: newEnrollments } = await supabase
     .from("profiles")
     .select("*", { count: "exact", head: true })
     .eq("role", "student")
-    .gte("created_at", new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString());
+    .gte("created_at", recentSince);
 
   const totalCount = count ?? 0;
 
-  const totalPages = Math.ceil(totalCount / pageSize || 0)
+  const totalPages = Math.ceil(totalCount / pageSize);
 
   if (error) {
     return NextResponse.json({ error: "Failed to fetch students" }, { status: 500 });

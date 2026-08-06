@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server.client";
 
-export async function GET(request: NextRequest) {
+export async function GET(req: NextRequest) {
   const supabase = await createClient();
-  const { data, error } = await supabase
+  const params = req.nextUrl.searchParams;
+
+  const search = params.get('search') ?? "";
+  let query = supabase
     .from('modules')
     .select(`
       id,
@@ -17,6 +20,12 @@ export async function GET(request: NextRequest) {
         )
       )
     `);
+  if (search) {
+    query
+      .ilike('title', `%${search}%`);
+  }
+
+  const {data, error} = await query;
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
