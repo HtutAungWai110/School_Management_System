@@ -2,6 +2,7 @@
 
 import Image from "next/image"
 import ProfileCard from "@/components/profile/profile-card.component"
+import ThemeToggle from "@/components/theme/theme-toggle.component"
 import { LayoutDashboard, GraduationCap, User, Users, Calendar, Settings, Book, BookOpenCheck } from "lucide-react"
 import { usePathname } from "next/navigation"
 import Link from "next/link"
@@ -17,7 +18,7 @@ export default function Sidebar() {
     { href: "/admin/dashboard/teachers", label: "Teachers", icon: User, active: path === "/admin/dashboard/teachers" },
     { href: "/admin/dashboard/modules", label: "Modules", icon: Book, active: path === "/admin/dashboard/modules"  },
     { href: "/admin/dashboard/enrollments", label: "Enrollments", icon: BookOpenCheck, active: path === "/admin/dashboard/enrollments" },
-    { href: "#", label: "Batches", icon: Users },
+    { href: "/admin/dashboard/batches", label: "Batches", icon: Users, active: path === "/admin/dashboard/batches" },
     { href: "#", label: "Schedule", icon: Calendar },
     { href: "/admin/dashboard/settings", label: "Settings", icon: Settings, active: path === "/admin/dashboard/settings"  },
   ]
@@ -52,7 +53,10 @@ export default function Sidebar() {
         })}
       </nav>
       <div className="p-6 border-t border-outline-variant/10">
-        <ProfileCard />
+        <div className="flex items-center justify-between">
+          <ProfileCard />
+          <ThemeToggle />
+        </div>
       </div>
     </aside>
   )

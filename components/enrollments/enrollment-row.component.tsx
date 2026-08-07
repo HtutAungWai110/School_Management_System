@@ -45,7 +45,7 @@ export function EnrollmentRow({ student }: { student: EnrolledStudent }) {
             enrollments.map((enrollment) => (
               <span
                 key={enrollment.id}
-                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-secondary-container/30 text-secondary border border-secondary-container/60 text-[12px] font-[600] leading-[16px]"
+                className="text-on-background/10 bg-primary-fixed/50 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-secondary-container/60 text-[12px] font-[600] leading-[16px]"
               >
                 <BookOpen className="w-3.5 h-3.5" />
                 <span className="font-[700]">{enrollment.modules.code}</span>

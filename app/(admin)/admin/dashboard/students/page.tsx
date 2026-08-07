@@ -69,9 +69,6 @@ export default async function StudentsPage({ searchParams }: PageProps) {
               label="Active Students"
               value={totalCount}
               badge={"+" + percentIncrease.toString() + "%" }
-              badgeClass="text-green-600 bg-green-50"
-              iconBg="bg-secondary-container/50"
-              iconColor="text-secondary"
               subtitle="Enrolled"
             />
             <MetricCard
@@ -79,9 +76,6 @@ export default async function StudentsPage({ searchParams }: PageProps) {
               label="New Enrollments"
               value={newEnrollments}
               badge="Last 30 days"
-              badgeClass="text-on-surface-variant bg-surface-container"
-              iconBg="bg-tertiary-fixed/30"
-              iconColor="text-on-tertiary-fixed-variant"
               subtitle=""
             />
             <MetricCard
@@ -89,9 +83,6 @@ export default async function StudentsPage({ searchParams }: PageProps) {
               label="Avg. Attendance"
               value="94.2%"
               badge="Stable"
-              badgeClass="text-on-primary-fixed-variant bg-primary-fixed/50"
-              iconBg="bg-primary-fixed/30"
-              iconColor="text-on-primary-fixed-variant"
               subtitle=""
             />
           </div>

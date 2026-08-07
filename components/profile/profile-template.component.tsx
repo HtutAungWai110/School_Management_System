@@ -65,7 +65,7 @@ export function ProfileTemplate({ profile }: { profile: Profile }) {
       </td>
       <td className="px-6 py-4 text-[14px] leading-[20px] text-on-surface-variant">{profile.email}</td>
       <td className="px-6 py-4">
-        <span className="px-2.5 py-0.5 rounded-full bg-secondary-container/30 text-secondary border border-secondary-container text-[12px] font-[500] leading-[16px] capitalize">
+        <span className="px-2.5 py-0.5 rounded-full text-on-background/10 bg-primary-fixed/50 border border-secondary-container text-[12px] font-[500] leading-[16px] capitalize">
           {profile.role}
         </span>
       </td>

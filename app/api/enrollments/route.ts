@@ -5,6 +5,7 @@ const PAGE_SIZE = 10;
 
 const ENROLLMENT_SELECT = `
   *,
+  batch_assignments (),
   student_enrollments (
     id,
     enrolled_at,
@@ -23,6 +24,7 @@ const ENROLLMENT_SELECT = `
 
 const LEVEL_ENROLLMENT_SELECT = `
   *,
+  batch_assignments (),
   student_enrollments!inner (
     id,
     enrolled_at,
@@ -54,6 +56,7 @@ export async function GET(request: NextRequest) {
     .from("profiles")
     .select(levelId ? LEVEL_ENROLLMENT_SELECT : ENROLLMENT_SELECT, { count: "exact" })
     .eq("role", "student")
+    .is("batch_assignments", null)
     .range(from, to)
     .order("created_at", { ascending: false });
 

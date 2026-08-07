@@ -1,15 +1,15 @@
-export function MetricCard({ icon: Icon, label, value, badge, badgeClass, iconBg, iconColor, subtitle }: {
+export function MetricCard({ icon: Icon, label, value, badge, subtitle, iconBg = "bg-tertiary-fixed", iconColor = "text-on-primary-fixed-variant", badgeClass = "text-on-background/10 bg-primary-fixed/50" }: {
   icon: React.ComponentType<{ className?: string }>
   label: string
   value: number | string
   badge: string
-  badgeClass: string
-  iconBg: string
-  iconColor: string
   subtitle: string
+  iconBg?: string
+  iconColor?: string
+  badgeClass?: string
 }) {
   return (
-    <div className="p-6 rounded-xl border border-outline-variant/20 shadow-[0_4px_6px_-1px_rgba(15,23,42,0.05)] hover:shadow-md transition-shadow duration-300" style={{ background: "rgba(255,255,255,0.7)", backdropFilter: "blur(8px)" }}>
+    <div className="p-6 rounded-xl border border-outline-variant/20 bg-surface-container-lowest/70 backdrop-blur shadow-[0_4px_6px_-1px_rgba(15,23,42,0.05)] hover:shadow-md transition-shadow duration-300">
       <div className="flex justify-between items-start mb-4">
         <div className={`p-2 rounded-lg ${iconBg}`}>
           <Icon className={`w-5 h-5 ${iconColor}`} />

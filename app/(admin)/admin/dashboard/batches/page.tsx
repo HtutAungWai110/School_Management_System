@@ -1,51 +1,32 @@
-import { MetricCard } from "@/components/admin/metric-card.component"
-import { PaginationNav } from "@/components/navigation/pagination-nav.component"
-import { EnrollmentRow } from "@/components/enrollments/enrollment-row.component"
-import { CircleHelp, Bell, Users, BookOpenCheck, Layers } from "lucide-react"
-import SearchBar from "@/components/search/searchbar.component"
-import FilterButton from "@/components/search/filter-dropdown.component"
+import { CircleHelp, Bell } from "lucide-react"
 
 import { serverFetch } from "@/lib/server.service"
-import type { EnrollmentsResponse } from "@/types/enrollment.type"
+import { BatchesRow } from "@/components/batches/batches-row.component"
+import { BatchesCreateButton } from "@/components/batches/batches-create-button.component"
+import type { Batch } from "@/types/batch.type"
 import type { Level } from "@/types/module.type"
 
-interface PageProps {
-  searchParams: Promise<{ page?: string, search?: string, filter?: string }>
-}
+export default async function BatchesPage({ searchParams }: { searchParams: Promise<{ search?: string }> }) {
+  const { search } = await searchParams;
 
-export default async function EnrollmentsPage({ searchParams }: PageProps) {
-  const { page, search, filter } = await searchParams;
-  const currentPage = page || 1;
+  let url = "http://localhost:3000/api/batches"
 
-  let url = `http://localhost:3000/api/enrollments?page=${currentPage}`
   if (search) {
-    url += `&search=${encodeURIComponent(search)}`
-  }
-  if (filter) {
-    url += `&filter=${encodeURIComponent(filter)}`
+    url += `?search=${encodeURIComponent(search)}`;
   }
 
-  const [data, levels] = await Promise.all([
-    serverFetch(url, { next: { revalidate: 120 } }).then(res => res.json()) as Promise<EnrollmentsResponse>,
+  const [batches, levels] = await Promise.all([
+    serverFetch(url, { next: { revalidate: 120 } }).then(res => res.json()) as Promise<Batch[]>,
     serverFetch(`http://localhost:3000/api/levels`, { next: { revalidate: 120 } }).then(res => res.json()) as Promise<Level[]>,
-  ])
-
-  const enrollments = data?.enrollments ?? []
-  const totalCount = data?.totalCount ?? 0
-  const totalEnrollments = data?.totalEnrollments ?? 0
-  const totalPages = data?.totalPages ?? 0
-
-  const activeLevels = new Set(enrollments.flatMap((student) => student.student_enrollments?.map((enrollment) => enrollment.levels?.id).filter(Boolean))).size
-  const levelOptions = (levels ?? []).map((level) => ({ label: level.description, value: level.id }))
+  ]);
 
   return (
     <div className="min-h-screen bg-background flex">
       <main className="flex-1 ml-64">
         <header className="bg-background sticky top-0 z-10 w-full border-b border-outline-variant/10">
           <div className="flex justify-between items-center px-12 py-4 max-w-[1440px] mx-auto">
-            <h1 className="text-[24px] font-[600] leading-[32px] text-primary">Enrollments</h1>
+            <h1 className="text-[24px] font-[600] leading-[32px] text-primary">Batches</h1>
             <div className="flex items-center gap-6">
-              <SearchBar placeholder="Search students..." />
               <button className="text-on-surface-variant hover:text-primary transition-colors duration-200 flex items-center gap-1">
                 <CircleHelp className="w-5 h-5" />
                 <span className="text-[14px] font-[600] leading-[16px] tracking-[0.05em]">Help</span>
@@ -59,43 +40,16 @@ export default async function EnrollmentsPage({ searchParams }: PageProps) {
         </header>
 
         <div className="px-12 py-10 max-w-[1440px] mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-            <MetricCard
-              icon={Users}
-              label="Enrolled Students"
-              value={totalCount}
-              badge="Active"
-              subtitle="Students"
-            />
-            <MetricCard
-              icon={BookOpenCheck}
-              label="Module Enrollments"
-              value={totalEnrollments}
-              badge="All time"
-              subtitle="Registrations"
-            />
-            <MetricCard
-              icon={Layers}
-              label="Active Levels"
-              value={activeLevels}
-              badge="In use"
-              subtitle="Diplomas"
-            />
-          </div>
-
           <div className="bg-surface-container-lowest rounded-xl border border-outline-variant/10 overflow-hidden shadow-[0_4px_6px_-1px_rgba(15,23,42,0.05)]">
             <div className="p-6 border-b border-outline-variant/10 flex justify-between items-center">
-              <h2 className="text-[20px] font-[600] leading-[28px] text-primary">Enrollment Directory</h2>
-              <div className="flex items-center gap-4">
-                <FilterButton options={levelOptions} label="Level" />
-                <span className="text-[12px] font-[500] leading-[16px] text-on-surface-variant">{totalEnrollments} module registrations</span>
-              </div>
+              <h2 className="text-[20px] font-[600] leading-[28px] text-primary">Batch Directory</h2>
+              <BatchesCreateButton levels={levels ?? []} />
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead className="bg-surface-container-low">
                   <tr>
-                    {["Student", "Enrolled Modules", "Level", "Enrolled At"].map((h) => (
+                    {["Batch", "Levels", "Students", "Created", ""].map((h) => (
                       <th key={h} className="px-6 py-3 text-[12px] font-[500] leading-[16px] text-on-surface-variant uppercase tracking-wider">
                         {h}
                       </th>
@@ -103,17 +57,16 @@ export default async function EnrollmentsPage({ searchParams }: PageProps) {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-outline-variant/10">
-                  {enrollments.map((student) => (
-                    <EnrollmentRow key={student.id} student={student} />
+                  {batches.map((batch) => (
+                    <BatchesRow key={batch.id} batch={batch} />
                   ))}
                 </tbody>
               </table>
             </div>
             <div className="px-6 py-4 border-t border-outline-variant/10 flex justify-between items-center bg-surface-container-low/20">
               <p className="text-[12px] font-[500] leading-[16px] text-on-surface-variant">
-                Showing 1-{enrollments.length} of {totalCount} students
+                Showing {batches.length} batches
               </p>
-              <PaginationNav page={Number(currentPage)} totalPages={Number(totalPages)} />
             </div>
           </div>
         </div>

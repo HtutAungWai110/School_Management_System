@@ -48,9 +48,6 @@ export default async function AdminPage() {
               label="Total Students"
               value={studentCount ?? 0}
               badge="+12%"
-              badgeClass="text-green-600 bg-green-50"
-              iconBg="bg-secondary-container/50"
-              iconColor="text-secondary"
               subtitle="Enrolled"
             />
             <MetricCard
@@ -58,9 +55,6 @@ export default async function AdminPage() {
               label="Total Teachers"
               value={teacherCount ?? 0}
               badge="Stable"
-              badgeClass="text-on-surface-variant bg-surface-container"
-              iconBg="bg-tertiary-fixed/30"
-              iconColor="text-on-tertiary-fixed-variant"
               subtitle="Active"
             />
             <MetricCard
@@ -68,9 +62,6 @@ export default async function AdminPage() {
               label="Total Batches"
               value={12}
               badge="New Semester"
-              badgeClass="text-on-primary-fixed-variant bg-primary-fixed/50"
-              iconBg="bg-primary-fixed/30"
-              iconColor="text-on-primary-fixed-variant"
               subtitle="Live Courses"
             />
           </div>
@@ -102,7 +93,7 @@ export default async function AdminPage() {
                     className={`w-full rounded-t-lg transition-all hover:brightness-110 relative group ${i === 4 ? "bg-primary" : "bg-secondary/10 hover:bg-secondary/30"}`}
                     style={{ height: `${h}%` }}
                   >
-                    <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-primary text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                    <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-primary text-on-primary text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
                       {h}%
                     </div>
                   </div>
@@ -155,9 +146,9 @@ export default async function AdminPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-outline-variant/10">
-                  <AdmissionRow initials="JD" name="John Doe" course="Intro to Web Dev" date="Oct 24, 2024" status="Reviewing" statusClass="bg-yellow-100 text-yellow-800" />
-                  <AdmissionRow initials="AS" name="Alice Smith" course="Data Structures" date="Oct 23, 2024" status="Interviewed" statusClass="bg-blue-100 text-blue-800" />
-                  <AdmissionRow initials="MB" name="Michael Brown" course="Advanced Python" date="Oct 22, 2024" status="Reviewing" statusClass="bg-yellow-100 text-yellow-800" />
+                  <AdmissionRow initials="JD" name="John Doe" course="Intro to Web Dev" date="Oct 24, 2024" status="Reviewing" statusClass="bg-yellow-100 text-yellow-800 dark:bg-yellow-950/40 dark:text-yellow-400" />
+                  <AdmissionRow initials="AS" name="Alice Smith" course="Data Structures" date="Oct 23, 2024" status="Interviewed" statusClass="bg-blue-100 text-blue-800 dark:bg-blue-950/40 dark:text-blue-400" />
+                  <AdmissionRow initials="MB" name="Michael Brown" course="Advanced Python" date="Oct 22, 2024" status="Reviewing" statusClass="bg-yellow-100 text-yellow-800 dark:bg-yellow-950/40 dark:text-yellow-400" />
                 </tbody>
               </table>
             </div>

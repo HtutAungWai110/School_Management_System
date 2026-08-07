@@ -69,7 +69,7 @@ export default function FilterButton({ options, label = "Filters" }: FilterButto
         <Filter className="w-5 h-5" />
         {label}
         {activeLabel && (
-          <span className="px-2 py-0.5 rounded-full bg-secondary-container/30 text-secondary border border-secondary-container text-[12px] font-[500] leading-[16px]">
+          <span className="px-2 py-0.5 rounded-full text-on-background/10 bg-primary-fixed/50 border border-secondary-container text-[12px] font-[500] leading-[16px]">
             {activeLabel}
           </span>
         )}
