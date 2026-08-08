@@ -79,7 +79,7 @@ CREATE TABLE public.student_enrollments (
 CREATE TABLE public.batch_level (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   level_id uuid REFERENCES levels(id),
-  batch_level uuid REFERENCES batches(id),
+  batch_id uuid REFERENCES batches(id) ON UPDATE CASCADE ON DELETE CASCADE,
   created_at timestamp DEFAULT CURRENT_TIMESTAMP
 );
 

@@ -95,7 +95,7 @@ export default async function EnrollmentsPage({ searchParams }: PageProps) {
               <table className="w-full text-left border-collapse">
                 <thead className="bg-surface-container-low">
                   <tr>
-                    {["Student", "Enrolled Modules", "Level", "Enrolled At"].map((h) => (
+                    {["Student", "Enrolled Modules", "Level", "Enrolled At", ""].map((h) => (
                       <th key={h} className="px-6 py-3 text-[12px] font-[500] leading-[16px] text-on-surface-variant uppercase tracking-wider">
                         {h}
                       </th>

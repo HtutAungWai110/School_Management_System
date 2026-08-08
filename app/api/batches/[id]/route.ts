@@ -58,3 +58,52 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
 
   return NextResponse.json({ success: true });
 }
+
+export async function GET(request: NextRequest, { params }: { params: Promise<{id: string}>}) {
+  const { id } = await params;
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from("batches")
+    .select(`
+      id,
+      batch_name,
+      created_at,
+      batch_level (
+        id,
+        level_id,
+        levels (
+          id,
+          description
+        )
+      ),
+      batch_assignments (
+        id,
+        student_id,
+        assigned_at,
+        profiles (
+          id,
+          full_name,
+          email,
+          avatar_url,
+          student_enrollments(
+            modules(
+              id,
+              code,
+              title
+            )
+
+          )
+        )
+      )
+
+    `)
+    .eq("id", id)
+    .single()
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  return NextResponse.json({ data });
+}

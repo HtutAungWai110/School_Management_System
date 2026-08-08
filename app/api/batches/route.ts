@@ -73,7 +73,7 @@ export async function POST(request: NextRequest) {
 
   const levelRows = level_ids.map((level_id: string) => ({
     level_id,
-    batch_level: batch.id,
+    batch_id: batch.id,
   }));
 
   const { error: levelsError } = await supabase.from("batch_level").insert(levelRows);

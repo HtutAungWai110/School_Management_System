@@ -8,6 +8,7 @@ export async function updateModulesLevel(
 ) {
   const supabase = await createClient();
 
+
   // 1. Fetch current module configuration
   const { data, error } = await supabase
     .from("modules")
@@ -35,7 +36,7 @@ export async function updateModulesLevel(
   if (payload.length === 0) {
     const { data: deleteData, error: deleteError } = await supabase.from("modules_level").delete().eq("module_id", id);
     if (deleteError) throw new Error(`Failed to delete modules level: ${deleteError?.message}`);
-    return { updateResults: "none", deleteResults: deleteData };
+    return { updateResults: [], deleteResults: deleteData };
   }
 
   // 2. Handle updates and inserts
@@ -68,6 +69,8 @@ export async function updateModulesLevel(
   const deleteArray = modules.modules_level.filter(
     (ml) => !excludeIds.has(ml.levels.id)
   );
+
+
 
   const deletePromises = deleteArray.map((item) => {
     return supabase

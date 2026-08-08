@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
+import Link from "next/link"
 import { Users, MoreVertical, Pencil, Trash2 } from "lucide-react"
 
 import type { Batch } from "@/types/batch.type";
@@ -40,7 +41,14 @@ export function BatchesRow({ batch }: { batch: Batch }) {
             <div className="w-10 h-10 rounded-lg bg-primary-fixed/30 flex items-center justify-center">
               <Users className="w-5 h-5 text-on-primary-fixed-variant" />
             </div>
-            <span className="text-[16px] leading-[24px] font-bold text-on-surface">{batch.batch_name}</span>
+            <span className="text-[16px] leading-[24px] font-bold text-on-surface">
+              <Link
+                href={`/admin/dashboard/batches/${batch.id}`}
+                className="hover:text-primary transition-colors"
+              >
+                {batch.batch_name}
+              </Link>
+            </span>
           </div>
         </td>
         <td className="px-6 py-4">
