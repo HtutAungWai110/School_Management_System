@@ -1,6 +1,6 @@
 "use client"
 
-import { useProfileStore } from "@/states/profile.state";
+import { useProfileStore } from "@/components/profile/profile.state";
 import type { Profile } from "@/types/profile.type";
 import { useEffect } from "react";
 

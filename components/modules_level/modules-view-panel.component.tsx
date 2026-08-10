@@ -4,7 +4,6 @@ import { Hash, Layers } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { ModulesPanelShell } from "./modules-panel-shell.component"
-import { requiredBadgeClass } from "./modules-level-template.component"
 import type { Module } from "@/types/module.type"
 
 function Field({ label, value }: { label: string; value: string }) {
@@ -66,7 +65,7 @@ export function ModulesViewPanel({ module, onClose }: ModulesViewPanelProps) {
                       </span>
                     </div>
                     <span
-                      className={`shrink-0 px-2.5 py-0.5 rounded-full border text-[12px] font-[500] leading-[16px] capitalize ${requiredBadgeClass[ml.required] ?? "bg-surface-container text-on-surface-variant border-outline-variant/30"}`}
+                      className={`shrink-0 px-2.5 py-0.5 rounded-full border text-[12px] font-[500] leading-[16px] capitalize text-on-background/10 bg-primary-fixed/50`}
                     >
                       {ml.required}
                     </span>

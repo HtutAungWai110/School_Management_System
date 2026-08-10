@@ -44,7 +44,7 @@ export function BatchesRow({ batch }: { batch: Batch }) {
             <span className="text-[16px] leading-[24px] font-bold text-on-surface">
               <Link
                 href={`/admin/dashboard/batches/${batch.id}`}
-                className="hover:text-primary transition-colors"
+                className="hover:text-cyan-500 transition-colors hover:underline"
               >
                 {batch.batch_name}
               </Link>

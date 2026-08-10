@@ -6,6 +6,7 @@ import { useForm, useWatch } from "react-hook-form"
 import { X, User, Mail, Phone } from "lucide-react"
 import { Input } from "@/components/ui/input.component"
 import { Button } from "@/components/ui/button.component"
+import { ConfirmDialog } from "@/components/ui/confirm-dialog.component"
 import { cn } from "@/lib/utils.util"
 import type { Profile } from "@/types/profile.type"
 import { refetchData } from "@/lib/action.action"
@@ -37,6 +38,7 @@ export function EditProfilePanel({ profile, onClose }: EditProfilePanelProps) {
   const pathname = usePathname()
 
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false)
+const [showConfirm, setShowConfirm] = useState(false)
 
 
   const {
@@ -270,7 +272,7 @@ export function EditProfilePanel({ profile, onClose }: EditProfilePanelProps) {
             <Button type="button" variant="outline" onClick={onClose}>
               Cancel
             </Button>
-            <Button disabled={isSubmitting} type="submit">Save changes</Button>
+            <Button disabled={isSubmitting} type="button" onClick={async () => { if (window.confirm('Are you sure you want to save changes?')) { await handleSubmit(onSubmit)(); } }}>Save changes</Button>
           </footer>
         </form>
       </div>

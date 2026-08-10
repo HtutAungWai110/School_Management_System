@@ -1,13 +1,14 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
-import { BookOpen, MoreVertical, Pencil, Layers, Eye } from "lucide-react"
+import { BookOpen, MoreVertical, Pencil, Layers, Eye, Trash2 } from "lucide-react"
 
 import type { Level, Module } from "@/types/module.type"
 import { ModulesLevelTemplate } from "./modules-level-template.component"
 import { ModulesRenamePanel } from "./modules-rename-panel.component"
 import { ModulesLevelsPanel } from "./modules-levels-panel.component"
 import { ModulesViewPanel } from "./modules-view-panel.component"
+import { ModulesDeletePanel } from "./modules-delete-panel.component"
 
 export function ModulesRow({ module, levels }: {
   module: Module
@@ -17,6 +18,7 @@ export function ModulesRow({ module, levels }: {
   const [renameOpen, setRenameOpen] = useState(false)
   const [levelsOpen, setLevelsOpen] = useState(false)
   const [viewOpen, setViewOpen] = useState(false)
+  const [deleteOpen, setDeleteOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -86,6 +88,14 @@ export function ModulesRow({ module, levels }: {
                       setViewOpen(true)
                     },
                   },
+                  {
+                    label: "Delete",
+                    icon: Trash2,
+                    onClick: () => {
+                      setMenuOpen(false)
+                      setDeleteOpen(true)
+                    },
+                  },
                 ].map(({ label, icon: Icon, onClick }) => (
                   <button
                     key={label}
@@ -105,6 +115,7 @@ export function ModulesRow({ module, levels }: {
       {renameOpen && <ModulesRenamePanel module={module} onClose={() => setRenameOpen(false)} />}
       {levelsOpen && <ModulesLevelsPanel module={module} levels={levels} onClose={() => setLevelsOpen(false)} />}
       {viewOpen && <ModulesViewPanel module={module} onClose={() => setViewOpen(false)} />}
+      {deleteOpen && <ModulesDeletePanel module={module} onClose={() => setDeleteOpen(false)} />}
     </>
   )
 }

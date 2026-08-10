@@ -6,6 +6,7 @@ import { MoreVertical, Eye, Pencil, Trash2 } from "lucide-react"
 import type { Profile } from "@/types/profile.type"
 import { ProfileViewPanel } from "./profile-view-panel.component"
 import { EditProfilePanel } from "./edit-profile-panel.component"
+import { ProfileDeletePanel } from "./profile-delete-panel.component"
 
 function getInitials(name: string) {
   return name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)
@@ -19,6 +20,7 @@ export function ProfileTemplate({ profile }: { profile: Profile }) {
   const [menuOpen, setMenuOpen] = useState(false)
   const [viewOpen, setViewOpen] = useState(false)
   const [editOpen, setEditOpen] = useState(false)
+  const [deleteOpen, setDeleteOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
   const triggerRef = useRef<HTMLButtonElement>(null)
 
@@ -95,7 +97,7 @@ export function ProfileTemplate({ profile }: { profile: Profile }) {
                   },
                 },
                 { label: "Edit", icon: Pencil, onClick: () => { setMenuOpen(false); setEditOpen(true) } },
-                { label: "Delete", icon: Trash2 },
+                { label: "Delete", icon: Trash2, onClick: () => { setMenuOpen(false); setDeleteOpen(true) } },
               ].map(({ label, icon: Icon, onClick }) => (
                 <button
                   key={label}
@@ -114,6 +116,7 @@ export function ProfileTemplate({ profile }: { profile: Profile }) {
       </tr>
       {viewOpen && <ProfileViewPanel profile={profile} onClose={closeView} />}
       {editOpen && <EditProfilePanel profile={profile} onClose={() => setEditOpen(false)} />}
+      {deleteOpen && <ProfileDeletePanel profile={profile} onClose={() => setDeleteOpen(false)} />}
     </>
   )
 }

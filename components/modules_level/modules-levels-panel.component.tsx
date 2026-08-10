@@ -185,7 +185,7 @@ export function ModulesLevelsPanel({ module, levels, onClose }: ModulesLevelsPan
               </p>
             </div>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-3 h-80 overflow-y-auto">
               {fields.map((field, index) => (
                 <div
                   key={field.id}

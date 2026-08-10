@@ -1,6 +1,6 @@
 "use client"
 
-import { useProfileStore } from "@/states/profile.state"
+import { useProfileStore } from "@/components/profile/profile.state"
 import Image from "next/image"
 import { ChevronDown } from "lucide-react"
 
