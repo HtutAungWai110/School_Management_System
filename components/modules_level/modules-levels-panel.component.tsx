@@ -6,6 +6,7 @@ import { Controller, useFieldArray, useForm } from "react-hook-form"
 import { Layers, Plus, Trash2 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
+import { ConfirmDialog } from "@/components/ui/confirm-dialog.component"
 import {
   Combobox,
   ComboboxContent,
@@ -94,6 +95,7 @@ interface ModulesLevelsPanelProps {
 export function ModulesLevelsPanel({ module, levels, onClose }: ModulesLevelsPanelProps) {
   const pathname = usePathname()
   const [submitError, setSubmitError] = useState<string | null>(null)
+  const [showConfirm, setShowConfirm] = useState<boolean>(false)
 
   const {
     control,
@@ -153,6 +155,7 @@ export function ModulesLevelsPanel({ module, levels, onClose }: ModulesLevelsPan
   }
 
   return (
+    <>
     <ModulesPanelShell
       title="Edit levels"
       subtitle={module.title}
@@ -279,11 +282,25 @@ export function ModulesLevelsPanel({ module, levels, onClose }: ModulesLevelsPan
           <Button type="button" variant="outline" onClick={onClose}>
             Cancel
           </Button>
-          <Button type="submit" disabled={isSubmitting}>
+          <Button type="button" disabled={isSubmitting} onClick={() => setShowConfirm(true)}>
             Save changes
           </Button>
         </footer>
       </form>
     </ModulesPanelShell>
+
+    <ConfirmDialog
+      open={showConfirm}
+      title="Save changes?"
+      description={`Are you sure you want to save changes to the levels of "${module.title}"?`}
+      confirmLabel="Save"
+      isSubmitting={isSubmitting}
+      onConfirm={() => {
+        setShowConfirm(false)
+        handleSubmit(onSubmit)()
+      }}
+      onCancel={() => setShowConfirm(false)}
+    />
+    </>
   )
 }

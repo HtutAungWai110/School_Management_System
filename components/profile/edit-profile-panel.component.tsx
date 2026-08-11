@@ -38,7 +38,7 @@ export function EditProfilePanel({ profile, onClose }: EditProfilePanelProps) {
   const pathname = usePathname()
 
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false)
-const [showConfirm, setShowConfirm] = useState(false)
+  const [showConfirm, setShowConfirm] = useState<boolean>(false)
 
 
   const {
@@ -272,9 +272,22 @@ const [showConfirm, setShowConfirm] = useState(false)
             <Button type="button" variant="outline" onClick={onClose}>
               Cancel
             </Button>
-            <Button disabled={isSubmitting} type="button" onClick={async () => { if (window.confirm('Are you sure you want to save changes?')) { await handleSubmit(onSubmit)(); } }}>Save changes</Button>
+            <Button disabled={isSubmitting} type="button" onClick={() => setShowConfirm(true)}>Save changes</Button>
           </footer>
         </form>
+
+        <ConfirmDialog
+          open={showConfirm}
+          title="Save changes?"
+          description="Are you sure you want to save changes to this profile?"
+          confirmLabel="Save"
+          isSubmitting={isSubmitting}
+          onConfirm={() => {
+            setShowConfirm(false)
+            handleSubmit(onSubmit)()
+          }}
+          onCancel={() => setShowConfirm(false)}
+        />
       </div>
     </div>
   )

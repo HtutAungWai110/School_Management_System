@@ -2,11 +2,12 @@
 
 import { useState } from "react"
 import { usePathname } from "next/navigation"
-import { useForm } from "react-hook-form"
+import { useForm, useWatch } from "react-hook-form"
 import { Users } from "lucide-react"
 
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
+import { ConfirmDialog } from "@/components/ui/confirm-dialog.component"
 import {
   Combobox,
   ComboboxChips,
@@ -41,6 +42,7 @@ export function BatchesCreatePanel({ levels, onClose }: BatchesCreatePanelProps)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [selectedLevels, setSelectedLevels] = useState<LevelOption[]>([])
   const [levelsError, setLevelsError] = useState<string | null>(null)
+  const [showConfirm, setShowConfirm] = useState<boolean>(false)
 
   const levelOptions: LevelOption[] = levels.map((level) => ({
     value: level.id,
@@ -52,10 +54,13 @@ export function BatchesCreatePanel({ levels, onClose }: BatchesCreatePanelProps)
   )
 
   const {
+    control,
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
   } = useForm<CreateBatchFormValues>()
+
+  const batchName = useWatch({ control, name: "batch_name" })
 
   async function onSubmit(data: CreateBatchFormValues) {
     setSubmitError(null)
@@ -90,12 +95,13 @@ export function BatchesCreatePanel({ levels, onClose }: BatchesCreatePanelProps)
   }
 
   return (
-    <ModulesPanelShell
-      title="Create batch"
-      subtitle="Add a new batch to the academy"
-      onClose={onClose}
-      className="max-w-[480px]"
-    >
+    <>
+      <ModulesPanelShell
+        title="Create batch"
+        subtitle="Add a new batch to the academy"
+        onClose={onClose}
+        className="max-w-[480px]"
+      >
       <form onSubmit={handleSubmit(onSubmit)} className="flex flex-1 flex-col">
         <div className="flex-1 space-y-4 overflow-y-auto px-6 py-6">
           <div>
@@ -175,11 +181,36 @@ export function BatchesCreatePanel({ levels, onClose }: BatchesCreatePanelProps)
           <Button type="button" variant="outline" onClick={onClose}>
             Cancel
           </Button>
-          <Button type="submit" disabled={isSubmitting}>
+          <Button
+            type="button"
+            disabled={isSubmitting}
+            onClick={() => {
+              if (selectedLevels.length === 0) {
+                setLevelsError("Select at least one level.")
+                return
+              }
+              setLevelsError(null)
+              setShowConfirm(true)
+            }}
+          >
             Create batch
           </Button>
         </footer>
       </form>
-    </ModulesPanelShell>
+      </ModulesPanelShell>
+
+      <ConfirmDialog
+        open={showConfirm}
+        title="Create batch?"
+        description={`Are you sure you want to create "${batchName}"?`}
+        confirmLabel="Create"
+        isSubmitting={isSubmitting}
+        onConfirm={() => {
+          setShowConfirm(false)
+          handleSubmit(onSubmit)()
+        }}
+        onCancel={() => setShowConfirm(false)}
+      />
+    </>
   )
 }

@@ -7,6 +7,7 @@ import { Code2, Type } from "lucide-react"
 
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
+import { ConfirmDialog } from "@/components/ui/confirm-dialog.component"
 import { cn } from "@/lib/utils.util"
 import { refetchData } from "@/lib/action.action"
 import { ModulesPanelShell } from "./modules-panel-shell.component"
@@ -27,6 +28,7 @@ interface ModulesRenamePanelProps {
 export function ModulesRenamePanel({ module, onClose }: ModulesRenamePanelProps) {
   const pathname = usePathname()
   const [submitError, setSubmitError] = useState<string | null>(null)
+  const [showConfirm, setShowConfirm] = useState<boolean>(false)
 
   const {
     register,
@@ -64,13 +66,14 @@ export function ModulesRenamePanel({ module, onClose }: ModulesRenamePanelProps)
   }
 
   return (
-    <ModulesPanelShell
-      title="Rename module"
-      subtitle={module.title}
-      codeChip={module.code}
-      onClose={onClose}
-      className="max-w-[480px]"
-    >
+    <>
+      <ModulesPanelShell
+        title="Rename module"
+        subtitle={module.title}
+        codeChip={module.code}
+        onClose={onClose}
+        className="max-w-[480px]"
+      >
       <form onSubmit={handleSubmit(onSubmit)} className="flex flex-1 flex-col">
         <div className="flex-1 space-y-4 overflow-y-auto px-6 py-6">
           <div>
@@ -123,11 +126,25 @@ export function ModulesRenamePanel({ module, onClose }: ModulesRenamePanelProps)
           <Button type="button" variant="outline" onClick={onClose}>
             Cancel
           </Button>
-          <Button type="submit" disabled={isSubmitting}>
+          <Button type="button" disabled={isSubmitting} onClick={() => setShowConfirm(true)}>
             Save changes
           </Button>
         </footer>
       </form>
-    </ModulesPanelShell>
+      </ModulesPanelShell>
+
+      <ConfirmDialog
+        open={showConfirm}
+        title="Save changes?"
+        description={`Are you sure you want to save changes to "${module.title}"?`}
+        confirmLabel="Save"
+        isSubmitting={isSubmitting}
+        onConfirm={() => {
+          setShowConfirm(false)
+          handleSubmit(onSubmit)()
+        }}
+        onCancel={() => setShowConfirm(false)}
+      />
+    </>
   )
 }

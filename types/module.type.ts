@@ -16,5 +16,5 @@ export type Module = {
   id: string
   code: string
   title: string
-  modules_level?: ModuleLevel[]
+  modules_level: ModuleLevel[]
 }

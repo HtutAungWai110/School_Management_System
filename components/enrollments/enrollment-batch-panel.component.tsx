@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation"
 import { Users } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
+import { ConfirmDialog } from "@/components/ui/confirm-dialog.component"
 import { refetchData } from "@/lib/action.action"
 import { ModulesPanelShell } from "@/components/modules_level/modules-panel-shell.component"
 import type { EnrolledStudent } from "@/types/enrollment.type"
@@ -21,6 +22,9 @@ export function EnrollmentBatchPanel({ student, onClose }: EnrollmentBatchPanelP
   const [loadError, setLoadError] = useState<string | null>(null)
   const [assigningId, setAssigningId] = useState<string | null>(null)
   const [submitError, setSubmitError] = useState<string | null>(null)
+  const [confirmBatchId, setConfirmBatchId] = useState<string | null>(null)
+
+  const confirmBatch = (batches ?? []).find((batch) => batch.id === confirmBatchId) ?? null
 
   const studentLevelIds = new Set(
     (student.student_enrollments ?? []).map((e) => e.levels?.id).filter(Boolean)
@@ -78,12 +82,13 @@ export function EnrollmentBatchPanel({ student, onClose }: EnrollmentBatchPanelP
   }
 
   return (
-    <ModulesPanelShell
-      title="Add to batch"
-      subtitle={student.full_name}
-      onClose={onClose}
-      className="max-w-[560px]"
-    >
+    <>
+      <ModulesPanelShell
+        title="Add to batch"
+        subtitle={student.full_name}
+        onClose={onClose}
+        className="max-w-[560px]"
+      >
       <div className="flex flex-1 flex-col">
         <div className="flex-1 space-y-3 overflow-y-auto px-6 py-6">
           <div>
@@ -120,7 +125,7 @@ export function EnrollmentBatchPanel({ student, onClose }: EnrollmentBatchPanelP
                   key={batch.id}
                   type="button"
                   disabled={assigningId !== null}
-                  onClick={() => assignToBatch(batch.id)}
+                  onClick={() => setConfirmBatchId(batch.id)}
                   className="group flex w-full items-center justify-between gap-3 rounded-xl border border-outline-variant/30 bg-surface-container-low/30 p-4 text-left transition-colors hover:border-primary/40 hover:bg-surface-container focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:opacity-60"
                 >
                   <div className="min-w-0">
@@ -160,6 +165,26 @@ export function EnrollmentBatchPanel({ student, onClose }: EnrollmentBatchPanelP
           </Button>
         </footer>
       </div>
-    </ModulesPanelShell>
+      </ModulesPanelShell>
+
+      <ConfirmDialog
+        open={confirmBatchId !== null}
+        title="Assign student?"
+        description={
+          confirmBatch
+            ? `Assign ${student.full_name} to "${confirmBatch.batch_name}"?`
+            : undefined
+        }
+        confirmLabel="Assign"
+        isSubmitting={assigningId !== null}
+        onConfirm={() => {
+          if (confirmBatchId) {
+            setConfirmBatchId(null)
+            assignToBatch(confirmBatchId)
+          }
+        }}
+        onCancel={() => setConfirmBatchId(null)}
+      />
+    </>
   )
 }
