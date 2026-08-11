@@ -3,7 +3,7 @@
 import Image from "next/image"
 import ProfileCard from "@/components/profile/profile-card.component"
 import ThemeToggle from "@/components/theme/theme-toggle.component"
-import { LayoutDashboard, GraduationCap, User, Users, Calendar, Settings, Book, BookOpenCheck } from "lucide-react"
+import { LayoutDashboard, GraduationCap, User, Users, Calendar, Settings, Book, BookOpenCheck, Layers } from "lucide-react"
 import { usePathname } from "next/navigation"
 import Link from "next/link"
 
@@ -17,6 +17,7 @@ export default function Sidebar() {
     { href: "/admin/dashboard/students", label: "Students", icon: GraduationCap, active: path === "/admin/dashboard/students" },
     { href: "/admin/dashboard/teachers", label: "Teachers", icon: User, active: path === "/admin/dashboard/teachers" },
     { href: "/admin/dashboard/modules", label: "Modules", icon: Book, active: path === "/admin/dashboard/modules"  },
+    { href: "/admin/dashboard/levels", label: "Levels", icon: Layers, active: path === "/admin/dashboard/levels" },
     { href: "/admin/dashboard/enrollments", label: "Enrollments", icon: BookOpenCheck, active: path === "/admin/dashboard/enrollments" },
     { href: "/admin/dashboard/batches", label: "Batches", icon: Users, active: path === "/admin/dashboard/batches" },
     { href: "#", label: "Schedule", icon: Calendar },
