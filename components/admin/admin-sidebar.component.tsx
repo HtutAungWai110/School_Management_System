@@ -20,7 +20,7 @@ export default function Sidebar() {
     { href: "/admin/dashboard/levels", label: "Levels", icon: Layers, active: path === "/admin/dashboard/levels" },
     { href: "/admin/dashboard/enrollments", label: "Enrollments", icon: BookOpenCheck, active: path === "/admin/dashboard/enrollments" },
     { href: "/admin/dashboard/batches", label: "Batches", icon: Users, active: path === "/admin/dashboard/batches" },
-    { href: "#", label: "Schedule", icon: Calendar },
+    { href: "/admin/dashboard/timetable", label: "Timetable", icon: Calendar, active: path === "/admin/dashboard/timetable" },
     { href: "/admin/dashboard/settings", label: "Settings", icon: Settings, active: path === "/admin/dashboard/settings"  },
   ]
   return (
