@@ -16,4 +16,17 @@ export class TeacherController {
       return handleError(error);
     }
   }
+
+  static async updateModules(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+    const { id } = await params;
+    const body = await request.json();
+
+    const { modules } = body as { modules: Array<string> };
+    try {
+      const { addResults, deleteResults } = await TeachersService.updateModules(id, modules);
+      return NextResponse.json({ addResults, deleteResults });
+    } catch (error) {
+      return handleError(error);
+    }
+  }
 }

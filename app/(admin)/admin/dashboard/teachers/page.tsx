@@ -1,19 +1,19 @@
 import { MetricCard } from "@/components/admin/metric-card.component"
 import { PaginationNav } from "@/components/navigation/pagination-nav.component"
-import { ProfileTemplate } from "@/components/profile/profile-template.component"
+import { TeacherRow } from "@/components/teachers/teacher-row.component"
 import { CircleHelp, Bell, Users, UserPlus, ClipboardCheck, Plus } from "lucide-react"
 import SearchBar from "@/components/search/searchbar.component"
 import FilterButton from "@/components/search/filter-dropdown.component"
 
 import { serverFetch } from "@/lib/server.service"
-import type { Profile } from "@/types/profile.type"
+import type { Teacher } from "@/types/teacher.type"
 
 interface PageProps {
   searchParams: Promise<{page?: string, search?: string, filter?: string}>
 }
 
 interface TeachersData {
-  teachers: Profile[]
+  teachers: Teacher[]
   totalCount: number
   newTeachers: number
   totalPages: number
@@ -95,7 +95,7 @@ export default async function TeachersPage({ searchParams }: PageProps) {
               <table className="w-full text-left border-collapse">
                 <thead className="bg-surface-container-low">
                   <tr>
-                    {["Teacher", "Email", "Role", "Joined Date", ""].map((h) => (
+                    {["Teacher", "Email", "Modules", "Role", "Joined Date", ""].map((h) => (
                       <th key={h} className={`px-6 py-3 text-[12px] font-[500] leading-[16px] text-on-surface-variant uppercase tracking-wider ${h === "" ? "text-right" : ""}`}>
                         {h}
                       </th>
@@ -103,8 +103,8 @@ export default async function TeachersPage({ searchParams }: PageProps) {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-outline-variant/10">
-                  {teachers.map((teacher: Profile) => (
-                    <ProfileTemplate key={teacher.id} profile={teacher} />
+                  {teachers.map((teacher: Teacher) => (
+                    <TeacherRow key={teacher.id} teacher={teacher} />
                   ))}
                 </tbody>
               </table>

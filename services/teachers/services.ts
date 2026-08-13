@@ -13,7 +13,18 @@ export class TeachersService {
 
     let query = supabase
       .from("profiles")
-      .select("*", { count: "exact" })
+      .select(`
+        *,
+        teacher_modules(
+          id,
+          assigned_at,
+          modules(
+            id,
+            code,
+            title
+          )
+        )
+      `, { count: "exact" })
       .eq("role", "teacher")
       .range(from, to);
 
@@ -57,5 +68,47 @@ export class TeachersService {
     const totalCount = count ?? 0;
 
     return { teachers, totalCount, newTeachers, page, totalPages: Math.ceil(totalCount / PAGE_SIZE) };
+  }
+
+  static async updateModules(teacherId: string, payload: Array<string>) {
+    const supabase = await createClient();
+    const { data: teacher_modules, error } = await supabase
+      .from("teacher_modules")
+      .select("*")
+      .eq("teacher_id", teacherId);
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    const existing = teacher_modules ?? [];
+
+    const existingModuleIds = new Set(existing.map((tm) => tm.module_id));
+
+    const addArray = payload.filter((moduleId) => !existingModuleIds.has(moduleId));
+
+    const requestedIds = new Set(payload);
+
+    const deleteArray = existing.filter((tm) => !requestedIds.has(tm.module_id));
+
+    const addResults = await Promise.all(
+      addArray.map((moduleId) =>
+        supabase
+          .from("teacher_modules")
+          .insert({ teacher_id: teacherId, module_id: moduleId })
+      )
+    );
+
+    const deleteResults = await Promise.all(
+      deleteArray.map((tm) =>
+        supabase
+          .from("teacher_modules")
+          .delete()
+          .eq("teacher_id", teacherId)
+          .eq("module_id", tm.module_id)
+      )
+    );
+
+    return { addResults, deleteResults };
   }
 }
