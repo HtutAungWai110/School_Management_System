@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react"
 import Image from "next/image";
-import { BookOpen, MoreVertical, Users, Trash2 } from "lucide-react";
+import { BookOpen, MoreVertical, Users, Trash2, Check, MousePointerClick } from "lucide-react";
 
 import { cn } from "@/lib/utils.util"
 import type { EnrolledStudent } from "@/types/enrollment.type";
@@ -17,7 +17,19 @@ function formatDate(value: string) {
   return new Date(value).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 }
 
-export function EnrollmentRow({ student }: { student: EnrolledStudent }) {
+export function EnrollmentRow({
+  student,
+  selectMode,
+  selected,
+  onToggle,
+  onSelect,
+}: {
+  student: EnrolledStudent
+  selectMode: boolean
+  selected: boolean
+  onToggle: () => void
+  onSelect: () => void
+}) {
   const enrollments = student.student_enrollments ?? [];
 
   const [menuOpen, setMenuOpen] = useState(false)
@@ -38,10 +50,30 @@ export function EnrollmentRow({ student }: { student: EnrolledStudent }) {
 
   return (
     <>
-      <tr className="hover:bg-surface-container-low transition-colors">
+      <tr
+        className={cn(
+          "transition-colors",
+          selected ? "bg-primary-container/25" : "hover:bg-surface-container-low"
+        )}
+      >
         <td className="px-6 py-4">
           <div className="flex items-center gap-3">
-            {student.avatar_url ? (
+            {selectMode ? (
+              <button
+                type="button"
+                aria-label={selected ? `Deselect ${student.full_name}` : `Select ${student.full_name}`}
+                aria-pressed={selected}
+                onClick={onToggle}
+                className={cn(
+                  "flex size-10 shrink-0 items-center justify-center rounded-full border-2 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary",
+                  selected
+                    ? "border-primary bg-primary text-on-primary"
+                    : "border-outline-variant text-transparent hover:border-primary/60 hover:text-primary/40"
+                )}
+              >
+                <Check className="size-5" />
+              </button>
+            ) : student.avatar_url ? (
               <Image
                 className="w-10 h-10 rounded-full object-cover border border-outline-variant/20"
                 src={student.avatar_url}
@@ -56,7 +88,7 @@ export function EnrollmentRow({ student }: { student: EnrolledStudent }) {
               </div>
             )}
             <div>
-              <p className="text-[16px] leading-[24px] font-bold text-on-surface">{student.full_name}</p>
+              <p className={cn("text-[16px] leading-[24px] font-bold", selected ? "text-primary" : "text-on-surface")}>{student.full_name}</p>
               <p className="text-[14px] leading-[20px] text-on-surface-variant">{student.email}</p>
             </div>
           </div>
@@ -100,6 +132,16 @@ export function EnrollmentRow({ student }: { student: EnrolledStudent }) {
             {menuOpen && (
               <div className="absolute right-0 top-9 z-10 min-w-[170px] rounded-lg border border-outline-variant/20 bg-surface-container-lowest shadow-lg py-1">
                 {[
+                  {
+                    label: "Select",
+                    icon: MousePointerClick,
+                    className: "text-on-surface",
+                    iconClassName: "text-on-surface-variant",
+                    onClick: () => {
+                      setMenuOpen(false)
+                      onSelect()
+                    },
+                  },
                   {
                     label: "Add to batch",
                     icon: Users,

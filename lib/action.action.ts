@@ -3,7 +3,10 @@
 
 import { revalidatePath } from 'next/cache';
 
-export async function refetchData(path: string) {
+export async function refetchData(paths: string | string[]) {
   // Executes on the Next.js server
-  revalidatePath(path);
+  const list = Array.isArray(paths) ? paths : [paths];
+  for (const path of list) {
+    revalidatePath(path);
+  }
 }

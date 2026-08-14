@@ -1,6 +1,5 @@
 import { MetricCard } from "@/components/admin/metric-card.component"
-import { PaginationNav } from "@/components/navigation/pagination-nav.component"
-import { EnrollmentRow } from "@/components/enrollments/enrollment-row.component"
+import { EnrollmentDirectory } from "@/components/enrollments/enrollment-directory.component"
 import { CircleHelp, Bell, Users, BookOpenCheck, Layers } from "lucide-react"
 import SearchBar from "@/components/search/searchbar.component"
 import FilterButton from "@/components/search/filter-dropdown.component"
@@ -91,30 +90,12 @@ export default async function EnrollmentsPage({ searchParams }: PageProps) {
                 <span className="text-[12px] font-[500] leading-[16px] text-on-surface-variant">{totalEnrollments} module registrations</span>
               </div>
             </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead className="bg-surface-container-low">
-                  <tr>
-                    {["Student", "Enrolled Modules", "Level", "Enrolled At", ""].map((h) => (
-                      <th key={h} className="px-6 py-3 text-[12px] font-[500] leading-[16px] text-on-surface-variant uppercase tracking-wider">
-                        {h}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-outline-variant/10">
-                  {enrollments.map((student) => (
-                    <EnrollmentRow key={student.id} student={student} />
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            <div className="px-6 py-4 border-t border-outline-variant/10 flex justify-between items-center bg-surface-container-low/20">
-              <p className="text-[12px] font-[500] leading-[16px] text-on-surface-variant">
-                Showing 1-{enrollments.length} of {totalCount} students
-              </p>
-              <PaginationNav page={Number(currentPage)} totalPages={Number(totalPages)} />
-            </div>
+            <EnrollmentDirectory
+              students={enrollments}
+              totalCount={totalCount}
+              page={Number(currentPage)}
+              totalPages={Number(totalPages)}
+            />
           </div>
         </div>
 
