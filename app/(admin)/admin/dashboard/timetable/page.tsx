@@ -5,11 +5,9 @@ import { TimetableCreateButton } from "@/components/timetable/timetable-create-b
 import { TimetableRow } from "@/components/timetable/timetable-row.component"
 import type { Batch } from "@/types/batch.type"
 import type { Module } from "@/types/module.type"
-import type { Profile } from "@/types/profile.type"
+import type { Teacher } from "@/types/teacher.type"
 import type { Class } from "@/types/class.type"
 import type { Timetable } from "@/types/timetable.type"
-
-type Teacher = Pick<Profile, "id" | "full_name">
 
 export default async function TimetablePage() {
   const [timetables, batches, modules, teachersResponse, classes] = await Promise.all([

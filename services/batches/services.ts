@@ -1,8 +1,10 @@
 import { createClient } from "@/lib/supabase/server.client";
+import type { BatchStatus } from "@/types/batch.type";
 
 const BATCH_SELECT = `
   id,
   batch_name,
+  status,
   created_at,
   batch_level (
     id,
@@ -28,6 +30,7 @@ const BATCH_SELECT = `
 const BATCH_DETAIL_SELECT = `
   id,
   batch_name,
+  status,
   created_at,
   batch_level (
     id,
@@ -58,7 +61,7 @@ const BATCH_DETAIL_SELECT = `
 `;
 
 export class BatchesService {
-  static async list(search: string) {
+  static async list(search: string, status: string) {
     const supabase = await createClient();
 
     let query = supabase
@@ -68,6 +71,10 @@ export class BatchesService {
 
     if (search) {
       query = query.ilike("batch_name", `%${search}%`);
+    }
+
+    if (status === "ongoing" || status === "completed") {
+      query = query.eq("status", status);
     }
 
     const { data, error } = await query;
@@ -123,12 +130,16 @@ export class BatchesService {
     return batch;
   }
 
-  static async update(id: string, batchName: string) {
+  static async update(id: string, payload: { batch_name?: string; status?: BatchStatus }) {
     const supabase = await createClient();
+
+    const changes: Record<string, string> = {};
+    if (payload.batch_name !== undefined) changes.batch_name = payload.batch_name.trim();
+    if (payload.status !== undefined) changes.status = payload.status;
 
     const { data, error } = await supabase
       .from("batches")
-      .update({ batch_name: batchName })
+      .update(changes)
       .eq("id", id)
       .select();
 

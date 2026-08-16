@@ -23,10 +23,13 @@ export type BatchAssignment = {
   profiles: BatchAssignmentProfile | null;
 };
 
+export type BatchStatus = "ongoing" | "completed";
+
 export type Batch = {
   id: string;
   batch_name: string;
   created_at: string;
+  status: BatchStatus | null;
   batch_level: BatchLevel[];
   batch_assignments: BatchAssignment[];
 };

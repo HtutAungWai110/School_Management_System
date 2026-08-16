@@ -20,6 +20,14 @@ export type Timetable = {
   classes: TimetableClass | null;
 };
 
+export type ClassAvailabilitySlot = {
+  id: string;
+  day_of_week: number;
+  start_time: string;
+  end_time: string;
+  modules: TimetableModule | null;
+};
+
 export const DAY_OF_WEEK_LABELS: Record<number, string> = {
   1: "Monday",
   2: "Tuesday",

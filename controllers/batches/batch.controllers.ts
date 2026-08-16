@@ -5,9 +5,10 @@ import { handleError } from "@/lib/errors/error.handler";
 export class BatchController {
   static async list(request: NextRequest) {
     const search = request.nextUrl.searchParams.get("search") ?? "";
+    const status = request.nextUrl.searchParams.get("filter") ?? "";
 
     try {
-      const data = await BatchesService.list(search);
+      const data = await BatchesService.list(search, status);
       return NextResponse.json(data);
     } catch (error) {
       return handleError(error);
@@ -53,14 +54,23 @@ export class BatchController {
     { params }: { params: Promise<{ id: string }> }
   ) {
     const { id } = await params;
-    const { batch_name } = await request.json().catch(() => ({ batch_name: undefined }));
+    const body = await request.json().catch(() => ({}));
+    const { batch_name, status } = body;
 
-    if (!batch_name || typeof batch_name !== "string") {
+    if (batch_name !== undefined && (typeof batch_name !== "string" || !batch_name.trim())) {
       return NextResponse.json({ error: "Batch name is required" }, { status: 400 });
     }
 
+    if (status !== undefined && status !== "ongoing" && status !== "completed") {
+      return NextResponse.json({ error: "Invalid batch status" }, { status: 400 });
+    }
+
+    if (batch_name === undefined && status === undefined) {
+      return NextResponse.json({ error: "Nothing to update" }, { status: 400 });
+    }
+
     try {
-      const data = await BatchesService.update(id, batch_name);
+      const data = await BatchesService.update(id, { batch_name, status });
       return NextResponse.json({ data });
     } catch (error) {
       return handleError(error);

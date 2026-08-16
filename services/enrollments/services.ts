@@ -5,7 +5,13 @@ const PAGE_SIZE = 10;
 
 const ENROLLMENT_SELECT = `
   *,
-  batch_assignments (),
+  batch_assignments (
+    batches(
+      batch_level(
+        level_id
+      )
+    )
+  ),
   student_enrollments (
     id,
     enrolled_at,
@@ -24,7 +30,13 @@ const ENROLLMENT_SELECT = `
 
 const LEVEL_ENROLLMENT_SELECT = `
   *,
-  batch_assignments (),
+  batch_assignments (
+    batches(
+      batch_level(
+        level_id
+      )
+    )
+  ),
   student_enrollments!inner (
     id,
     enrolled_at,
@@ -50,11 +62,49 @@ export class EnrollmentsService {
     const from = (page - 1) * PAGE_SIZE;
     const to = from + PAGE_SIZE - 1;
 
+    const { data: candidates } = await supabase
+      .from("profiles")
+      .select(`
+        id,
+        batch_assignments (
+          batches (
+            batch_level (
+              level_id
+            )
+          )
+        ),
+        student_enrollments (
+          level_id
+        )
+      `)
+      .eq("role", "student");
+
+    const eligibleIds = (candidates ?? [])
+      .filter((student) => {
+        const coveredLevels = new Set(
+          (student.batch_assignments ?? []).flatMap((assignment) => {
+            const batches = assignment.batches as unknown as
+              | { batch_level: { level_id: string }[] }
+              | { batch_level: { level_id: string }[] }[]
+              | null;
+            const list = Array.isArray(batches) ? batches : batches ? [batches] : [];
+            return list.flatMap((batch) => batch.batch_level ?? []);
+          })
+          .map((bl) => bl.level_id)
+          .filter(Boolean)
+        );
+
+        return (student.student_enrollments ?? []).some(
+          (enrollment) => enrollment.level_id && !coveredLevels.has(enrollment.level_id)
+        );
+      })
+      .map((student) => student.id);
+
     let query = supabase
       .from("profiles")
       .select(levelId ? LEVEL_ENROLLMENT_SELECT : ENROLLMENT_SELECT, { count: "exact" })
       .eq("role", "student")
-      .is("batch_assignments", null)
+      .in("id", eligibleIds)
       .range(from, to)
       .order("created_at", { ascending: false });
 

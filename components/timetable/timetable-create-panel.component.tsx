@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { usePathname } from "next/navigation"
 import { Controller, useForm, useWatch } from "react-hook-form"
 
@@ -20,13 +20,19 @@ import { refetchData } from "@/lib/action.action"
 import { ModulesPanelShell } from "@/components/modules_level/modules-panel-shell.component"
 import type { Batch } from "@/types/batch.type"
 import type { Module } from "@/types/module.type"
-import type { Profile } from "@/types/profile.type"
+import type { Teacher } from "@/types/teacher.type"
 import type { Class } from "@/types/class.type"
-import { DAY_OF_WEEK_LABELS, DAY_OF_WEEK_OPTIONS } from "@/types/timetable.type"
-
-type Teacher = Pick<Profile, "id" | "full_name">
+import { DAY_OF_WEEK_LABELS, DAY_OF_WEEK_OPTIONS, type ClassAvailabilitySlot } from "@/types/timetable.type"
 
 type Option = { value: string; label: string }
+
+type ClassAvailabilityState =
+  | { classId: string; status: "ready"; slots: ClassAvailabilitySlot[] }
+  | { classId: string; status: "error"; message: string }
+
+function formatTime(time: string) {
+  return time.slice(0, 5)
+}
 
 interface TimetableFormValues {
   batch_id: string
@@ -105,6 +111,7 @@ export function TimetableCreatePanel({
   const pathname = usePathname()
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [showConfirm, setShowConfirm] = useState<boolean>(false)
+  const [availabilityState, setAvailabilityState] = useState<ClassAvailabilityState | null>(null)
 
   const {
     control,
@@ -125,6 +132,46 @@ export function TimetableCreatePanel({
 
   const selectedBatch = batches.find((batch) => batch.id === watched.batch_id) ?? null
   const selectedModule = modules.find((module) => module.id === watched.module_id) ?? null
+  const selectedClass = classes.find((classItem) => classItem.id === watched.class_id) ?? null
+
+  useEffect(() => {
+    const classId = watched.class_id
+    if (!classId) return
+
+    let cancelled = false
+
+    fetch(`/api/timetables/class/${classId}`, { credentials: "include" })
+      .then((res) => {
+        if (!res.ok) throw new Error("Couldn't load class availability.")
+        return res.json() as Promise<ClassAvailabilitySlot[]>
+      })
+      .then((data) => {
+        if (!cancelled) {
+          setAvailabilityState({ classId, status: "ready", slots: data ?? [] })
+        }
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          setAvailabilityState({
+            classId,
+            status: "error",
+            message: err instanceof Error ? err.message : "Couldn't load class availability.",
+          })
+        }
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [watched.class_id])
+
+  const availabilityForClass =
+    availabilityState?.classId === watched.class_id ? availabilityState : null
+  const availabilityLoading = !!watched.class_id && !availabilityForClass
+  const availabilityError =
+    availabilityForClass?.status === "error" ? availabilityForClass.message : null
+  const classAvailability =
+    availabilityForClass?.status === "ready" ? availabilityForClass.slots : null
 
   const batchLevelIds = new Set(
     (selectedBatch?.batch_level ?? []).map((batchLevel) => batchLevel.level_id)
@@ -141,15 +188,33 @@ export function TimetableCreatePanel({
       label: `${module.code} · ${module.title}`,
     }))
 
-  const teacherOptions: Option[] = teachers.map((teacher) => ({
-    value: teacher.id,
-    label: teacher.full_name,
-  }))
+  const teacherOptions: Option[] = teachers
+    .filter(
+      (teacher) =>
+        !selectedModule ||
+        (teacher.teacher_modules ?? []).some(
+          (teacherModule) => teacherModule.modules?.id === selectedModule.id
+        )
+    )
+    .map((teacher) => ({
+      value: teacher.id,
+      label: teacher.full_name,
+    }))
 
   const classOptions: Option[] = classes.map((classItem) => ({
     value: classItem.id,
     label: classItem.class_number ? `Class ${classItem.class_number}` : (classItem.location ?? "Class"),
   }))
+
+  const conflict =
+    classAvailability?.find(
+      (slot) =>
+        slot.day_of_week === Number(watched.day_of_week) &&
+        watched.start_time &&
+        watched.end_time &&
+        formatTime(watched.start_time) < formatTime(slot.end_time) &&
+        formatTime(watched.end_time) > formatTime(slot.start_time)
+    ) ?? null
 
   async function onSubmit(data: TimetableFormValues) {
     setSubmitError(null)
@@ -277,12 +342,14 @@ export function TimetableCreatePanel({
                         value={field.value}
                         onValueChange={field.onChange}
                         placeholder="Choose a teacher"
-                        emptyLabel={selectedModule ? "No teacher found." : "Select a module first."}
+                        emptyLabel={selectedModule ? "No teacher teaches this module." : "Select a module first."}
                         disabled={!selectedModule}
                         ariaInvalid={!!fieldState.error}
                       />
                       {fieldState.error && <p className="text-xs text-destructive">{fieldState.error.message}</p>}
-                      {!selectedModule && (
+                      {selectedModule ? (
+                        <p className="text-xs text-on-surface-variant">Only teachers who teach this module are shown.</p>
+                      ) : (
                         <p className="text-xs text-on-surface-variant">Select a module to choose a teacher.</p>
                       )}
                     </>
@@ -309,6 +376,47 @@ export function TimetableCreatePanel({
                         ariaInvalid={!!fieldState.error}
                       />
                       {fieldState.error && <p className="text-xs text-destructive">{fieldState.error.message}</p>}
+                      {selectedClass && (
+                        <div className="mt-2 space-y-1.5">
+                          {availabilityLoading && (
+                            <p className="text-xs text-on-surface-variant">Checking availability…</p>
+                          )}
+                          {availabilityError && <p className="text-xs text-destructive">{availabilityError}</p>}
+                          {!availabilityLoading &&
+                            !availabilityError &&
+                            classAvailability &&
+                            classAvailability.length > 0 && (
+                              <div className="rounded-lg border border-outline-variant/10 bg-surface-container-low/40 px-3 py-2">
+                                <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-on-surface-variant">
+                                  Occupied sessions
+                                </p>
+                                <ul className="mt-1 space-y-0.5">
+                                  {classAvailability.map((slot) => (
+                                    <li
+                                      key={slot.id}
+                                      className="text-[12px] leading-[16px] text-on-surface-variant"
+                                    >
+                                      {DAY_OF_WEEK_LABELS[slot.day_of_week]} · {formatTime(slot.start_time)} –{" "}
+                                      {formatTime(slot.end_time)}
+                                      {slot.modules ? ` · ${slot.modules.title}` : ""}
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+                          {!availabilityLoading &&
+                            !availabilityError &&
+                            classAvailability?.length === 0 && (
+                              <p className="text-xs text-on-surface-variant">This class is free all week.</p>
+                            )}
+                          {conflict && (
+                            <p className="text-[12px] leading-[16px] text-destructive">
+                              Overlaps{" "}
+                              {`${DAY_OF_WEEK_LABELS[conflict.day_of_week]} ${formatTime(conflict.start_time)} – ${formatTime(conflict.end_time)}`}
+                            </p>
+                          )}
+                        </div>
+                      )}
                     </>
                   )}
                 />
@@ -379,7 +487,7 @@ export function TimetableCreatePanel({
             <Button type="button" variant="outline" onClick={onClose}>
               Cancel
             </Button>
-            <Button type="button" disabled={isSubmitting} onClick={() => setShowConfirm(true)}>
+            <Button type="button" disabled={isSubmitting || !!conflict} onClick={() => setShowConfirm(true)}>
               Create timetable
             </Button>
           </footer>

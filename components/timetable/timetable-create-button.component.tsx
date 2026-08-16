@@ -5,11 +5,9 @@ import { Plus } from "lucide-react"
 
 import type { Batch } from "@/types/batch.type"
 import type { Module } from "@/types/module.type"
-import type { Profile } from "@/types/profile.type"
+import type { Teacher } from "@/types/teacher.type"
 import type { Class } from "@/types/class.type"
 import { TimetableCreatePanel } from "./timetable-create-panel.component"
-
-type Teacher = Pick<Profile, "id" | "full_name">
 
 interface TimetableCreateButtonProps {
   batches: Batch[]

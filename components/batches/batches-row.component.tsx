@@ -2,10 +2,15 @@
 
 import { useEffect, useRef, useState } from "react"
 import Link from "next/link"
-import { Users, MoreVertical, Pencil, Trash2 } from "lucide-react"
+import { usePathname } from "next/navigation"
+import { Users, MoreVertical, Pencil, Trash2, CheckCircle2, RotateCcw } from "lucide-react"
 
-import type { Batch } from "@/types/batch.type";
+import type { Batch, BatchStatus } from "@/types/batch.type";
 import { cn } from "@/lib/utils.util"
+import { refetchData } from "@/lib/action.action"
+import { batchPages } from "@/lib/batch-pages"
+import { ConfirmDialog } from "@/components/ui/confirm-dialog.component"
+import { BatchStatusBadge } from "./batch-status-badge.component"
 import { BatchesRenamePanel } from "./batches-rename-panel.component"
 import { BatchesDeletePanel } from "./batches-delete-panel.component"
 
@@ -17,10 +22,17 @@ export function BatchesRow({ batch }: { batch: Batch }) {
   const levels = batch.batch_level ?? [];
   const students = batch.batch_assignments ?? [];
 
+  const pathname = usePathname()
+
   const [menuOpen, setMenuOpen] = useState(false)
   const [renameOpen, setRenameOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
+  const [statusOpen, setStatusOpen] = useState(false)
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false)
+  const [statusError, setStatusError] = useState<string | null>(null)
   const menuRef = useRef<HTMLDivElement>(null)
+
+  const isCompleted = batch.status === "completed"
 
   useEffect(() => {
     if (!menuOpen) return
@@ -32,6 +44,32 @@ export function BatchesRow({ batch }: { batch: Batch }) {
     document.addEventListener("mousedown", handleClickOutside)
     return () => document.removeEventListener("mousedown", handleClickOutside)
   }, [menuOpen])
+
+  async function updateStatus(status: BatchStatus) {
+    setStatusError(null)
+    setIsUpdatingStatus(true)
+
+    try {
+      const res = await fetch(`/api/batches/${batch.id}`, {
+        method: "PATCH",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status }),
+      })
+
+      if (!res.ok) {
+        const body = await res.json().catch(() => null)
+        throw new Error(body?.error ?? "Something went wrong while updating the batch.")
+      }
+
+      await refetchData([pathname, ...batchPages])
+      setStatusOpen(false)
+    } catch (error) {
+      setStatusError(error instanceof Error ? error.message : "Something went wrong.")
+    } finally {
+      setIsUpdatingStatus(false)
+    }
+  }
 
   return (
     <>
@@ -70,6 +108,9 @@ export function BatchesRow({ batch }: { batch: Batch }) {
         <td className="px-6 py-4 text-[14px] leading-[20px] text-on-surface-variant">
           {students.length} student{students.length === 1 ? "" : "s"}
         </td>
+        <td className="px-6 py-4">
+          <BatchStatusBadge status={batch.status ?? null} />
+        </td>
         <td className="px-6 py-4 text-[14px] leading-[20px] text-on-surface-variant">
           {formatDate(batch.created_at)}
         </td>
@@ -94,6 +135,15 @@ export function BatchesRow({ batch }: { batch: Batch }) {
                     onClick: () => {
                       setMenuOpen(false)
                       setRenameOpen(true)
+                    },
+                  },
+                  {
+                    label: isCompleted ? "Reopen" : "Mark complete",
+                    icon: isCompleted ? RotateCcw : CheckCircle2,
+                    onClick: () => {
+                      setMenuOpen(false)
+                      setStatusError(null)
+                      setStatusOpen(true)
                     },
                   },
                   {
@@ -127,6 +177,24 @@ export function BatchesRow({ batch }: { batch: Batch }) {
       </tr>
       {renameOpen && <BatchesRenamePanel batch={batch} onClose={() => setRenameOpen(false)} />}
       {deleteOpen && <BatchesDeletePanel batch={batch} onClose={() => setDeleteOpen(false)} />}
+
+      <ConfirmDialog
+        open={statusOpen}
+        title={isCompleted ? "Reopen batch?" : "Mark batch as complete?"}
+        description={
+          statusError ??
+          (isCompleted
+            ? `Reopen "${batch.batch_name}" so students can be assigned to it again?`
+            : `Mark "${batch.batch_name}" as completed?`)
+        }
+        confirmLabel={isCompleted ? "Reopen" : "Mark complete"}
+        isSubmitting={isUpdatingStatus}
+        onConfirm={() => void updateStatus(isCompleted ? "ongoing" : "completed")}
+        onCancel={() => {
+          setStatusOpen(false)
+          setStatusError(null)
+        }}
+      />
     </>
   );
 }

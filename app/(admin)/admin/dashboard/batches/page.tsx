@@ -3,16 +3,29 @@ import { CircleHelp, Bell } from "lucide-react"
 import { serverFetch } from "@/lib/server.service"
 import { BatchesRow } from "@/components/batches/batches-row.component"
 import { BatchesCreateButton } from "@/components/batches/batches-create-button.component"
+import FilterButton from "@/components/search/filter-dropdown.component"
 import type { Batch } from "@/types/batch.type"
 import type { Level } from "@/types/module.type"
 
-export default async function BatchesPage({ searchParams }: { searchParams: Promise<{ search?: string }> }) {
-  const { search } = await searchParams;
+const STATUS_OPTIONS = [
+  { label: "Ongoing", value: "ongoing" },
+  { label: "Completed", value: "completed" },
+]
+
+export default async function BatchesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ search?: string; filter?: string }>
+}) {
+  const { search, filter } = await searchParams;
 
   let url = "http://localhost:3000/api/batches"
 
   if (search) {
     url += `?search=${encodeURIComponent(search)}`;
+  }
+  if (filter) {
+    url += `${search ? "&" : "?"}filter=${encodeURIComponent(filter)}`;
   }
 
   const [batches, levels] = await Promise.all([
@@ -43,13 +56,16 @@ export default async function BatchesPage({ searchParams }: { searchParams: Prom
           <div className="bg-surface-container-lowest rounded-xl border border-outline-variant/10 overflow-hidden shadow-[0_4px_6px_-1px_rgba(15,23,42,0.05)]">
             <div className="p-6 border-b border-outline-variant/10 flex justify-between items-center">
               <h2 className="text-[20px] font-[600] leading-[28px] text-primary">Batch Directory</h2>
-              <BatchesCreateButton levels={levels ?? []} />
+              <div className="flex items-center gap-5">
+                <FilterButton options={STATUS_OPTIONS} label="Status" />
+                <BatchesCreateButton levels={levels ?? []} />
+              </div>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead className="bg-surface-container-low">
                   <tr>
-                    {["Batch", "Levels", "Students", "Created", ""].map((h) => (
+                    {["Batch", "Levels", "Students", "Status", "Created", ""].map((h) => (
                       <th key={h} className="px-6 py-3 text-[12px] font-[500] leading-[16px] text-on-surface-variant uppercase tracking-wider">
                         {h}
                       </th>

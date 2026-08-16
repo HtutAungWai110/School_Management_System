@@ -4,6 +4,7 @@ import { ArrowLeft, Bell, Calendar, CircleHelp, Users } from "lucide-react"
 
 import { serverFetch } from "@/lib/server.service"
 import type { Batch } from "@/types/batch.type"
+import { BatchStatusBadge } from "@/components/batches/batch-status-badge.component"
 
 function getInitials(name: string) {
   return name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)
@@ -71,9 +72,12 @@ export default async function BatchDetailPage({ params }: { params: Promise<{ id
                       <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-on-surface-variant">
                         Batch name
                       </p>
-                      <h2 className="mt-1 truncate text-[20px] font-[700] leading-[28px] text-on-surface">
-                        {batch.batch_name}
-                      </h2>
+                      <div className="mt-1 flex items-center gap-3">
+                        <h2 className="truncate text-[20px] font-[700] leading-[28px] text-on-surface">
+                          {batch.batch_name}
+                        </h2>
+                        <BatchStatusBadge status={batch.status ?? null} />
+                      </div>
                     </div>
                   </div>
                   <div className="px-6 py-4 border-t border-outline-variant/10 flex items-center gap-2 text-on-surface-variant">

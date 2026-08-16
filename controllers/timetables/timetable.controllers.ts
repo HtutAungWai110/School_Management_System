@@ -12,6 +12,20 @@ export class TimetableController {
     }
   }
 
+  static async getClassAvailability(
+    _request: NextRequest,
+    { params }: { params: Promise<{ id: string }> }
+  ) {
+    const { id } = await params;
+
+    try {
+      const data = await TimetablesService.getClassAvailability(id);
+      return NextResponse.json(data);
+    } catch (error) {
+      return handleError(error);
+    }
+  }
+
   static async create(request: NextRequest) {
     const body = await request
       .json()
