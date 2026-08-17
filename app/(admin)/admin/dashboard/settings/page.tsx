@@ -98,7 +98,7 @@ export default async function SettingsPage() {
                     <h2 className="mt-2 truncate text-[24px] font-[700] leading-[32px] text-primary">{profile.full_name}</h2>
                     <p className="mt-1 truncate text-[14px] leading-[20px] text-on-surface-variant">{profile.email}</p>
                   </div>
-                  <span className="ml-auto shrink-0 self-start mt-1 px-2.5 py-0.5 rounded-full bg-secondary-container/30 text-secondary border border-secondary-container text-[12px] font-[500] leading-[16px] capitalize">
+                  <span className="ml-auto shrink-0 self-start mt-1 px-2.5 py-0.5 rounded-full text-on-background/10 bg-primary-fixed/50 text-[12px] font-[500] leading-[16px] capitalize">
                     {profile.role}
                   </span>
                 </div>

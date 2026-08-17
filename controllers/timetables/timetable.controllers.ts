@@ -3,9 +3,14 @@ import { TimetablesService } from "@/services/timetables/services";
 import { handleError } from "@/lib/errors/error.handler";
 
 export class TimetableController {
-  static async list() {
+  static async list(request: NextRequest) {
+    const params = request.nextUrl.searchParams;
+    const page = Math.max(parseInt(params.get("page") ?? "1", 10) || 1, 1);
+    const limit = Math.min(Math.max(parseInt(params.get("limit") ?? "10", 10) || 10, 10), 50);
+    const batchId = params.get("batch") ?? undefined;
+
     try {
-      const data = await TimetablesService.list();
+      const data = await TimetablesService.list(page, limit, batchId);
       return NextResponse.json(data);
     } catch (error) {
       return handleError(error);
@@ -21,6 +26,67 @@ export class TimetableController {
     try {
       const data = await TimetablesService.getClassAvailability(id);
       return NextResponse.json(data);
+    } catch (error) {
+      return handleError(error);
+    }
+  }
+
+  static async remove(
+    _request: NextRequest,
+    { params }: { params: Promise<{ id: string }> }
+  ) {
+    const { id } = await params;
+
+    try {
+      const result = await TimetablesService.remove(id);
+      return NextResponse.json(result);
+    } catch (error) {
+      return handleError(error);
+    }
+  }
+
+  static async update(
+    request: NextRequest,
+    { params }: { params: Promise<{ id: string }> }
+  ) {
+    const { id } = await params;
+    const body = await request.json().catch(() => ({}));
+    const { class_id, day_of_week, start_time, end_time } = body;
+
+    if (class_id !== undefined && typeof class_id !== "string") {
+      return NextResponse.json({ error: "Invalid class" }, { status: 400 });
+    }
+
+    if (day_of_week !== undefined) {
+      const day = Number(day_of_week);
+      if (!Number.isInteger(day) || day < 1 || day > 7) {
+        return NextResponse.json(
+          { error: "Day of week must be a number between 1 and 7" },
+          { status: 400 }
+        );
+      }
+    }
+
+    if (start_time !== undefined && typeof start_time !== "string") {
+      return NextResponse.json({ error: "Invalid start time" }, { status: 400 });
+    }
+
+    if (end_time !== undefined && typeof end_time !== "string") {
+      return NextResponse.json({ error: "Invalid end time" }, { status: 400 });
+    }
+
+    if (class_id === undefined && day_of_week === undefined && start_time === undefined && end_time === undefined) {
+      return NextResponse.json({ error: "Nothing to update" }, { status: 400 });
+    }
+
+    try {
+      const data = await TimetablesService.update(id, {
+        class_id,
+        day_of_week: day_of_week !== undefined ? Number(day_of_week) : undefined,
+        start_time,
+        end_time,
+      });
+      return NextResponse.json({ data });
     } catch (error) {
       return handleError(error);
     }

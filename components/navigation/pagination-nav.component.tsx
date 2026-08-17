@@ -44,6 +44,8 @@ export function PaginationNav({ page, totalPages, className }: PaginationNavProp
   const searchParams = useSearchParams()
   const search = searchParams.get("search")
   const filter = searchParams.get("filter")
+  const batch = searchParams.get("batch")
+  const limit = searchParams.get("limit")
   const currentPage = Math.min(Math.max(page, 1), Math.max(totalPages, 1))
   const items = getPageItems(currentPage, totalPages)
   const buildHref = (value: number) => {
@@ -51,6 +53,8 @@ export function PaginationNav({ page, totalPages, className }: PaginationNavProp
     params.set("page", String(value))
     if (search) params.set("search", search)
     if (filter) params.set("filter", filter)
+    if (batch) params.set("batch", batch)
+    if (limit) params.set("limit", limit)
     return `${path}?${params.toString()}`
   }
 

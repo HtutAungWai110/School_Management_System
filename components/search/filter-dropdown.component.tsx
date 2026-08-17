@@ -12,16 +12,17 @@ interface FilterOption {
 interface FilterButtonProps {
   options: FilterOption[]
   label?: string
+  paramName?: string
 }
 
-export default function FilterButton({ options, label = "Filters" }: FilterButtonProps) {
+export default function FilterButton({ options, label = "Filters", paramName = "filter" }: FilterButtonProps) {
   const path = usePathname()
   const searchParams = useSearchParams()
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
 
-  const active = searchParams.get("filter") ?? ""
+  const active = searchParams.get(paramName) ?? ""
   const activeLabel = options.find((option) => option.value === active)?.label ?? null
 
   useEffect(() => {
@@ -45,9 +46,9 @@ export default function FilterButton({ options, label = "Filters" }: FilterButto
   const applyFilter = (value: string) => {
     const params = new URLSearchParams(searchParams.toString())
     if (value) {
-      params.set("filter", value)
+      params.set(paramName, value)
     } else {
-      params.delete("filter")
+      params.delete(paramName)
     }
     params.set("page", "1")
     router.push(`${path}?${params.toString()}`)

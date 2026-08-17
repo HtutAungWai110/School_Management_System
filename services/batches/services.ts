@@ -57,6 +57,28 @@ const BATCH_DETAIL_SELECT = `
         )
       )
     )
+  ),
+  timetables(
+    id,
+    day_of_week,
+    start_time,
+    end_time,
+    modules(
+      id,
+      code,
+      title
+    ),
+    profiles(
+      id,
+      full_name,
+      email,
+      avatar_url
+    ),
+    classes(
+      id,
+      class_number,
+      location
+    )
   )
 `;
 

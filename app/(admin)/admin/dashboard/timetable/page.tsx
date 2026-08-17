@@ -3,15 +3,37 @@ import { CircleHelp, Bell } from "lucide-react"
 import { serverFetch } from "@/lib/server.service"
 import { TimetableCreateButton } from "@/components/timetable/timetable-create-button.component"
 import { TimetableRow } from "@/components/timetable/timetable-row.component"
+import { PaginationNav } from "@/components/navigation/pagination-nav.component"
+import { PageLimitSelector } from "@/components/navigation/page-limit-selector.component"
+import FilterButton from "@/components/search/filter-dropdown.component"
 import type { Batch } from "@/types/batch.type"
 import type { Module } from "@/types/module.type"
 import type { Teacher } from "@/types/teacher.type"
 import type { Class } from "@/types/class.type"
 import type { Timetable } from "@/types/timetable.type"
 
-export default async function TimetablePage() {
-  const [timetables, batches, modules, teachersResponse, classes] = await Promise.all([
-    serverFetch("http://localhost:3000/api/timetables", { next: { revalidate: 120 } }).then(res => res.json()) as Promise<Timetable[]>,
+interface TimetablesData {
+  timetables: Timetable[]
+  totalCount: number
+  totalPages: number
+}
+
+interface PageProps {
+  searchParams: Promise<{ page?: string; limit?: string; batch?: string }>
+}
+
+export default async function TimetablePage({ searchParams }: PageProps) {
+  const { page, limit, batch } = await searchParams;
+  const currentPage = page || "1";
+  const currentLimit = limit || "10";
+
+  let timetablesUrl = `http://localhost:3000/api/timetables?page=${currentPage}&limit=${currentLimit}`;
+  if (batch) {
+    timetablesUrl += `&batch=${encodeURIComponent(batch)}`;
+  }
+
+  const [timetablesData, batches, modules, teachersResponse, classes] = await Promise.all([
+    serverFetch(timetablesUrl, { next: { revalidate: 120 } }).then(res => res.json()) as Promise<TimetablesData>,
     serverFetch("http://localhost:3000/api/batches", { next: { revalidate: 120 } }).then(res => res.json()) as Promise<Batch[]>,
     serverFetch("http://localhost:3000/api/modules_level", { next: { revalidate: 120 } }).then(res => res.json()) as Promise<Module[]>,
     serverFetch("http://localhost:3000/api/teachers", { next: { revalidate: 120 } }).then(res => res.json()) as Promise<{ teachers: Teacher[] }>,
@@ -19,6 +41,12 @@ export default async function TimetablePage() {
   ]);
 
   const teachers = teachersResponse.teachers ?? [];
+  const timetables = timetablesData?.timetables ?? [];
+  const totalCount = timetablesData?.totalCount ?? 0;
+  const totalPages = timetablesData?.totalPages ?? 0;
+
+  const batchOptions = (batches ?? []).map((b) => ({ value: b.id, label: b.batch_name }));
+  console.log(batchOptions)
 
   return (
     <div className="min-h-screen bg-background flex">
@@ -43,14 +71,17 @@ export default async function TimetablePage() {
           <div className="bg-surface-container-lowest rounded-xl border border-outline-variant/10 overflow-hidden shadow-[0_4px_6px_-1px_rgba(15,23,42,0.05)]">
             <div className="p-6 border-b border-outline-variant/10 flex justify-between items-center">
               <h2 className="text-[20px] font-[600] leading-[28px] text-primary">Timetable Directory</h2>
-              <TimetableCreateButton
-                batches={batches ?? []}
-                modules={modules ?? []}
-                teachers={teachers}
-                classes={classes ?? []}
-              />
+              <div className="flex items-center gap-5">
+                <FilterButton options={batchOptions} label="Batch" paramName="batch" />
+                <TimetableCreateButton
+                  batches={batches ?? []}
+                  modules={modules ?? []}
+                  teachers={teachers}
+                  classes={classes ?? []}
+                />
+              </div>
             </div>
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto min-h-50">
               <table className="w-full text-left border-collapse">
                 <thead className="bg-surface-container-low">
                   <tr>
@@ -62,16 +93,20 @@ export default async function TimetablePage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-outline-variant/10">
-                  {(timetables ?? []).map((timetable) => (
-                    <TimetableRow key={timetable.id} timetable={timetable} />
+                  {timetables.map((timetable) => (
+                    <TimetableRow key={timetable.id} timetable={timetable} classes={classes ?? []} />
                   ))}
                 </tbody>
               </table>
             </div>
             <div className="px-6 py-4 border-t border-outline-variant/10 flex justify-between items-center bg-surface-container-low/20">
               <p className="text-[12px] font-[500] leading-[16px] text-on-surface-variant">
-                Showing {(timetables ?? []).length} sessions
+                Showing {timetables.length} of {totalCount} sessions
               </p>
+              <div className="flex items-center gap-4">
+                <PageLimitSelector />
+                <PaginationNav page={Number(currentPage)} totalPages={totalPages} />
+              </div>
             </div>
           </div>
         </div>

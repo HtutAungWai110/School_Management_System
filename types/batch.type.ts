@@ -23,6 +23,16 @@ export type BatchAssignment = {
   profiles: BatchAssignmentProfile | null;
 };
 
+export type BatchTimetable = {
+  id: string;
+  day_of_week: number;
+  start_time: string;
+  end_time: string;
+  modules: { id: string; code: string; title: string } | null;
+  profiles: { id: string; full_name: string; email: string; avatar_url: string | null } | null;
+  classes: { id: string; class_number: string | null; location: string | null } | null;
+};
+
 export type BatchStatus = "ongoing" | "completed";
 
 export type Batch = {
@@ -32,4 +42,5 @@ export type Batch = {
   status: BatchStatus | null;
   batch_level: BatchLevel[];
   batch_assignments: BatchAssignment[];
+  timetables?: BatchTimetable[];
 };

@@ -241,7 +241,7 @@ export function TimetableCreatePanel({
         return
       }
 
-      await refetchData(pathname)
+      await refetchData([pathname, `/admin/dashboard/batches/${data.batch_id}`])
       onClose()
     } catch {
       setSubmitError("Network error. Please try again.")
@@ -257,7 +257,7 @@ export function TimetableCreatePanel({
         className="max-w-[560px]"
       >
         <form onSubmit={handleSubmit(onSubmit)} className="flex flex-1 flex-col">
-          <div className="flex-1 space-y-4 overflow-y-auto px-6 py-6">
+          <div className="flex-1 space-y-4 overflow-y-auto px-6 py-6 ">
             <div>
               <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-on-surface-variant">
                 Session details
