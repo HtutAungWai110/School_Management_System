@@ -28,8 +28,15 @@ export function EnrollmentDirectory({
   const [deleteOpen, setDeleteOpen] = useState(false)
 
   const selectMode = selectedIds.length > 0
-  const selectedStudents = students.filter((student) => selectedIds.includes(student.id))
+  const selectedStudents = students.filter((student) => {
+    const key = `${student.id}-${student.student_enrollments[0]?.level_id ?? ""}`;
+    return selectedIds.includes(key);
+  })
   const allSelected = students.length > 0 && selectedIds.length === students.length
+
+  function rowKey(student: EnrolledStudent) {
+    return `${student.id}-${student.student_enrollments[0]?.level_id ?? ""}`;
+  }
 
   function toggleSelect(id: string) {
     setSelectedIds((prev) =>
@@ -38,7 +45,7 @@ export function EnrollmentDirectory({
   }
 
   function selectAll() {
-    setSelectedIds(students.map((student) => student.id))
+    setSelectedIds(students.map((student) => rowKey(student)))
   }
 
   function clearSelection() {
@@ -105,12 +112,12 @@ export function EnrollmentDirectory({
           <tbody className="divide-y divide-outline-variant/10">
             {students.map((student) => (
               <EnrollmentRow
-                key={student.id}
+                key={rowKey(student)}
                 student={student}
                 selectMode={selectMode}
-                selected={selectedIds.includes(student.id)}
-                onToggle={() => toggleSelect(student.id)}
-                onSelect={() => toggleSelect(student.id)}
+                selected={selectedIds.includes(rowKey(student))}
+                onToggle={() => toggleSelect(rowKey(student))}
+                onSelect={() => toggleSelect(rowKey(student))}
               />
             ))}
           </tbody>

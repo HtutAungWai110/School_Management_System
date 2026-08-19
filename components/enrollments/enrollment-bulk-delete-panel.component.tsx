@@ -13,8 +13,8 @@ interface EnrollmentBulkDeletePanelProps {
 
 export function EnrollmentBulkDeletePanel({ students, onClose }: EnrollmentBulkDeletePanelProps) {
   const pathname = usePathname()
-  const studentIds = students.map((s) => s.id)
-  const count = students.length
+  const studentIds = [...new Set(students.map((s) => s.id))]
+  const count = studentIds.length
 
   async function handleDelete() {
     const res = await fetch("/api/enrollments", {

@@ -11,10 +11,13 @@ export type EnrollmentModule = {
   title: string;
 };
 
+export type EnrollmentStatus = "unassigned" | "enrolled" | "completed";
+
 export type StudentEnrollment = {
   id: string;
   enrolled_at: string;
   level_id: string;
+  status: EnrollmentStatus;
   levels: EnrollmentLevel;
   modules: EnrollmentModule;
 };

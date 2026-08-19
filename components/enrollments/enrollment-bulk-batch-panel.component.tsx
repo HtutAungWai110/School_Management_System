@@ -28,18 +28,15 @@ export function EnrollmentBulkBatchPanel({ students, onClose }: EnrollmentBulkBa
 
   const confirmBatch = (batches ?? []).find((batch) => batch.id === confirmBatchId) ?? null
 
-  const studentIds = students.map((s) => s.id)
+  const studentIds = [...new Set(students.map((s) => s.id))]
 
-  const commonLevelIds = students.reduce<string[]>(
-    (common, student) => {
-      const levelIds = new Set(
-        (student.student_enrollments ?? []).map((e) => e.levels?.id).filter(Boolean)
-      )
-      if (common.length === 0) return [...levelIds]
-      return common.filter((id) => levelIds.has(id))
-    },
-    []
-  )
+  const commonLevelIds = (() => {
+    const levelSets = students.map(
+      (s) => new Set((s.student_enrollments ?? []).map((e) => e.levels?.id).filter(Boolean))
+    );
+    if (levelSets.length === 0) return [];
+    return [...levelSets[0]].filter((id) => levelSets.every((set) => set.has(id)));
+  })()
 
   const commonLevelSet = new Set(commonLevelIds)
 
@@ -71,12 +68,23 @@ export function EnrollmentBulkBatchPanel({ students, onClose }: EnrollmentBulkBa
     setSubmitError(null)
     setAssigningBatchId(batchId)
 
+    const studentModuleMap: Record<string, string[]> = {}
+    for (const student of students) {
+      const moduleIds = (student.student_enrollments ?? [])
+        .filter((e) => e.status === "unassigned")
+        .map((e) => e.modules?.id)
+        .filter(Boolean) as string[]
+      if (moduleIds.length > 0) {
+        studentModuleMap[student.id] = moduleIds
+      }
+    }
+
     try {
       const res = await fetch("/api/enrollments", {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ student_ids: studentIds, batch_id: batchId }),
+        body: JSON.stringify({ student_ids: studentIds, batch_id: batchId, student_module_map: studentModuleMap }),
       })
 
       if (!res.ok) {

@@ -50,6 +50,8 @@ const BATCH_DETAIL_SELECT = `
       email,
       avatar_url,
       student_enrollments(
+        id,
+        level_id,
         modules(
           id,
           code,
@@ -172,6 +174,21 @@ export class BatchesService {
     return data;
   }
 
+  static async removeAssignment(assignmentId: string) {
+    const supabase = await createClient();
+
+    const { error } = await supabase
+      .from("batch_assignments")
+      .delete()
+      .eq("id", assignmentId);
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    return { success: true };
+  }
+
   static async remove(id: string) {
     const supabase = await createClient();
 
@@ -187,7 +204,7 @@ export class BatchesService {
     const { error: assignmentsError } = await supabase
       .from("batch_assignments")
       .delete()
-      .eq("bacth_id", id);
+      .eq("batch_id", id);
 
     if (assignmentsError) {
       throw new Error(assignmentsError.message);

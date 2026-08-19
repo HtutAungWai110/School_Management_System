@@ -1,46 +1,16 @@
 import { createClient } from "@/lib/supabase/server.client";
 import { HttpError } from "@/lib/errors/http.error";
+import type { EnrolledStudent } from "@/types/enrollment.type";
 
 const PAGE_SIZE = 10;
 
 const ENROLLMENT_SELECT = `
   *,
-  batch_assignments (
-    batches(
-      batch_level(
-        level_id
-      )
-    )
-  ),
-  student_enrollments (
-    id,
-    enrolled_at,
-    level_id,
-    levels (
-      id,
-      description
-    ),
-    modules (
-      id,
-      code,
-      title
-    )
-  )
-`;
-
-const LEVEL_ENROLLMENT_SELECT = `
-  *,
-  batch_assignments (
-    batches(
-      batch_level(
-        level_id
-      )
-    )
-  ),
   student_enrollments!inner (
     id,
     enrolled_at,
     level_id,
+    status,
     levels (
       id,
       description
@@ -59,53 +29,11 @@ export class EnrollmentsService {
 
     const levelId = filter;
 
-    const from = (page - 1) * PAGE_SIZE;
-    const to = from + PAGE_SIZE - 1;
-
-    const { data: candidates } = await supabase
-      .from("profiles")
-      .select(`
-        id,
-        batch_assignments (
-          batches (
-            batch_level (
-              level_id
-            )
-          )
-        ),
-        student_enrollments (
-          level_id
-        )
-      `)
-      .eq("role", "student");
-
-    const eligibleIds = (candidates ?? [])
-      .filter((student) => {
-        const coveredLevels = new Set(
-          (student.batch_assignments ?? []).flatMap((assignment) => {
-            const batches = assignment.batches as unknown as
-              | { batch_level: { level_id: string }[] }
-              | { batch_level: { level_id: string }[] }[]
-              | null;
-            const list = Array.isArray(batches) ? batches : batches ? [batches] : [];
-            return list.flatMap((batch) => batch.batch_level ?? []);
-          })
-          .map((bl) => bl.level_id)
-          .filter(Boolean)
-        );
-
-        return (student.student_enrollments ?? []).some(
-          (enrollment) => enrollment.level_id && !coveredLevels.has(enrollment.level_id)
-        );
-      })
-      .map((student) => student.id);
-
     let query = supabase
       .from("profiles")
-      .select(levelId ? LEVEL_ENROLLMENT_SELECT : ENROLLMENT_SELECT, { count: "exact" })
+      .select(ENROLLMENT_SELECT, { count: "exact" })
       .eq("role", "student")
-      .in("id", eligibleIds)
-      .range(from, to)
+      .eq("student_enrollments.status", "unassigned")
       .order("created_at", { ascending: false });
 
     if (search) {
@@ -116,11 +44,16 @@ export class EnrollmentsService {
       query = query.eq("student_enrollments.level_id", levelId);
     }
 
-    const { data: enrollments, error, count } = await query;
+    const { data: raw, error } = await query;
+
+    if (error) {
+      throw new Error(error.message);
+    }
 
     let enrollmentCountQuery = supabase
       .from("student_enrollments")
-      .select("*", { count: "exact", head: true });
+      .select("*", { count: "exact", head: true })
+      .eq("status", "unassigned");
 
     if (levelId) {
       enrollmentCountQuery = enrollmentCountQuery.eq("level_id", levelId);
@@ -128,18 +61,41 @@ export class EnrollmentsService {
 
     const { count: totalEnrollments } = await enrollmentCountQuery;
 
-    if (error) {
-      throw new Error(error.message);
-    }
+    const flattenByLevel = (student: Omit<EnrolledStudent, "student_enrollments"> & { student_enrollments: EnrolledStudent["student_enrollments"] }): EnrolledStudent[] => {
+      const enrollments = student.student_enrollments ?? [];
+      const levelMap = new Map<string, EnrolledStudent["student_enrollments"]>();
 
-    const totalCount = count ?? 0;
+      for (const e of enrollments) {
+        if (!e.level_id) continue;
+        const existing = levelMap.get(e.level_id);
+        if (existing) {
+          existing.push(e);
+        } else {
+          levelMap.set(e.level_id, [e]);
+        }
+      }
+
+      if (levelMap.size === 0) {
+        return [{ ...student, student_enrollments: [] }];
+      }
+
+      return Array.from(levelMap.values()).map((enrollments) => ({
+        ...student,
+        student_enrollments: enrollments,
+      }));
+    };
+
+    const flat = (raw ?? []).flatMap((student) => flattenByLevel(student));
+    const from = (page - 1) * PAGE_SIZE;
+    const to = from + PAGE_SIZE;
+    const paginated = flat.slice(from, to);
 
     return {
-      enrollments,
-      totalCount,
+      enrollments: paginated,
+      totalCount: flat.length,
       totalEnrollments: totalEnrollments ?? 0,
       page,
-      totalPages: Math.ceil(totalCount / PAGE_SIZE),
+      totalPages: Math.ceil(flat.length / PAGE_SIZE),
     };
   }
 
@@ -173,7 +129,7 @@ export class EnrollmentsService {
     return { success: true };
   }
 
-  static async assignToBatch(studentId: string, batchId: string) {
+  static async assignToBatch(studentId: string, batchId: string, moduleIds: string[]) {
     const supabase = await createClient();
 
     const { data: enrollments, error: enrollmentsError } = await supabase
@@ -215,21 +171,34 @@ export class EnrollmentsService {
       throw new HttpError(400, "Student can't be assigned to this batch");
     }
 
-
     const { error } = await supabase
       .from("batch_assignments")
-      .insert({ bacth_id: batchId, student_id: studentId });
+      .insert({ batch_id: batchId, student_id: studentId });
 
     if (error) {
       throw new Error(error.message);
     }
 
+    if (moduleIds.length > 0) {
+      const { error: updateError } = await supabase
+        .from("student_enrollments")
+        .update({ status: "assigned" })
+        .eq("student_id", studentId)
+        .in("module_id", moduleIds);
+
+      if (updateError) {
+        throw new Error(updateError.message);
+      }
+    }
+
     return { success: true };
   }
 
-  static async assignBatch(batchId: string, studentIds: string[]) {
+  static async assignBatch(batchId: string, studentModuleMap: Map<string, string[]>) {
     return Promise.all(
-      studentIds.map((studentId) => this.assignToBatch(studentId, batchId))
+      Array.from(studentModuleMap.entries()).map(([studentId, moduleIds]) =>
+        this.assignToBatch(studentId, batchId, moduleIds)
+      )
     );
   }
 }

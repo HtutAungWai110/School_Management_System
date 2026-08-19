@@ -50,8 +50,8 @@ export class EnrollmentController {
   static async assignBatch(request: NextRequest) {
     const body = await request
       .json()
-      .catch(() => ({ batch_id: undefined, student_ids: undefined }));
-    const { batch_id, student_ids } = body;
+      .catch(() => ({ batch_id: undefined, student_ids: undefined, student_module_map: undefined }));
+    const { batch_id, student_ids, student_module_map } = body;
 
     if (!batch_id || typeof batch_id !== "string") {
       return NextResponse.json({ error: "Batch is required" }, { status: 400 });
@@ -61,8 +61,20 @@ export class EnrollmentController {
       return NextResponse.json({ error: "At least one student is required" }, { status: 400 });
     }
 
+    if (!student_module_map || typeof student_module_map !== "object") {
+      return NextResponse.json({ error: "student_module_map is required" }, { status: 400 });
+    }
+
+    const studentModuleMap = new Map<string, string[]>()
+    for (const studentId of student_ids) {
+      const moduleIds = student_module_map[studentId]
+      if (Array.isArray(moduleIds)) {
+        studentModuleMap.set(studentId, moduleIds)
+      }
+    }
+
     try {
-      const result = await EnrollmentsService.assignBatch(batch_id, student_ids);
+      const result = await EnrollmentsService.assignBatch(batch_id, studentModuleMap);
       return NextResponse.json(result, { status: 201 });
     } catch (error) {
       return handleError(error);
@@ -74,14 +86,16 @@ export class EnrollmentController {
     { params }: { params: Promise<{ id: string }> }
   ) {
     const { id } = await params;
-    const { batch_id } = await request.json().catch(() => ({ batch_id: undefined }));
+    const { batch_id, module_ids } = await request.json().catch(() => ({ batch_id: undefined, module_ids: undefined }));
 
     if (!batch_id || typeof batch_id !== "string") {
       return NextResponse.json({ error: "Batch is required" }, { status: 400 });
     }
 
+    const moduleIdArray = Array.isArray(module_ids) ? module_ids : [];
+
     try {
-      const result = await EnrollmentsService.assignToBatch(id, batch_id);
+      const result = await EnrollmentsService.assignToBatch(id, batch_id, moduleIdArray);
       return NextResponse.json(result, { status: 201 });
     } catch (error) {
       return handleError(error);

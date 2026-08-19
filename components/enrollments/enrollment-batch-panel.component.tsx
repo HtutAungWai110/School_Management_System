@@ -59,12 +59,17 @@ export function EnrollmentBatchPanel({ student, onClose }: EnrollmentBatchPanelP
     setSubmitError(null)
     setAssigningId(batchId)
 
+    const moduleIds = (student.student_enrollments ?? [])
+      .filter((e) => e.status === "unassigned")
+      .map((e) => e.modules?.id)
+      .filter(Boolean) as string[]
+
     try {
       const res = await fetch(`/api/enrollments/${student.id}`, {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ batch_id: batchId }),
+        body: JSON.stringify({ batch_id: batchId, module_ids: moduleIds }),
       })
 
       if (!res.ok) {

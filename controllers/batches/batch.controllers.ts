@@ -77,6 +77,20 @@ export class BatchController {
     }
   }
 
+  static async removeAssignment(
+    request: NextRequest,
+    { params }: { params: Promise<{ id: string; assignmentId: string }> }
+  ) {
+    const { assignmentId } = await params;
+
+    try {
+      const result = await BatchesService.removeAssignment(assignmentId);
+      return NextResponse.json(result);
+    } catch (error) {
+      return handleError(error);
+    }
+  }
+
   static async remove(
     request: NextRequest,
     { params }: { params: Promise<{ id: string }> }

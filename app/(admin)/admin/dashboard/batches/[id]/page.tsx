@@ -1,15 +1,11 @@
-import Image from "next/image"
 import Link from "next/link"
 import { ArrowLeft, Bell, Calendar, CircleHelp, Users, Clock } from "lucide-react"
 
 import { serverFetch } from "@/lib/server.service"
 import type { Batch } from "@/types/batch.type"
 import { BatchStatusBadge } from "@/components/batches/batch-status-badge.component"
+import { BatchStudentRow } from "@/components/batches/batch-student-row.component"
 import { DAY_OF_WEEK_LABELS } from "@/types/timetable.type"
-
-function getInitials(name: string) {
-  return name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)
-}
 
 function formatDate(value: string) {
   return new Date(value).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
@@ -244,56 +240,14 @@ export default async function BatchDetailPage({ params }: { params: Promise<{ id
                   </div>
                 ) : (
                   <ul className="divide-y divide-outline-variant/10">
-                    {students.map((assignment) => {
-                      const profile = assignment.profiles;
-                      if (!profile) return null;
-                      return (
-                        <li key={assignment.id} className="px-6 py-4 flex items-center gap-4">
-                          {profile.avatar_url ? (
-                            <Image
-                              className="w-10 h-10 rounded-full object-cover border border-outline-variant/20"
-                              src={profile.avatar_url}
-                              alt={profile.full_name}
-                              width={40}
-                              height={40}
-                              unoptimized
-                            />
-                          ) : (
-                            <div className="w-10 h-10 rounded-full bg-surface-dim flex items-center justify-center font-bold text-on-surface-variant text-sm shrink-0">
-                              {getInitials(profile.full_name)}
-                            </div>
-                          )}
-                          <div className="min-w-0 flex-1">
-                            <p className="text-[15px] font-[600] leading-[20px] text-on-surface truncate">
-                              {profile.full_name}
-                            </p>
-                            <p className="text-[13px] leading-[18px] text-on-surface-variant truncate">
-                              {profile.email}
-                            </p>
-                            {profile.student_enrollments && profile.student_enrollments.length > 0 && (
-                              <div className="mt-2 flex flex-wrap gap-1.5">
-                                {profile.student_enrollments.map((enrollment) =>
-                                  enrollment.modules ? (
-                                    <span
-                                      key={enrollment.modules.id}
-                                      className="text-on-background/10 bg-primary-fixed/50 inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md border border-secondary-container/60 text-[11px] font-[600] leading-[14px]"
-                                    >
-                                      {enrollment.modules.code}
-                                      <span className="text-on-surface-variant font-[500]">
-                                        {enrollment.modules.title}
-                                      </span>
-                                    </span>
-                                  ) : null
-                                )}
-                              </div>
-                            )}
-                          </div>
-                          <span className="text-[12px] font-[500] leading-[16px] text-on-surface-variant shrink-0">
-                            Added {formatDate(assignment.assigned_at)}
-                          </span>
-                        </li>
-                      );
-                    })}
+                    {students.map((assignment) => (
+                      <BatchStudentRow
+                        key={assignment.id}
+                        assignment={assignment}
+                        batchId={id}
+                        batchLevels={batch.batch_level ?? []}
+                      />
+                    ))}
                   </ul>
                 )}
               </div>

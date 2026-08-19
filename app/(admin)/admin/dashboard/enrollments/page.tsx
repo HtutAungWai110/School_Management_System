@@ -34,7 +34,7 @@ export default async function EnrollmentsPage({ searchParams }: PageProps) {
   const totalEnrollments = data?.totalEnrollments ?? 0
   const totalPages = data?.totalPages ?? 0
 
-  const activeLevels = new Set(enrollments.flatMap((student) => student.student_enrollments?.map((enrollment) => enrollment.levels?.id).filter(Boolean))).size
+  const activeLevels = new Set(enrollments.map((entry) => entry.student_enrollments[0]?.level_id).filter(Boolean)).size
   const levelOptions = (levels ?? []).map((level) => ({ label: level.description, value: level.id }))
 
   return (

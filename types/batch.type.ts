@@ -11,13 +11,15 @@ export type BatchLevel = {
 
 export type BatchAssignmentProfile = Pick<Profile, "id" | "full_name" | "email" | "avatar_url"> & {
   student_enrollments?: {
+    id: string;
+    level_id: string;
     modules: EnrollmentModule | null;
   }[];
 };
 
 export type BatchAssignment = {
   id: string;
-  bacth_id: string;
+  batch_id: string;
   student_id: string;
   assigned_at: string;
   profiles: BatchAssignmentProfile | null;
