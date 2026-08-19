@@ -227,6 +227,14 @@ export class TimetablesService {
           code,
           title
         ),
+        batches(
+          id,
+          batch_name
+        ),
+        profiles(
+          id,
+          full_name
+        ),
         status
       `)
       .eq("class_id", classId)

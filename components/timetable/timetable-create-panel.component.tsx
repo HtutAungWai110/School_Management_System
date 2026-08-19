@@ -4,8 +4,8 @@ import { useEffect, useState } from "react"
 import { usePathname } from "next/navigation"
 import { Controller, useForm, useWatch } from "react-hook-form"
 
+import { MousePointerClick } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog.component"
 import {
   Combobox,
@@ -22,17 +22,13 @@ import type { Batch } from "@/types/batch.type"
 import type { Module } from "@/types/module.type"
 import type { Teacher } from "@/types/teacher.type"
 import type { Class } from "@/types/class.type"
-import { DAY_OF_WEEK_LABELS, DAY_OF_WEEK_OPTIONS, type ClassAvailabilitySlot } from "@/types/timetable.type"
+import { DAY_OF_WEEK_LABELS, type ClassAvailabilitySlot } from "@/types/timetable.type"
 
 type Option = { value: string; label: string }
 
 type ClassAvailabilityState =
   | { classId: string; status: "ready"; slots: ClassAvailabilitySlot[] }
   | { classId: string; status: "error"; message: string }
-
-function formatTime(time: string) {
-  return time.slice(0, 5)
-}
 
 interface TimetableFormValues {
   batch_id: string
@@ -44,7 +40,12 @@ interface TimetableFormValues {
   end_time: string
 }
 
-const inputErrorClass = "aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/30"
+const TIME_SLOTS = [
+  { label: "9:00 AM – 12:00 PM", start: "09:00", end: "12:00" },
+  { label: "1:00 PM – 4:00 PM", start: "13:00", end: "16:00" },
+] as const
+
+const DAYS = [1, 2, 3, 4, 5, 6, 7] as const
 
 function SingleCombobox({
   options,
@@ -115,10 +116,9 @@ export function TimetableCreatePanel({
 
   const {
     control,
-    register,
     handleSubmit,
     setValue,
-    formState: { errors, isSubmitting },
+    formState: { isSubmitting },
   } = useForm<TimetableFormValues>()
 
   const watched = useWatch({ control })
@@ -132,7 +132,6 @@ export function TimetableCreatePanel({
 
   const selectedBatch = batches.find((batch) => batch.id === watched.batch_id) ?? null
   const selectedModule = modules.find((module) => module.id === watched.module_id) ?? null
-  const selectedClass = classes.find((classItem) => classItem.id === watched.class_id) ?? null
 
   useEffect(() => {
     const classId = watched.class_id
@@ -206,15 +205,24 @@ export function TimetableCreatePanel({
     label: classItem.class_number ? `Class ${classItem.class_number}` : (classItem.location ?? "Class"),
   }))
 
-  const conflict =
-    classAvailability?.find(
+  function getSlotOccupant(dayOfWeek: number, startTime: string): ClassAvailabilitySlot | null {
+    if (!classAvailability) return null
+    return classAvailability.find(
       (slot) =>
-        slot.day_of_week === Number(watched.day_of_week) &&
-        watched.start_time &&
-        watched.end_time &&
-        formatTime(watched.start_time) < formatTime(slot.end_time) &&
-        formatTime(watched.end_time) > formatTime(slot.start_time)
+        slot.day_of_week === dayOfWeek &&
+        slot.start_time.slice(0, 5) === startTime
     ) ?? null
+  }
+
+  function selectSlot(dayOfWeek: number, slot: (typeof TIME_SLOTS)[number]) {
+    setValue("day_of_week", String(dayOfWeek), { shouldValidate: true })
+    setValue("start_time", slot.start, { shouldValidate: true })
+    setValue("end_time", slot.end, { shouldValidate: true })
+  }
+
+  const isSelected = (dayOfWeek: number, startTime: string) =>
+    Number(watched.day_of_week) === dayOfWeek &&
+    watched.start_time === startTime
 
   async function onSubmit(data: TimetableFormValues) {
     setSubmitError(null)
@@ -248,26 +256,29 @@ export function TimetableCreatePanel({
     }
   }
 
+  const hasSelection = watched.day_of_week && watched.start_time && watched.end_time
+
   return (
     <>
       <ModulesPanelShell
         title="Create timetable"
         subtitle="Schedule a class session"
         onClose={onClose}
-        className="max-w-[560px]"
+        className="max-w-[680px]"
       >
         <form onSubmit={handleSubmit(onSubmit)} className="flex flex-1 flex-col">
-          <div className="flex-1 space-y-4 overflow-y-auto px-6 py-6 ">
+          <div className="flex-1 space-y-5 overflow-y-auto px-6 py-6">
             <div>
               <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-on-surface-variant">
                 Session details
               </p>
               <p className="mt-1 text-[12px] leading-[18px] text-on-surface-variant">
-                Pick a batch, module, teacher, and class, then set the day and time.
+                Pick a batch, module, teacher, and class, then choose a day and time slot below.
               </p>
             </div>
 
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="w-2/3">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-1.5">
                 <label className="text-sm font-medium text-on-surface" htmlFor="batch">
                   Batch
@@ -376,104 +387,105 @@ export function TimetableCreatePanel({
                         ariaInvalid={!!fieldState.error}
                       />
                       {fieldState.error && <p className="text-xs text-destructive">{fieldState.error.message}</p>}
-                      {selectedClass && (
-                        <div className="mt-2 space-y-1.5">
-                          {availabilityLoading && (
-                            <p className="text-xs text-on-surface-variant">Checking availability…</p>
-                          )}
-                          {availabilityError && <p className="text-xs text-destructive">{availabilityError}</p>}
-                          {!availabilityLoading &&
-                            !availabilityError &&
-                            classAvailability &&
-                            classAvailability.length > 0 && (
-                              <div className="rounded-lg border border-outline-variant/10 bg-surface-container-low/40 px-3 py-2">
-                                <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-on-surface-variant">
-                                  Occupied sessions
-                                </p>
-                                <ul className="mt-1 space-y-0.5">
-                                  {classAvailability.map((slot) => (
-                                    <li
-                                      key={slot.id}
-                                      className="text-[12px] leading-[16px] text-on-surface-variant"
-                                    >
-                                      {DAY_OF_WEEK_LABELS[slot.day_of_week]} · {formatTime(slot.start_time)} –{" "}
-                                      {formatTime(slot.end_time)}
-                                      {slot.modules ? ` · ${slot.modules.title}` : ""}
-                                    </li>
-                                  ))}
-                                </ul>
-                              </div>
-                            )}
-                          {!availabilityLoading &&
-                            !availabilityError &&
-                            classAvailability?.length === 0 && (
-                              <p className="text-xs text-on-surface-variant">This class is free all week.</p>
-                            )}
-                          {conflict && (
-                            <p className="text-[12px] leading-[16px] text-destructive">
-                              Overlaps{" "}
-                              {`${DAY_OF_WEEK_LABELS[conflict.day_of_week]} ${formatTime(conflict.start_time)} – ${formatTime(conflict.end_time)}`}
-                            </p>
-                          )}
-                        </div>
-                      )}
                     </>
                   )}
                 />
               </div>
+              </div>
+            </div>
 
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium text-on-surface" htmlFor="day-of-week">
-                  Day of week
-                </label>
-                <Controller
-                  control={control}
-                  name="day_of_week"
-                  rules={{ required: "Choose a day" }}
-                  render={({ field, fieldState }) => (
-                    <>
-                      <SingleCombobox
-                        options={DAY_OF_WEEK_OPTIONS}
-                        value={field.value}
-                        onValueChange={field.onChange}
-                        placeholder="Choose a day"
-                        emptyLabel="No day found."
-                        ariaInvalid={!!fieldState.error}
-                      />
-                      {fieldState.error && <p className="text-xs text-destructive">{fieldState.error.message}</p>}
-                    </>
-                  )}
-                />
+            <div className="space-y-2 ">
+              <div className="flex items-center justify-between">
+                <label className="text-sm font-medium text-on-surface">Day & Time</label>
+                {!watched.class_id && (
+                  <p className="text-xs text-on-surface-variant">Select a class first</p>
+                )}
+                {watched.class_id && availabilityLoading && (
+                  <p className="text-xs text-on-surface-variant">Loading availability…</p>
+                )}
+                {watched.class_id && availabilityError && (
+                  <p className="text-xs text-destructive">{availabilityError}</p>
+                )}
               </div>
 
-              <div className="space-y-3">
-                <div className="space-y-1.5">
-                  <label className="text-sm font-medium text-on-surface" htmlFor="start-time">
-                    Start time
-                  </label>
-                  <Input
-                    id="start-time"
-                    type="time"
-                    className={cn(inputErrorClass)}
-                    aria-invalid={!!errors.start_time}
-                    {...register("start_time", { required: "Start time is required" })}
-                  />
-                  {errors.start_time && <p className="text-xs text-destructive">{errors.start_time.message}</p>}
+              {watched.class_id && !availabilityLoading && !availabilityError && (
+                <div className="max-h-[150px] overflow-y-auto rounded-xl border border-outline-variant/15">
+                  <table className="w-full text-left border-collapse">
+                    <thead className="bg-surface-container-low">
+                      <tr>
+                        <th className="px-3 py-2.5 text-[11px] font-[600] leading-[14px] text-on-surface-variant uppercase tracking-wider w-[110px]" />
+                        {TIME_SLOTS.map((slot) => (
+                          <th
+                            key={slot.start}
+                            className="px-3 py-2.5 text-[11px] font-[600] leading-[14px] text-on-surface-variant uppercase tracking-wider text-center"
+                          >
+                            {slot.label}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-outline-variant/10">
+                      {DAYS.map((day) => (
+                        <tr key={day} className="divide-x divide-outline-variant/10">
+                          <td className="px-3 py-2 text-[13px] font-[600] leading-[18px] text-on-surface whitespace-nowrap">
+                            {DAY_OF_WEEK_LABELS[day]}
+                          </td>
+                          {TIME_SLOTS.map((slot) => {
+                            const occupant = getSlotOccupant(day, slot.start)
+                            const selected = isSelected(day, slot.start)
+                            const disabled = !!occupant
+
+                            return (
+                              <td key={slot.start} className="px-1.5 py-1.5">
+                                <button
+                                  type="button"
+                                  disabled={disabled}
+                                  onClick={() => selectSlot(day, slot)}
+                                  className={cn(
+                                    "w-full rounded-lg px-2.5 py-2 text-left transition-colors",
+                                    disabled
+                                      ? "bg-destructive/5 border border-destructive/15 cursor-not-allowed"
+                                      : selected
+                                        ? "bg-primary/10 border-2 border-primary ring-1 ring-primary/20"
+                                        : "bg-surface-container-low/50 border border-outline-variant/10 hover:bg-surface-container-low hover:border-outline-variant/25 cursor-pointer"
+                                  )}
+                                >
+                                  {disabled && occupant ? (
+                                    <div className="space-y-0.5">
+                                      <p className="text-[11px] font-[600] leading-[14px] text-destructive truncate">
+                                        {occupant.modules ? `${occupant.modules.code}` : "Booked"}
+                                      </p>
+                                      <p className="text-[10px] leading-[13px] text-on-surface-variant truncate">
+                                        {occupant.modules?.title}
+                                      </p>
+                                      <p className="text-[10px] leading-[13px] text-on-surface-variant truncate">
+                                        {occupant.batches?.batch_name}
+                                      </p>
+                                      <p className="text-[10px] leading-[13px] text-on-surface-variant truncate">
+                                        {occupant.profiles?.full_name}
+                                      </p>
+                                    </div>
+                                  ) : (
+                                    <div className={cn(
+                                      "flex items-center justify-center gap-1.5",
+                                      selected ? "text-primary" : "text-on-surface-variant"
+                                    )}>
+                                      {!selected && <MousePointerClick className="w-3.5 h-3.5 shrink-0" />}
+                                      <p className="text-[12px] font-[500] leading-[16px]">
+                                        {selected ? "Selected" : "Available"}
+                                      </p>
+                                    </div>
+                                  )}
+                                </button>
+                              </td>
+                            )
+                          })}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
-                <div className="space-y-1.5">
-                  <label className="text-sm font-medium text-on-surface" htmlFor="end-time">
-                    End time
-                  </label>
-                  <Input
-                    id="end-time"
-                    type="time"
-                    className={cn(inputErrorClass)}
-                    aria-invalid={!!errors.end_time}
-                    {...register("end_time", { required: "End time is required" })}
-                  />
-                  {errors.end_time && <p className="text-xs text-destructive">{errors.end_time.message}</p>}
-                </div>
-              </div>
+              )}
             </div>
 
             {submitError && (
@@ -483,11 +495,11 @@ export function TimetableCreatePanel({
             )}
           </div>
 
-          <footer className="flex justify-end gap-3 border-t border-outline-variant/20 bg-surface-container-low/20 px-6 py-4">
+          <footer className="shrink-0 flex justify-end gap-3 border-t border-outline-variant/20 bg-surface-container-low/20 px-6 py-4">
             <Button type="button" variant="outline" onClick={onClose}>
               Cancel
             </Button>
-            <Button type="button" disabled={isSubmitting || !!conflict} onClick={() => setShowConfirm(true)}>
+            <Button type="button" disabled={isSubmitting || !hasSelection} onClick={() => setShowConfirm(true)}>
               Create timetable
             </Button>
           </footer>
@@ -498,10 +510,8 @@ export function TimetableCreatePanel({
         open={showConfirm}
         title="Create timetable?"
         description={
-          selectedModule
-            ? `Schedule ${selectedModule.title} on ${dayLabel ?? "that day"}${
-                watched.start_time ? ` from ${watched.start_time}` : ""
-              }${watched.end_time ? ` to ${watched.end_time}` : ""}?`
+          selectedModule && dayLabel
+            ? `Schedule ${selectedModule.title} on ${dayLabel} from ${watched.start_time} to ${watched.end_time}?`
             : undefined
         }
         confirmLabel="Create"

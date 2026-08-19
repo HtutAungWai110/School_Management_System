@@ -26,6 +26,8 @@ export type ClassAvailabilitySlot = {
   start_time: string;
   end_time: string;
   modules: TimetableModule | null;
+  batches: TimetableBatch | null;
+  profiles: TimetableTeacher | null;
 };
 
 export const DAY_OF_WEEK_LABELS: Record<number, string> = {
