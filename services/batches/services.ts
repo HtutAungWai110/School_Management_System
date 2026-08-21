@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server.client";
-import type { BatchStatus } from "@/types/batch.type";
+import type { BatchStatus, BatchAssignment } from "@/types/batch.type";
 
 const BATCH_SELECT = `
   id,
@@ -40,26 +40,6 @@ const BATCH_DETAIL_SELECT = `
       description
     )
   ),
-  batch_assignments (
-    id,
-    student_id,
-    assigned_at,
-    profiles (
-      id,
-      full_name,
-      email,
-      avatar_url,
-      student_enrollments(
-        id,
-        level_id,
-        modules(
-          id,
-          code,
-          title
-        )
-      )
-    )
-  ),
   timetables(
     id,
     day_of_week,
@@ -80,6 +60,27 @@ const BATCH_DETAIL_SELECT = `
       id,
       class_number,
       location
+    )
+  )
+`;
+
+const STUDENT_ENROLLMENTS_SELECT = `
+  id,
+  student_id,
+  assigned_at,
+  profiles (
+    id,
+    full_name,
+    email,
+    avatar_url,
+    student_enrollments(
+      id,
+      level_id,
+      modules(
+        id,
+        code,
+        title
+      )
     )
   )
 `;
@@ -113,17 +114,52 @@ export class BatchesService {
   static async getById(id: string) {
     const supabase = await createClient();
 
-    const { data, error } = await supabase
+    const { data: batch, error: batchError } = await supabase
       .from("batches")
       .select(BATCH_DETAIL_SELECT)
       .eq("id", id)
       .single();
 
-    if (error) {
-      throw new Error(error.message);
+    if (batchError) {
+      throw new Error(batchError.message);
     }
 
-    return data;
+    const batchLevelIds = new Set((batch.batch_level ?? []).map((bl) => bl.level_id));
+
+    if (batchLevelIds.size > 0) {
+      const { data: assignments, error: assignmentsError } = await supabase
+        .from("batch_assignments")
+        .select(STUDENT_ENROLLMENTS_SELECT)
+        .eq("batch_id", id);
+
+      if (assignmentsError) {
+        throw new Error(assignmentsError.message);
+      }
+
+      const filteredAssignments = (assignments ?? []).map((assignment: { id: string; student_id: string; assigned_at: string; profiles: unknown }) => {
+        const profile = assignment.profiles as { id: string; full_name: string; email: string; avatar_url: string | null; student_enrollments: { level_id: string }[] } | null;
+        if (!profile) return assignment;
+
+        const filteredEnrollments = (profile.student_enrollments ?? []).filter(
+          (enrollment: { level_id: string }) => batchLevelIds.has(enrollment.level_id)
+        );
+
+        return {
+          ...assignment,
+          profiles: {
+            ...profile,
+            student_enrollments: filteredEnrollments,
+          },
+        } as BatchAssignment;
+      });
+
+      return {
+        ...batch,
+        batch_assignments: filteredAssignments,
+      };
+    }
+
+    return batch;
   }
 
   static async create(batchName: string, levelIds: string[]) {
@@ -174,8 +210,47 @@ export class BatchesService {
     return data;
   }
 
-  static async removeAssignment(assignmentId: string) {
+  static async removeAssignment(assignmentId: string, batchId: string) {
     const supabase = await createClient();
+
+    const { data: assignment, error: assignmentError } = await supabase
+      .from("batch_assignments")
+      .select("student_id")
+      .eq("id", assignmentId)
+      .single();
+
+    if (assignmentError) {
+      throw new Error(assignmentError.message);
+    }
+
+    const { data: batchData, error: batchError } = await supabase
+      .from("batches")
+      .select(`
+        id,
+        batch_level(
+          level_id
+        )
+      `)
+      .eq("id", batchId)
+      .single();
+
+    if (batchError) {
+      throw new Error(batchError.message);
+    }
+
+    const batchLevelIds = (batchData.batch_level ?? []).map((bl) => bl.level_id);
+
+    const { data: enrollments, error: enrollmentsError } = await supabase
+      .from("student_enrollments")
+      .select("module_id")
+      .eq("student_id", assignment.student_id)
+      .in("level_id", batchLevelIds);
+
+    if (enrollmentsError) {
+      throw new Error(enrollmentsError.message);
+    }
+
+    const moduleIds = (enrollments ?? []).map((e) => e.module_id);
 
     const { error } = await supabase
       .from("batch_assignments")
@@ -184,6 +259,18 @@ export class BatchesService {
 
     if (error) {
       throw new Error(error.message);
+    }
+
+    if (moduleIds.length > 0) {
+      const { error: updateError } = await supabase
+        .from("student_enrollments")
+        .update({ status: "unassigned" })
+        .eq("student_id", assignment.student_id)
+        .in("module_id", moduleIds);
+
+      if (updateError) {
+        throw new Error(updateError.message);
+      }
     }
 
     return { success: true };

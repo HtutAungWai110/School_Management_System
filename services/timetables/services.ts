@@ -102,6 +102,56 @@ export class TimetablesService {
       );
     }
 
+    const { data: teacherConflicts, error: teacherCheckError } = await supabase
+      .from("timetables")
+      .select("id, day_of_week, start_time, end_time, classes(class_number)")
+      .eq("teacher_id", payload.teacher_id)
+      .eq("day_of_week", payload.day_of_week)
+      .eq("status", "ongoing")
+      .lte("start_time", end)
+      .gte("end_time", start);
+
+    if (teacherCheckError) {
+      throw new Error(teacherCheckError.message);
+    }
+
+    const teacherConflict = (teacherConflicts ?? []).find(
+      (slot) => start < slot.end_time.slice(0, 5) && end > slot.start_time.slice(0, 5)
+    );
+
+    if (teacherConflict) {
+      const classInfo = (teacherConflict.classes as unknown as { class_number: string | null } | null);
+      throw new HttpError(
+        409,
+        `Teacher is already scheduled on ${DAY_OF_WEEK_LABELS[payload.day_of_week]} ${start}–${end}${classInfo?.class_number ? ` in Class ${classInfo.class_number}` : ""}.`
+      );
+    }
+
+    const { data: batchConflicts, error: batchCheckError } = await supabase
+      .from("timetables")
+      .select("id, day_of_week, start_time, end_time, modules(code, title)")
+      .eq("batch_id", payload.batch_id)
+      .eq("day_of_week", payload.day_of_week)
+      .eq("status", "ongoing")
+      .lte("start_time", end)
+      .gte("end_time", start);
+
+    if (batchCheckError) {
+      throw new Error(batchCheckError.message);
+    }
+
+    const batchConflict = (batchConflicts ?? []).find(
+      (slot) => start < slot.end_time.slice(0, 5) && end > slot.start_time.slice(0, 5)
+    );
+
+    if (batchConflict) {
+      const mod = batchConflict.modules as unknown as { code: string; title: string } | null;
+      throw new HttpError(
+        409,
+        `Batch already has a session on ${DAY_OF_WEEK_LABELS[payload.day_of_week]} ${start}–${end}${mod ? ` (${mod.code} · ${mod.title})` : ""}.`
+      );
+    }
+
     const { data, error } = await supabase
       .from("timetables")
       .insert(payload)
@@ -138,7 +188,7 @@ export class TimetablesService {
 
     const { data: existing, error: fetchError } = await supabase
       .from("timetables")
-      .select("class_id, day_of_week, start_time, end_time, status")
+      .select("class_id, day_of_week, start_time, end_time, status, teacher_id, batch_id")
       .eq("id", id)
       .single();
 
@@ -188,6 +238,58 @@ export class TimetablesService {
       );
     }
 
+    const { data: teacherConflicts, error: teacherCheckError } = await supabase
+      .from("timetables")
+      .select("id, day_of_week, start_time, end_time, classes(class_number)")
+      .eq("teacher_id", existing.teacher_id)
+      .eq("day_of_week", dayOfWeek)
+      .eq("status", "ongoing")
+      .neq("id", id)
+      .lte("start_time", end)
+      .gte("end_time", start);
+
+    if (teacherCheckError) {
+      throw new Error(teacherCheckError.message);
+    }
+
+    const teacherConflict = (teacherConflicts ?? []).find(
+      (slot) => start < slot.end_time.slice(0, 5) && end > slot.start_time.slice(0, 5)
+    );
+
+    if (teacherConflict) {
+      const classInfo = (teacherConflict.classes as unknown as { class_number: string | null } | null);
+      throw new HttpError(
+        409,
+        `Teacher is already scheduled on ${DAY_OF_WEEK_LABELS[dayOfWeek]} ${start}–${end}${classInfo?.class_number ? ` in Class ${classInfo.class_number}` : ""}.`
+      );
+    }
+
+    const { data: batchConflicts, error: batchCheckError } = await supabase
+      .from("timetables")
+      .select("id, day_of_week, start_time, end_time, modules(code, title)")
+      .eq("batch_id", existing.batch_id)
+      .eq("day_of_week", dayOfWeek)
+      .eq("status", "ongoing")
+      .neq("id", id)
+      .lte("start_time", end)
+      .gte("end_time", start);
+
+    if (batchCheckError) {
+      throw new Error(batchCheckError.message);
+    }
+
+    const batchConflict = (batchConflicts ?? []).find(
+      (slot) => start < slot.end_time.slice(0, 5) && end > slot.start_time.slice(0, 5)
+    );
+
+    if (batchConflict) {
+      const mod = batchConflict.modules as unknown as { code: string; title: string } | null;
+      throw new HttpError(
+        409,
+        `Batch already has a session on ${DAY_OF_WEEK_LABELS[dayOfWeek]} ${start}–${end}${mod ? ` (${mod.code} · ${mod.title})` : ""}.`
+      );
+    }
+
     const updatePayload: Record<string, unknown> = {};
     if (payload.class_id !== undefined) updatePayload.class_id = classId;
     if (payload.day_of_week !== undefined) updatePayload.day_of_week = dayOfWeek;
@@ -210,6 +312,44 @@ export class TimetablesService {
     }
 
     return data;
+  }
+
+  static async getTeacherAvailability(teacherId: string) {
+    const supabase = await createClient();
+
+    const { data, error } = await supabase
+      .from("timetables")
+      .select(`
+        id,
+        day_of_week,
+        start_time,
+        end_time,
+        modules (
+          id,
+          code,
+          title
+        ),
+        batches(
+          id,
+          batch_name
+        ),
+        classes(
+          id,
+          class_number,
+          location
+        ),
+        status
+      `)
+      .eq("teacher_id", teacherId)
+      .eq("status", "ongoing")
+      .order("day_of_week", { ascending: true })
+      .order("start_time", { ascending: true });
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    return data ?? [];
   }
 
   static async getClassAvailability(classId: string) {
@@ -238,6 +378,44 @@ export class TimetablesService {
         status
       `)
       .eq("class_id", classId)
+      .eq("status", "ongoing")
+      .order("day_of_week", { ascending: true })
+      .order("start_time", { ascending: true });
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    return data ?? [];
+  }
+
+  static async getBatchAvailability(batchId: string) {
+    const supabase = await createClient();
+
+    const { data, error } = await supabase
+      .from("timetables")
+      .select(`
+        id,
+        day_of_week,
+        start_time,
+        end_time,
+        modules (
+          id,
+          code,
+          title
+        ),
+        profiles(
+          id,
+          full_name
+        ),
+        classes(
+          id,
+          class_number,
+          location
+        ),
+        status
+      `)
+      .eq("batch_id", batchId)
       .eq("status", "ongoing")
       .order("day_of_week", { ascending: true })
       .order("start_time", { ascending: true });

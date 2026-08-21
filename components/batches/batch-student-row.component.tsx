@@ -5,7 +5,7 @@ import Image from "next/image"
 import { usePathname } from "next/navigation"
 import { MoreVertical, UserMinus } from "lucide-react"
 
-import type { BatchAssignment, BatchLevel } from "@/types/batch.type"
+import type { BatchAssignment } from "@/types/batch.type"
 import { refetchData } from "@/lib/action.action"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog.component"
 
@@ -17,7 +17,7 @@ function formatDate(value: string) {
   return new Date(value).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
 }
 
-export function BatchStudentRow({ assignment, batchId, batchLevels }: { assignment: BatchAssignment; batchId: string; batchLevels: BatchLevel[] }) {
+export function BatchStudentRow({ assignment, batchId }: { assignment: BatchAssignment; batchId: string }) {
   const profile = assignment.profiles
   const pathname = usePathname()
 
@@ -64,8 +64,6 @@ export function BatchStudentRow({ assignment, batchId, batchLevels }: { assignme
 
   if (!profile) return null
 
-  const batchLevelIds = new Set(batchLevels.map((bl) => bl.level_id))
-
   return (
     <>
       <li className="px-6 py-4 flex items-center gap-4">
@@ -92,23 +90,19 @@ export function BatchStudentRow({ assignment, batchId, batchLevels }: { assignme
           </p>
           {profile.student_enrollments && profile.student_enrollments.length > 0 && (
             <div className="mt-2 flex flex-wrap gap-1.5">
-              {profile.student_enrollments
-                .filter((enrollment) => {
-                  return batchLevelIds.has(enrollment.level_id)
-                })
-                .map((enrollment) =>
-                  enrollment.modules ? (
-                    <span
-                      key={enrollment.modules.id}
-                      className="text-on-background/10 bg-primary-fixed/50 inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md border border-secondary-container/60 text-[11px] font-[600] leading-[14px]"
-                    >
-                      {enrollment.modules.code}
-                      <span className="text-on-surface-variant font-[500]">
-                        {enrollment.modules.title}
-                      </span>
+              {profile.student_enrollments.map((enrollment) =>
+                enrollment.modules ? (
+                  <span
+                    key={enrollment.modules.id}
+                    className="text-on-background/10 bg-primary-fixed/50 inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md border border-secondary-container/60 text-[11px] font-[600] leading-[14px]"
+                  >
+                    {enrollment.modules.code}
+                    <span className="text-on-surface-variant font-[500]">
+                      {enrollment.modules.title}
                     </span>
-                  ) : null
-                )}
+                  </span>
+                ) : null
+              )}
             </div>
           )}
         </div>

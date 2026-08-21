@@ -30,6 +30,26 @@ export type ClassAvailabilitySlot = {
   profiles: TimetableTeacher | null;
 };
 
+export type TeacherAvailabilitySlot = {
+  id: string;
+  day_of_week: number;
+  start_time: string;
+  end_time: string;
+  modules: TimetableModule | null;
+  batches: TimetableBatch | null;
+  classes: { id: string; class_number: string | null; location: string | null } | null;
+};
+
+export type BatchAvailabilitySlot = {
+  id: string;
+  day_of_week: number;
+  start_time: string;
+  end_time: string;
+  modules: TimetableModule | null;
+  profiles: TimetableTeacher | null;
+  classes: { id: string; class_number: string | null; location: string | null } | null;
+};
+
 export const DAY_OF_WEEK_LABELS: Record<number, string> = {
   1: "Monday",
   2: "Tuesday",

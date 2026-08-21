@@ -17,6 +17,34 @@ export class TimetableController {
     }
   }
 
+  static async getTeacherAvailability(
+    _request: NextRequest,
+    { params }: { params: Promise<{ id: string }> }
+  ) {
+    const { id } = await params;
+
+    try {
+      const data = await TimetablesService.getTeacherAvailability(id);
+      return NextResponse.json(data);
+    } catch (error) {
+      return handleError(error);
+    }
+  }
+
+  static async getBatchAvailability(
+    _request: NextRequest,
+    { params }: { params: Promise<{ id: string }> }
+  ) {
+    const { id } = await params;
+
+    try {
+      const data = await TimetablesService.getBatchAvailability(id);
+      return NextResponse.json(data);
+    } catch (error) {
+      return handleError(error);
+    }
+  }
+
   static async getClassAvailability(
     _request: NextRequest,
     { params }: { params: Promise<{ id: string }> }

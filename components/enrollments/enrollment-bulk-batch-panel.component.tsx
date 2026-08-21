@@ -7,7 +7,6 @@ import { Users } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog.component"
 import { refetchData } from "@/lib/action.action"
-import { batchPages } from "@/lib/batch-pages"
 import { cn } from "@/lib/utils.util"
 import { ModulesPanelShell } from "@/components/modules_level/modules-panel-shell.component"
 import type { EnrolledStudent } from "@/types/enrollment.type"
@@ -91,16 +90,16 @@ export function EnrollmentBulkBatchPanel({ students, onClose }: EnrollmentBulkBa
         const body = await res.json().catch(() => null)
         setSubmitError(body?.error ?? "Something went wrong while assigning the students.")
         setAssigningBatchId(null)
-        await refetchData(batchPages)
+        await refetchData("/admin/dashboard/batches")
         return
       }
 
-      await refetchData([pathname, ...batchPages])
+      await refetchData([pathname, `/admin/dashboard/batches/${batchId}`, "/admin/dashboard/batches"])
       onClose()
     } catch {
       setSubmitError("Network error. Please try again.")
       setAssigningBatchId(null)
-      await refetchData(batchPages)
+      await refetchData("/admin/dashboard/batches")
     }
   }
 

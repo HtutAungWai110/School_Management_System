@@ -1,4 +1,4 @@
-import { Search, CircleHelp, Bell, Filter } from "lucide-react"
+import { CircleHelp, Bell, Filter } from "lucide-react"
 
 import { serverFetch } from "@/lib/server.service"
 import { ModulesRow } from "@/components/modules_level/modules-row.component"

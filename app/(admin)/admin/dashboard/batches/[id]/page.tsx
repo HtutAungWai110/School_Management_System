@@ -245,7 +245,6 @@ export default async function BatchDetailPage({ params }: { params: Promise<{ id
                         key={assignment.id}
                         assignment={assignment}
                         batchId={id}
-                        batchLevels={batch.batch_level ?? []}
                       />
                     ))}
                   </ul>

@@ -81,10 +81,10 @@ export class BatchController {
     request: NextRequest,
     { params }: { params: Promise<{ id: string; assignmentId: string }> }
   ) {
-    const { assignmentId } = await params;
+    const { id, assignmentId } = await params;
 
     try {
-      const result = await BatchesService.removeAssignment(assignmentId);
+      const result = await BatchesService.removeAssignment(assignmentId, id);
       return NextResponse.json(result);
     } catch (error) {
       return handleError(error);
