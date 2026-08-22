@@ -79,7 +79,11 @@ export class TimetableController {
   ) {
     const { id } = await params;
     const body = await request.json().catch(() => ({}));
-    const { class_id, day_of_week, start_time, end_time } = body;
+    const { module_id, class_id, day_of_week, start_time, end_time } = body;
+
+    if (module_id !== undefined && typeof module_id !== "string") {
+      return NextResponse.json({ error: "Invalid module" }, { status: 400 });
+    }
 
     if (class_id !== undefined && typeof class_id !== "string") {
       return NextResponse.json({ error: "Invalid class" }, { status: 400 });
@@ -103,12 +107,13 @@ export class TimetableController {
       return NextResponse.json({ error: "Invalid end time" }, { status: 400 });
     }
 
-    if (class_id === undefined && day_of_week === undefined && start_time === undefined && end_time === undefined) {
+    if (module_id === undefined && class_id === undefined && day_of_week === undefined && start_time === undefined && end_time === undefined) {
       return NextResponse.json({ error: "Nothing to update" }, { status: 400 });
     }
 
     try {
       const data = await TimetablesService.update(id, {
+        module_id,
         class_id,
         day_of_week: day_of_week !== undefined ? Number(day_of_week) : undefined,
         start_time,

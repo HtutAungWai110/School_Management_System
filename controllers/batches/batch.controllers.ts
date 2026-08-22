@@ -104,4 +104,32 @@ export class BatchController {
       return handleError(error);
     }
   }
+
+  static async getBatchModules(
+    request: NextRequest,
+    { params }: { params: Promise<{ id: string }> }
+  ) {
+    const { id } = await params;
+
+    try {
+      const result = await BatchesService.getBatchModules(id);
+      return NextResponse.json(result);
+    } catch (error) {
+      return handleError(error);
+    }
+  }
+
+  static async getTeacherModules(
+    request: NextRequest,
+    { params }: { params: Promise<{ id: string }> }
+  ) {
+    const { id } = await params;
+
+    try {
+      const result = await BatchesService.getTeacherModules(id);
+      return NextResponse.json(result);
+    } catch (error) {
+      return handleError(error);
+    }
+  }
 }

@@ -4,19 +4,15 @@ import { useState } from "react"
 import { Plus } from "lucide-react"
 
 import type { Batch } from "@/types/batch.type"
-import type { Module } from "@/types/module.type"
-import type { Teacher } from "@/types/teacher.type"
 import type { Class } from "@/types/class.type"
 import { TimetableCreatePanel } from "./timetable-create-panel.component"
 
 interface TimetableCreateButtonProps {
   batches: Batch[]
-  modules: Module[]
-  teachers: Teacher[]
   classes: Class[]
 }
 
-export function TimetableCreateButton({ batches, modules, teachers, classes }: TimetableCreateButtonProps) {
+export function TimetableCreateButton({ batches, classes }: TimetableCreateButtonProps) {
   const [open, setOpen] = useState(false)
 
   return (
@@ -32,8 +28,6 @@ export function TimetableCreateButton({ batches, modules, teachers, classes }: T
       {open && (
         <TimetableCreatePanel
           batches={batches}
-          modules={modules}
-          teachers={teachers}
           classes={classes}
           onClose={() => setOpen(false)}
         />

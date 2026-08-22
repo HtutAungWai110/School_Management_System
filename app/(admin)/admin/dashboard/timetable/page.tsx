@@ -7,8 +7,6 @@ import { PaginationNav } from "@/components/navigation/pagination-nav.component"
 import { PageLimitSelector } from "@/components/navigation/page-limit-selector.component"
 import FilterButton from "@/components/search/filter-dropdown.component"
 import type { Batch } from "@/types/batch.type"
-import type { Module } from "@/types/module.type"
-import type { Teacher } from "@/types/teacher.type"
 import type { Class } from "@/types/class.type"
 import type { Timetable } from "@/types/timetable.type"
 
@@ -32,21 +30,17 @@ export default async function TimetablePage({ searchParams }: PageProps) {
     timetablesUrl += `&batch=${encodeURIComponent(batch)}`;
   }
 
-  const [timetablesData, batches, modules, teachersResponse, classes] = await Promise.all([
+  const [timetablesData, batches, classes] = await Promise.all([
     serverFetch(timetablesUrl, { next: { revalidate: 120 } }).then(res => res.json()) as Promise<TimetablesData>,
     serverFetch("http://localhost:3000/api/batches", { next: { revalidate: 120 } }).then(res => res.json()) as Promise<Batch[]>,
-    serverFetch("http://localhost:3000/api/modules_level", { next: { revalidate: 120 } }).then(res => res.json()) as Promise<Module[]>,
-    serverFetch("http://localhost:3000/api/teachers", { next: { revalidate: 120 } }).then(res => res.json()) as Promise<{ teachers: Teacher[] }>,
     serverFetch("http://localhost:3000/api/classes", { next: { revalidate: 120 } }).then(res => res.json()) as Promise<Class[]>,
   ]);
 
-  const teachers = teachersResponse.teachers ?? [];
   const timetables = timetablesData?.timetables ?? [];
   const totalCount = timetablesData?.totalCount ?? 0;
   const totalPages = timetablesData?.totalPages ?? 0;
 
   const batchOptions = (batches ?? []).map((b) => ({ value: b.id, label: b.batch_name }));
-  console.log(batchOptions)
 
   return (
     <div className="min-h-screen bg-background flex">
@@ -75,8 +69,6 @@ export default async function TimetablePage({ searchParams }: PageProps) {
                 <FilterButton options={batchOptions} label="Batch" paramName="batch" />
                 <TimetableCreateButton
                   batches={batches ?? []}
-                  modules={modules ?? []}
-                  teachers={teachers}
                   classes={classes ?? []}
                 />
               </div>

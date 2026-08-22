@@ -37,6 +37,25 @@ export type BatchTimetable = {
 
 export type BatchStatus = "ongoing" | "completed";
 
+export type BatchModule = {
+  id: string;
+  code: string;
+  title: string;
+};
+
+export type BatchTeacherModule = {
+  profiles: {
+    id: string;
+    full_name: string;
+    email: string;
+  } | null;
+  modules: {
+    id: string;
+    code: string;
+    title: string;
+  } | null;
+};
+
 export type Batch = {
   id: string;
   batch_name: string;

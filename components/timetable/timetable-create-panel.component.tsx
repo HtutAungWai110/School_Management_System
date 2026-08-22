@@ -18,9 +18,7 @@ import {
 import { cn } from "@/lib/utils.util"
 import { refetchData } from "@/lib/action.action"
 import { ModulesPanelShell } from "@/components/modules_level/modules-panel-shell.component"
-import type { Batch } from "@/types/batch.type"
-import type { Module } from "@/types/module.type"
-import type { Teacher } from "@/types/teacher.type"
+import type { Batch, BatchModule, BatchTeacherModule } from "@/types/batch.type"
 import type { Class } from "@/types/class.type"
 import { DAY_OF_WEEK_LABELS, type ClassAvailabilitySlot, type TeacherAvailabilitySlot, type BatchAvailabilitySlot } from "@/types/timetable.type"
 
@@ -104,16 +102,12 @@ function SingleCombobox({
 
 interface TimetableCreatePanelProps {
   batches: Batch[]
-  modules: Module[]
-  teachers: Teacher[]
   classes: Class[]
   onClose: () => void
 }
 
 export function TimetableCreatePanel({
   batches,
-  modules,
-  teachers,
   classes,
   onClose,
 }: TimetableCreatePanelProps) {
@@ -123,6 +117,8 @@ export function TimetableCreatePanel({
   const [availabilityState, setAvailabilityState] = useState<ClassAvailabilityState | null>(null)
   const [teacherAvailState, setTeacherAvailState] = useState<TeacherAvailabilityState | null>(null)
   const [batchAvailState, setBatchAvailState] = useState<BatchAvailabilityState | null>(null)
+  const [batchModules, setBatchModules] = useState<BatchModule[]>([])
+  const [batchTeacherPairs, setBatchTeacherPairs] = useState<BatchTeacherModule[]>([])
 
   const {
     control,
@@ -141,7 +137,7 @@ export function TimetableCreatePanel({
   }))
 
   const selectedBatch = batches.find((batch) => batch.id === watched.batch_id) ?? null
-  const selectedModule = modules.find((module) => module.id === watched.module_id) ?? null
+  const selectedBatchModule = batchModules.find((module) => module.id === watched.module_id) ?? null
 
   useEffect(() => {
     const classId = watched.class_id
@@ -236,6 +232,40 @@ export function TimetableCreatePanel({
     }
   }, [watched.batch_id])
 
+  useEffect(() => {
+    const batchId = watched.batch_id
+    if (!batchId) return
+
+    let cancelled = false
+
+    Promise.all([
+      fetch(`/api/batches/${batchId}/batch_modules`, { credentials: "include" }),
+      fetch(`/api/batches/${batchId}/teacher_modules`, { credentials: "include" }),
+    ])
+      .then(async ([modulesRes, teachersRes]) => {
+        if (!modulesRes.ok) throw new Error("Couldn't load batch modules.")
+        if (!teachersRes.ok) throw new Error("Couldn't load batch teachers.")
+        const [modulesData, teachersData] = await Promise.all([
+          modulesRes.json() as Promise<BatchModule[]>,
+          teachersRes.json() as Promise<BatchTeacherModule[]>,
+        ])
+        if (!cancelled) {
+          setBatchModules(modulesData ?? [])
+          setBatchTeacherPairs(teachersData ?? [])
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setBatchModules([])
+          setBatchTeacherPairs([])
+        }
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [watched.batch_id])
+
   const availabilityForClass =
     availabilityState?.classId === watched.class_id ? availabilityState : null
   const availabilityLoading = !!watched.class_id && !availabilityForClass
@@ -260,33 +290,26 @@ export function TimetableCreatePanel({
   const batchAvailability =
     batchAvailForBatch?.status === "ready" ? batchAvailForBatch.slots : null
 
-  const batchLevelIds = new Set(
-    (selectedBatch?.batch_level ?? []).map((batchLevel) => batchLevel.level_id)
-  )
+  const moduleOptions: Option[] = batchModules.map((module) => ({
+    value: module.id,
+    label: `${module.code} · ${module.title}`,
+  }))
 
-  const moduleOptions: Option[] = modules
-    .filter((module) =>
-      (module.modules_level ?? []).some((moduleLevel) =>
-        batchLevelIds.has(moduleLevel.levels.id)
-      )
-    )
-    .map((module) => ({
-      value: module.id,
-      label: `${module.code} · ${module.title}`,
-    }))
-
-  const teacherOptions: Option[] = teachers
-    .filter(
-      (teacher) =>
-        !selectedModule ||
-        (teacher.teacher_modules ?? []).some(
-          (teacherModule) => teacherModule.modules?.id === selectedModule.id
-        )
-    )
-    .map((teacher) => ({
-      value: teacher.id,
-      label: teacher.full_name,
-    }))
+  const teacherOptions: Option[] = (() => {
+    const relevantPairs = selectedBatchModule
+      ? batchTeacherPairs.filter((pair) => pair.modules?.id === selectedBatchModule.id)
+      : []
+    const uniqueTeachers = new Map<string, Option>()
+    for (const pair of relevantPairs) {
+      if (pair.profiles && !uniqueTeachers.has(pair.profiles.id)) {
+        uniqueTeachers.set(pair.profiles.id, {
+          value: pair.profiles.id,
+          label: pair.profiles.full_name,
+        })
+      }
+    }
+    return Array.from(uniqueTeachers.values())
+  })()
 
   const classOptions: Option[] = classes.map((classItem) => ({
     value: classItem.id,
@@ -433,7 +456,7 @@ export function TimetableCreatePanel({
                           setValue("teacher_id", "")
                         }}
                         placeholder="Choose a module"
-                        emptyLabel={selectedBatch ? "No modules cover this batch." : "Select a batch first."}
+                        emptyLabel={selectedBatch ? "No students in this batch have modules yet." : "Select a batch first."}
                         disabled={!selectedBatch}
                         ariaInvalid={!!fieldState.error}
                       />
@@ -461,12 +484,12 @@ export function TimetableCreatePanel({
                         value={field.value}
                         onValueChange={field.onChange}
                         placeholder="Choose a teacher"
-                        emptyLabel={selectedModule ? "No teacher teaches this module." : "Select a module first."}
-                        disabled={!selectedModule}
+                        emptyLabel={selectedBatchModule ? "No teacher teaches this module." : "Select a module first."}
+                        disabled={!selectedBatchModule}
                         ariaInvalid={!!fieldState.error}
                       />
                       {fieldState.error && <p className="text-xs text-destructive">{fieldState.error.message}</p>}
-                      {selectedModule ? (
+                      {selectedBatchModule ? (
                         <p className="text-xs text-on-surface-variant">Only teachers who teach this module are shown.</p>
                       ) : (
                         <p className="text-xs text-on-surface-variant">Select a module to choose a teacher.</p>
@@ -650,8 +673,8 @@ export function TimetableCreatePanel({
         open={showConfirm}
         title="Create timetable?"
         description={
-          selectedModule && dayLabel
-            ? `Schedule ${selectedModule.title} on ${dayLabel} from ${watched.start_time} to ${watched.end_time}?`
+          selectedBatchModule && dayLabel
+            ? `Schedule ${selectedBatchModule.title} on ${dayLabel} from ${watched.start_time} to ${watched.end_time}?`
             : undefined
         }
         confirmLabel="Create"

@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server.client";
-import type { BatchStatus, BatchAssignment } from "@/types/batch.type";
+import type { BatchStatus, BatchAssignment, BatchModule, BatchTeacherModule } from "@/types/batch.type";
 
 const BATCH_SELECT = `
   id,
@@ -307,5 +307,121 @@ export class BatchesService {
     }
 
     return { success: true };
+  }
+
+  static async getBatchModules(
+    batchId: string
+  ): Promise<BatchModule[]> {
+    const supabase = await createClient();
+
+    const { data: batchLevelData, error: batchLevelError } = await supabase
+      .from("batch_level")
+      .select("level_id, batch_id")
+      .eq("batch_id", batchId);
+
+    if (batchLevelError) {
+      throw new Error(batchLevelError.message);
+    }
+
+    const { data: batchModulesData, error: batchModulesError } = await supabase
+      .from("batch_assignments")
+      .select(`
+        batch_id,
+        profiles(
+          student_enrollments(
+            module_id,
+            level_id,
+            modules(
+              id,
+              code,
+              title
+            )
+          )
+        )
+      `)
+      .eq("batch_id", batchId);
+
+    if (batchModulesError) {
+      throw new Error(batchModulesError.message);
+    }
+
+    const batchLevelIds = new Set(batchLevelData.map((item) => item.level_id));
+    const moduleIds = new Set<string>();
+    const modules: BatchModule[] = [];
+
+    const flatModules = (batchModulesData ?? []).flatMap(
+      (item) => (item.profiles as unknown as { student_enrollments: { module_id: string; level_id: string; modules: BatchModule | null }[] } | null)?.student_enrollments ?? []
+    );
+
+    for (const enrollment of flatModules) {
+      if (batchLevelIds.has(enrollment.level_id) && !moduleIds.has(enrollment.module_id) && enrollment.modules) {
+        moduleIds.add(enrollment.module_id);
+        modules.push(enrollment.modules);
+      }
+    }
+
+    return modules;
+  }
+  static async getTeacherModules(
+    batchId: string
+  ): Promise<BatchTeacherModule[]> {
+    const supabase = await createClient();
+
+
+    const { data: batchModulesData, error: batchModulesError } = await supabase
+      .from("batch_level")
+      .select(`
+        batch_id,
+        levels(
+          modules_level(
+            modules(
+              id,
+              code,
+              title
+            )
+          )
+        )
+      `)
+      .eq("batch_id", batchId);
+
+    if (batchModulesError) {
+      throw new Error(batchModulesError.message);
+    }
+
+    const flatIds = Array.from(
+      new Set(
+        (batchModulesData ?? [])
+          .flatMap((item) => (item.levels as unknown as { modules_level: { modules: { id: string } | null }[] | null } | null)?.modules_level ?? [])
+          .map((moduleLevel) => moduleLevel.modules?.id)
+          .filter((moduleId): moduleId is string => Boolean(moduleId))
+      )
+    );
+
+    if (flatIds.length === 0) {
+      return [];
+    }
+
+    const {data: teacherModules, error: teacherModulesError} = await supabase
+      .from("teacher_modules")
+      .select(`
+        profiles(
+          id,
+          full_name,
+          email
+        ),
+        modules(
+          id,
+          code,
+          title
+        )
+      `)
+      .in("module_id", flatIds);
+
+    if (teacherModulesError) {
+      throw new Error(teacherModulesError.message);
+    }
+
+    return (teacherModules ?? []) as unknown as BatchTeacherModule[];
+
   }
 }

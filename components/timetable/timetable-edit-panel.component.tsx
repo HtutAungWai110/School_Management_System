@@ -19,6 +19,7 @@ import { cn } from "@/lib/utils.util"
 import { refetchData } from "@/lib/action.action"
 import { ModulesPanelShell } from "@/components/modules_level/modules-panel-shell.component"
 import type { Class } from "@/types/class.type"
+import type { BatchModule } from "@/types/batch.type"
 import { DAY_OF_WEEK_LABELS, type ClassAvailabilitySlot, type TeacherAvailabilitySlot, type BatchAvailabilitySlot } from "@/types/timetable.type"
 import type { Timetable } from "@/types/timetable.type"
 
@@ -97,6 +98,7 @@ interface TimetableEditPanelProps {
 }
 
 interface TimetableEditFormValues {
+  module_id: string
   class_id: string
   day_of_week: string
   start_time: string
@@ -110,6 +112,7 @@ export function TimetableEditPanel({ timetable, classes, onClose }: TimetableEdi
   const [availabilityState, setAvailabilityState] = useState<ClassAvailabilityState | null>(null)
   const [teacherAvailState, setTeacherAvailState] = useState<TeacherAvailabilityState | null>(null)
   const [batchAvailState, setBatchAvailState] = useState<BatchAvailabilityState | null>(null)
+  const [batchModules, setBatchModules] = useState<BatchModule[]>([])
 
   const {
     control,
@@ -118,6 +121,7 @@ export function TimetableEditPanel({ timetable, classes, onClose }: TimetableEdi
     formState: { isSubmitting },
   } = useForm<TimetableEditFormValues>({
     defaultValues: {
+      module_id: timetable.module_id,
       class_id: timetable.class_id,
       day_of_week: String(timetable.day_of_week),
       start_time: timetable.start_time.slice(0, 5),
@@ -137,6 +141,11 @@ export function TimetableEditPanel({ timetable, classes, onClose }: TimetableEdi
   const classOptions: Option[] = classes.map((classItem) => ({
     value: classItem.id,
     label: classItem.class_number ? `Class ${classItem.class_number}` : (classItem.location ?? "Class"),
+  }))
+
+  const moduleOptions: Option[] = batchModules.map((module) => ({
+    value: module.id,
+    label: `${module.code} · ${module.title}`,
   }))
 
   useEffect(() => {
@@ -225,6 +234,27 @@ export function TimetableEditPanel({ timetable, classes, onClose }: TimetableEdi
     return () => { cancelled = true }
   }, [timetable.batch_id])
 
+  useEffect(() => {
+    const batchId = timetable.batch_id
+    if (!batchId) return
+
+    let cancelled = false
+
+    fetch(`/api/batches/${batchId}/batch_modules`, { credentials: "include" })
+      .then((res) => {
+        if (!res.ok) throw new Error("Couldn't load batch modules.")
+        return res.json() as Promise<BatchModule[]>
+      })
+      .then((data) => {
+        if (!cancelled) setBatchModules(data ?? [])
+      })
+      .catch(() => {
+        if (!cancelled) setBatchModules([])
+      })
+
+    return () => { cancelled = true }
+  }, [timetable.batch_id])
+
   const availabilityForClass =
     availabilityState?.classId === watchedClassId ? availabilityState : null
   const availabilityLoading = !!watchedClassId && !availabilityForClass
@@ -296,6 +326,7 @@ export function TimetableEditPanel({ timetable, classes, onClose }: TimetableEdi
     Number(watchedDay) === dayOfWeek && watchedStart === startTime
 
   const hasChanges =
+    watched.module_id !== timetable.module_id ||
     watchedClassId !== timetable.class_id ||
     Number(watchedDay) !== timetable.day_of_week ||
     watchedStart !== timetable.start_time.slice(0, 5) ||
@@ -305,6 +336,7 @@ export function TimetableEditPanel({ timetable, classes, onClose }: TimetableEdi
     setSubmitError(null)
 
     const payload: Record<string, unknown> = {}
+    if (data.module_id !== timetable.module_id) payload.module_id = data.module_id
     if (data.class_id !== timetable.class_id) payload.class_id = data.class_id
     if (Number(data.day_of_week) !== timetable.day_of_week) payload.day_of_week = Number(data.day_of_week)
     if (data.start_time !== timetable.start_time.slice(0, 5)) payload.start_time = data.start_time
@@ -366,19 +398,27 @@ export function TimetableEditPanel({ timetable, classes, onClose }: TimetableEdi
                   </div>
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-sm font-medium text-on-surface">Module</label>
-                  <div className="rounded-lg border border-outline-variant/20 bg-surface-container-low/40 px-3 py-2">
-                    <span className="text-[14px] leading-[20px] text-on-surface">
-                      {timetable.modules ? (
-                        <span>
-                          <span className="font-bold">{timetable.modules.code}</span>
-                          <span className="text-on-surface-variant"> · {timetable.modules.title}</span>
-                        </span>
-                      ) : (
-                        "—"
-                      )}
-                    </span>
-                  </div>
+                  <label className="text-sm font-medium text-on-surface" htmlFor="edit-module">
+                    Module
+                  </label>
+                  <Controller
+                    control={control}
+                    name="module_id"
+                    rules={{ required: "Choose a module" }}
+                    render={({ field, fieldState }) => (
+                      <>
+                        <SingleCombobox
+                          options={moduleOptions}
+                          value={field.value}
+                          onValueChange={field.onChange}
+                          placeholder="Choose a module"
+                          emptyLabel="No modules in this batch."
+                          ariaInvalid={!!fieldState.error}
+                        />
+                        {fieldState.error && <p className="text-xs text-destructive">{fieldState.error.message}</p>}
+                      </>
+                    )}
+                  />
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-sm font-medium text-on-surface">Teacher</label>

@@ -182,7 +182,7 @@ export class TimetablesService {
 
   static async update(
     id: string,
-    payload: { class_id?: string; day_of_week?: number; start_time?: string; end_time?: string }
+    payload: { module_id?: string; class_id?: string; day_of_week?: number; start_time?: string; end_time?: string }
   ) {
     const supabase = await createClient();
 
@@ -291,6 +291,7 @@ export class TimetablesService {
     }
 
     const updatePayload: Record<string, unknown> = {};
+    if (payload.module_id !== undefined) updatePayload.module_id = payload.module_id;
     if (payload.class_id !== undefined) updatePayload.class_id = classId;
     if (payload.day_of_week !== undefined) updatePayload.day_of_week = dayOfWeek;
     if (payload.start_time !== undefined) updatePayload.start_time = payload.start_time;
