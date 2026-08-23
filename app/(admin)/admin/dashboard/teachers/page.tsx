@@ -80,7 +80,7 @@ export default async function TeachersPage({ searchParams }: PageProps) {
             />
           </div>
 
-          <div className="bg-surface-container-lowest rounded-xl border border-outline-variant/10 overflow-hidden shadow-[0_4px_6px_-1px_rgba(15,23,42,0.05)]">
+          <div className="bg-surface-container-lowest rounded-xl border border-primary/10 overflow-hidden shadow-[0_4px_6px_-1px_rgba(15,23,42,0.05)]">
             <div className="p-6 border-b border-outline-variant/10 flex justify-between items-center">
               <h2 className="text-[20px] font-[600] leading-[28px] text-primary">Teacher Directory</h2>
               <div className="flex gap-4 items-center">
@@ -102,7 +102,7 @@ export default async function TeachersPage({ searchParams }: PageProps) {
                     ))}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-outline-variant/10">
+                <tbody>
                   {teachers.map((teacher: Teacher) => (
                     <TeacherRow key={teacher.id} teacher={teacher} />
                   ))}

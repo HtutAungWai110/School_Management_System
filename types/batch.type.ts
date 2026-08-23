@@ -1,6 +1,7 @@
 import type { Level } from "@/types/module.type";
 import type { Profile } from "@/types/profile.type";
 import type { EnrollmentModule } from "@/types/enrollment.type";
+import type { TimetableStatus } from "@/types/timetable.type";
 
 export type BatchLevel = {
   id: string;
@@ -30,6 +31,7 @@ export type BatchTimetable = {
   day_of_week: number;
   start_time: string;
   end_time: string;
+  status: TimetableStatus | null;
   modules: { id: string; code: string; title: string } | null;
   profiles: { id: string; full_name: string; email: string; avatar_url: string | null } | null;
   classes: { id: string; class_number: string | null; location: string | null } | null;

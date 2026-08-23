@@ -52,7 +52,7 @@ export function EnrollmentRow({
     <>
       <tr
         className={cn(
-          "transition-colors",
+          "border-b border-primary/10 transition-colors",
           selected ? "bg-primary-container/25" : "hover:bg-surface-container-low"
         )}
       >

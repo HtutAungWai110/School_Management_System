@@ -42,7 +42,7 @@ export function ProfileTemplate({ profile }: { profile: Profile }) {
 
   return (
     <>
-      <tr className="hover:bg-surface-container-low transition-colors group">
+      <tr className="border-b border-primary/10 hover:bg-surface-container-low transition-colors group">
       <td className="px-6 py-4">
         <div className="flex items-center gap-3">
           {profile.avatar_url ? (

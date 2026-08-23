@@ -66,7 +66,7 @@ export function BatchStudentRow({ assignment, batchId }: { assignment: BatchAssi
 
   return (
     <>
-      <li className="px-6 py-4 flex items-center gap-4">
+      <li className="border-b border-primary/10 px-6 py-4 flex items-center gap-4">
         {profile.avatar_url ? (
           <Image
             className="w-10 h-10 rounded-full object-cover border border-outline-variant/20"

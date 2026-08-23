@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server.client";
 import { HttpError } from "@/lib/errors/http.error";
-import { DAY_OF_WEEK_LABELS } from "@/types/timetable.type";
+import { DAY_OF_WEEK_LABELS, type TimetableStatus } from "@/types/timetable.type";
 
 const TIMETABLE_SELECT = `
   id,
@@ -11,6 +11,7 @@ const TIMETABLE_SELECT = `
   day_of_week,
   start_time,
   end_time,
+  status,
   batches (
     id,
     batch_name
@@ -39,6 +40,7 @@ export interface CreateTimetablePayload {
   day_of_week: number;
   start_time: string;
   end_time: string;
+  status: TimetableStatus;
 }
 
 export class TimetablesService {
@@ -182,7 +184,7 @@ export class TimetablesService {
 
   static async update(
     id: string,
-    payload: { module_id?: string; class_id?: string; day_of_week?: number; start_time?: string; end_time?: string }
+    payload: { module_id?: string; class_id?: string; day_of_week?: number; start_time?: string; end_time?: string; status?: TimetableStatus }
   ) {
     const supabase = await createClient();
 
@@ -296,6 +298,7 @@ export class TimetablesService {
     if (payload.day_of_week !== undefined) updatePayload.day_of_week = dayOfWeek;
     if (payload.start_time !== undefined) updatePayload.start_time = payload.start_time;
     if (payload.end_time !== undefined) updatePayload.end_time = payload.end_time;
+    if (payload.status !== undefined) updatePayload.status = payload.status;
 
     if (Object.keys(updatePayload).length === 0) {
       throw new HttpError(400, "Nothing to update.");

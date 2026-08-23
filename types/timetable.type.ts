@@ -5,6 +5,20 @@ export type TimetableModule = { id: string; code: string; title: string };
 export type TimetableTeacher = { id: string; full_name: string };
 export type TimetableClass = Class;
 
+export type TimetableStatus = "ongoing" | "on break" | "completed";
+
+export const TIMETABLE_STATUS_OPTIONS: Array<{ value: TimetableStatus; label: string }> = [
+  { value: "ongoing", label: "Ongoing" },
+  { value: "on break", label: "On break" },
+  { value: "completed", label: "Completed" },
+];
+
+export const TIMETABLE_STATUS_LABELS: Record<TimetableStatus, string> = {
+  "ongoing": "Ongoing",
+  "on break": "On break",
+  "completed": "Completed",
+};
+
 export type Timetable = {
   id: string;
   batch_id: string;
@@ -14,6 +28,7 @@ export type Timetable = {
   day_of_week: number;
   start_time: string;
   end_time: string;
+  status: TimetableStatus | null;
   batches: TimetableBatch | null;
   modules: TimetableModule | null;
   profiles: TimetableTeacher | null;

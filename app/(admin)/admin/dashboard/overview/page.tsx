@@ -67,7 +67,7 @@ export default async function AdminPage() {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            <div className="lg:col-span-8 bg-surface-container-lowest rounded-xl border border-outline-variant/10 p-6 shadow-[0_4px_6px_-1px_rgba(15,23,42,0.05)]">
+            <div className="lg:col-span-8 bg-surface-container-lowest rounded-xl border border-primary/10 p-6 shadow-[0_4px_6px_-1px_rgba(15,23,42,0.05)]">
               <div className="flex justify-between items-center mb-10">
                 <div>
                   <h2 className="text-[20px] font-[600] leading-[28px] text-primary">Student Attendance</h2>
@@ -108,7 +108,7 @@ export default async function AdminPage() {
               </div>
             </div>
 
-            <div className="lg:col-span-4 bg-surface-container-lowest rounded-xl border border-outline-variant/10 p-6 shadow-[0_4px_6px_-1px_rgba(15,23,42,0.05)]">
+            <div className="lg:col-span-4 bg-surface-container-lowest rounded-xl border border-primary/10 p-6 shadow-[0_4px_6px_-1px_rgba(15,23,42,0.05)]">
               <div className="flex justify-between items-center mb-6">
                 <h2 className="text-[20px] font-[600] leading-[28px] text-primary">Activity</h2>
                 <button className="text-secondary text-[12px] font-[500] leading-[16px] hover:underline">View all</button>
@@ -128,7 +128,7 @@ export default async function AdminPage() {
           </div>
 
           <div className="mt-10">
-            <div className="bg-surface-container-lowest rounded-xl border border-outline-variant/10 overflow-hidden shadow-[0_4px_6px_-1px_rgba(15,23,42,0.05)]">
+            <div className="bg-surface-container-lowest rounded-xl border border-primary/10 overflow-hidden shadow-[0_4px_6px_-1px_rgba(15,23,42,0.05)]">
               <div className="p-6 border-b border-outline-variant/10 flex justify-between items-center">
                 <h2 className="text-[20px] font-[600] leading-[28px] text-primary">Pending Admissions</h2>
                 <button className="bg-primary text-on-primary px-6 py-2 rounded text-[14px] font-[600] leading-[16px] tracking-[0.05em] hover:bg-secondary transition-colors duration-200">
@@ -145,7 +145,7 @@ export default async function AdminPage() {
                     ))}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-outline-variant/10">
+                <tbody>
                   <AdmissionRow initials="JD" name="John Doe" course="Intro to Web Dev" date="Oct 24, 2024" status="Reviewing" statusClass="bg-yellow-100 text-yellow-800 dark:bg-yellow-950/40 dark:text-yellow-400" />
                   <AdmissionRow initials="AS" name="Alice Smith" course="Data Structures" date="Oct 23, 2024" status="Interviewed" statusClass="bg-blue-100 text-blue-800 dark:bg-blue-950/40 dark:text-blue-400" />
                   <AdmissionRow initials="MB" name="Michael Brown" course="Advanced Python" date="Oct 22, 2024" status="Reviewing" statusClass="bg-yellow-100 text-yellow-800 dark:bg-yellow-950/40 dark:text-yellow-400" />

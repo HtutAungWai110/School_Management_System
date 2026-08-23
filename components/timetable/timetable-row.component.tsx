@@ -8,6 +8,7 @@ import type { Timetable } from "@/types/timetable.type"
 import { cn } from "@/lib/utils.util"
 import { TimetableEditPanel } from "./timetable-edit-panel.component"
 import { TimetableDeletePanel } from "./timetable-delete-panel.component"
+import { TimetableStatusBadge } from "./timetable-status-badge.component"
 import type { Class } from "@/types/class.type"
 
 function formatTime(value: string) {
@@ -48,7 +49,7 @@ export function TimetableRow({ timetable, classes }: TimetableRowProps) {
 
   return (
     <>
-      <tr className="hover:bg-surface-container-low transition-colors">
+      <tr className="border-b border-primary/10 hover:bg-surface-container-low transition-colors">
         <td className="px-6 py-4">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg bg-primary-fixed flex items-center justify-center">
@@ -76,6 +77,9 @@ export function TimetableRow({ timetable, classes }: TimetableRowProps) {
         <td className="px-6 py-4 text-[14px] leading-[20px] text-on-surface">{classLabel(timetable)}</td>
         <td className="px-6 py-4 text-[14px] leading-[20px] text-on-surface-variant">
           {formatTime(timetable.start_time)} – {formatTime(timetable.end_time)}
+        </td>
+        <td className="px-6 py-4">
+          <TimetableStatusBadge status={timetable?.status ?? null} />
         </td>
         <td className="px-6 py-4 text-right">
           <div className="relative inline-block" ref={menuRef}>

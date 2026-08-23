@@ -28,7 +28,7 @@ export default async function LevelsPage() {
         </header>
 
         <div className="px-12 py-10 max-w-[1440px] mx-auto">
-          <div className="bg-surface-container-lowest rounded-xl border border-outline-variant/10 overflow-hidden shadow-[0_4px_6px_-1px_rgba(15,23,42,0.05)]">
+          <div className="bg-surface-container-lowest rounded-xl border border-primary/10 overflow-hidden shadow-[0_4px_6px_-1px_rgba(15,23,42,0.05)]">
             <div className="p-6 border-b border-outline-variant/10">
               <h2 className="text-[20px] font-[600] leading-[28px] text-primary">Level Directory</h2>
             </div>
@@ -46,7 +46,7 @@ export default async function LevelsPage() {
                     ))}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-outline-variant/10">
+                <tbody>
                   {levels.map((level) => (
                     <LevelsRow key={level.id} level={level} />
                   ))}

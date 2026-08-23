@@ -45,6 +45,7 @@ const BATCH_DETAIL_SELECT = `
     day_of_week,
     start_time,
     end_time,
+    status,
     modules(
       id,
       code,

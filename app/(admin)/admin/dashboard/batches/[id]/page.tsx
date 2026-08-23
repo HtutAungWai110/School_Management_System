@@ -5,6 +5,7 @@ import { serverFetch } from "@/lib/server.service"
 import type { Batch } from "@/types/batch.type"
 import { BatchStatusBadge } from "@/components/batches/batch-status-badge.component"
 import { BatchStudentRow } from "@/components/batches/batch-student-row.component"
+import { TimetableStatusBadge } from "@/components/timetable/timetable-status-badge.component"
 import { DAY_OF_WEEK_LABELS } from "@/types/timetable.type"
 
 function formatDate(value: string) {
@@ -79,7 +80,7 @@ export default async function BatchDetailPage({ params }: { params: Promise<{ id
           ) : (
             <div className="mt-8 grid grid-cols-1 lg:grid-cols-3 gap-6">
               {timetables.length > 0 && (
-                <div className="lg:col-span-3 bg-surface-container-lowest rounded-xl border border-outline-variant/10 overflow-hidden shadow-[0_4px_6px_-1px_rgba(15,23,42,0.05)]">
+                <div className="lg:col-span-3 bg-surface-container-lowest rounded-xl border border-primary/10 overflow-hidden shadow-[0_4px_6px_-1px_rgba(15,23,42,0.05)]">
                   <div className="p-6 border-b border-outline-variant/10 flex justify-between items-center">
                     <div className="flex items-center gap-3">
                       <div className="w-9 h-9 rounded-lg bg-tertiary-fixed flex items-center justify-center shrink-0">
@@ -152,6 +153,10 @@ export default async function BatchDetailPage({ params }: { params: Promise<{ id
                                                 : session.classes?.location}
                                             </p>
                                           )}
+                                          <TimetableStatusBadge
+                                            status={session.status ?? null}
+                                            className="self-start"
+                                          />
                                         </div>
                                       ))}
                                     </div>
@@ -168,7 +173,7 @@ export default async function BatchDetailPage({ params }: { params: Promise<{ id
               )}
 
               <div className="lg:col-span-1 space-y-6">
-                <div className="bg-surface-container-lowest rounded-xl border border-outline-variant/10 overflow-hidden shadow-[0_4px_6px_-1px_rgba(15,23,42,0.05)]">
+                <div className="bg-surface-container-lowest rounded-xl border border-primary/10 overflow-hidden shadow-[0_4px_6px_-1px_rgba(15,23,42,0.05)]">
                   <div className="p-6 flex items-center gap-4">
                     <div className="w-12 h-12 rounded-lg bg-primary-fixed flex items-center justify-center shrink-0">
                       <Users className="w-6 h-6 text-on-primary-fixed-variant" />
@@ -193,7 +198,7 @@ export default async function BatchDetailPage({ params }: { params: Promise<{ id
                   </div>
                 </div>
 
-                <div className="bg-surface-container-lowest rounded-xl border border-outline-variant/10 overflow-hidden shadow-[0_4px_6px_-1px_rgba(15,23,42,0.05)]">
+                <div className="bg-surface-container-lowest rounded-xl border border-primary/10 overflow-hidden shadow-[0_4px_6px_-1px_rgba(15,23,42,0.05)]">
                   <div className="p-6 border-b border-outline-variant/10">
                     <h3 className="text-[16px] font-[600] leading-[24px] text-on-surface">Levels</h3>
                     <p className="mt-0.5 text-[12px] leading-[16px] text-on-surface-variant">
@@ -219,7 +224,7 @@ export default async function BatchDetailPage({ params }: { params: Promise<{ id
                 </div>
               </div>
 
-              <div className="lg:col-span-2 bg-surface-container-lowest rounded-xl border border-outline-variant/10 overflow-hidden shadow-[0_4px_6px_-1px_rgba(15,23,42,0.05)]">
+              <div className="lg:col-span-2 bg-surface-container-lowest rounded-xl border border-primary/10 overflow-hidden shadow-[0_4px_6px_-1px_rgba(15,23,42,0.05)]">
                 <div className="p-6 border-b border-outline-variant/10 flex justify-between items-center">
                   <div>
                     <h3 className="text-[16px] font-[600] leading-[24px] text-on-surface">Assigned Students</h3>
@@ -239,7 +244,7 @@ export default async function BatchDetailPage({ params }: { params: Promise<{ id
                     </p>
                   </div>
                 ) : (
-                  <ul className="divide-y divide-outline-variant/10">
+                  <ul>
                     {students.map((assignment) => (
                       <BatchStudentRow
                         key={assignment.id}

@@ -109,7 +109,7 @@ export function EnrollmentDirectory({
               </tr>
             )}
           </thead>
-          <tbody className="divide-y divide-outline-variant/10">
+          <tbody>
             {students.map((student) => (
               <EnrollmentRow
                 key={rowKey(student)}

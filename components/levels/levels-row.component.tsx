@@ -33,7 +33,7 @@ export function LevelsRow({ level }: { level: Level }) {
 
   return (
     <>
-      <tr className="hover:bg-surface-container-low transition-colors">
+      <tr className="border-b border-primary/10 hover:bg-surface-container-low transition-colors">
         <td className="px-6 py-4">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg bg-primary-fixed/30 flex items-center justify-center">

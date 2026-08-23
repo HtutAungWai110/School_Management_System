@@ -1,6 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { TimetablesService } from "@/services/timetables/services";
 import { handleError } from "@/lib/errors/error.handler";
+import { TIMETABLE_STATUS_OPTIONS, type TimetableStatus } from "@/types/timetable.type";
+
+const VALID_TIMETABLE_STATUSES = new Set(TIMETABLE_STATUS_OPTIONS.map((option) => option.value));
+
+function parseTimetableStatus(value: unknown): TimetableStatus | null {
+  if (typeof value !== "string" || !VALID_TIMETABLE_STATUSES.has(value as TimetableStatus)) {
+    return null;
+  }
+  return value as TimetableStatus;
+}
 
 export class TimetableController {
   static async list(request: NextRequest) {
@@ -79,10 +89,14 @@ export class TimetableController {
   ) {
     const { id } = await params;
     const body = await request.json().catch(() => ({}));
-    const { module_id, class_id, day_of_week, start_time, end_time } = body;
+    const { module_id, class_id, day_of_week, start_time, end_time, status } = body;
 
     if (module_id !== undefined && typeof module_id !== "string") {
       return NextResponse.json({ error: "Invalid module" }, { status: 400 });
+    }
+
+    if (status !== undefined && !parseTimetableStatus(status)) {
+      return NextResponse.json({ error: "Invalid timetable status" }, { status: 400 });
     }
 
     if (class_id !== undefined && typeof class_id !== "string") {
@@ -107,7 +121,7 @@ export class TimetableController {
       return NextResponse.json({ error: "Invalid end time" }, { status: 400 });
     }
 
-    if (module_id === undefined && class_id === undefined && day_of_week === undefined && start_time === undefined && end_time === undefined) {
+    if (module_id === undefined && class_id === undefined && day_of_week === undefined && start_time === undefined && end_time === undefined && status === undefined) {
       return NextResponse.json({ error: "Nothing to update" }, { status: 400 });
     }
 
@@ -118,6 +132,7 @@ export class TimetableController {
         day_of_week: day_of_week !== undefined ? Number(day_of_week) : undefined,
         start_time,
         end_time,
+        status: status !== undefined ? (status as TimetableStatus) : undefined,
       });
       return NextResponse.json({ data });
     } catch (error) {
@@ -138,7 +153,11 @@ export class TimetableController {
         end_time: undefined,
       }));
 
-    const { batch_id, module_id, teacher_id, class_id, day_of_week, start_time, end_time } = body;
+    const { batch_id, module_id, teacher_id, class_id, day_of_week, start_time, end_time, status } = body;
+
+    if (status !== undefined && !parseTimetableStatus(status)) {
+      return NextResponse.json({ error: "Invalid timetable status" }, { status: 400 });
+    }
 
     const requiredFields: Array<[string, unknown]> = [
       ["batch", batch_id],
@@ -177,6 +196,7 @@ export class TimetableController {
         day_of_week: day,
         start_time,
         end_time,
+        status: status !== undefined ? (status as TimetableStatus) : "ongoing",
       });
       return NextResponse.json({ data }, { status: 201 });
     } catch (error) {

@@ -77,7 +77,7 @@ export default async function SettingsPage() {
         <div className="px-6 md:px-12 py-10 max-w-[1440px] mx-auto">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
             {profile && (
-              <div className="lg:col-span-8 bg-surface-container-lowest rounded-xl border border-outline-variant/10 overflow-hidden shadow-[0_4px_6px_-1px_rgba(15,23,42,0.05)]">
+              <div className="lg:col-span-8 bg-surface-container-lowest rounded-xl border border-primary/10 overflow-hidden shadow-[0_4px_6px_-1px_rgba(15,23,42,0.05)]">
                 <div className="px-6 md:px-8 pt-8 pb-7 flex items-start gap-5">
                   <div className="w-14 h-14 rounded-full bg-primary-container flex items-center justify-center overflow-hidden shrink-0">
                     {profile.avatar_url ? (
@@ -132,7 +132,7 @@ export default async function SettingsPage() {
               </div>
             )}
 
-            <div className="lg:col-span-4 bg-surface-container-lowest rounded-xl border border-outline-variant/10 p-6 md:p-8 shadow-[0_4px_6px_-1px_rgba(15,23,42,0.05)] self-start">
+            <div className="lg:col-span-4 bg-surface-container-lowest rounded-xl border border-primary/10 p-6 md:p-8 shadow-[0_4px_6px_-1px_rgba(15,23,42,0.05)] self-start">
               <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-on-surface-variant">Session</p>
 
               <div className="mt-5 flex items-center gap-2.5">
