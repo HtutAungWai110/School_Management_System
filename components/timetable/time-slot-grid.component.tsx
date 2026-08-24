@@ -39,8 +39,8 @@ export function TimeSlotGrid({
   originalStartTime,
 }: TimeSlotGridProps) {
   return (
-    <div className="max-h-[150px] overflow-y-auto rounded-xl border border-outline-variant/15">
-      <table className="w-full text-left border-collapse">
+    <div className="max-h-100 overflow-y-auto overflow-x-hidden rounded-xl border border-outline-variant/15">
+      <table className="w-full table-fixed text-left border-collapse">
         <thead className="bg-surface-container-low">
           <tr>
             <th className="px-3 py-2.5 text-[11px] font-[600] leading-[14px] text-on-surface-variant uppercase tracking-wider w-[110px]" />

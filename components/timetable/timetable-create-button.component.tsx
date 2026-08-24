@@ -10,10 +10,12 @@ import { TimetableCreatePanel } from "./timetable-create-panel.component"
 interface TimetableCreateButtonProps {
   batches: Batch[]
   classes: Class[]
+  fixedBatch?: Batch | null
 }
 
-export function TimetableCreateButton({ batches, classes }: TimetableCreateButtonProps) {
+export function TimetableCreateButton({ batches, classes, fixedBatch }: TimetableCreateButtonProps) {
   const [open, setOpen] = useState(false)
+  const activeBatches = fixedBatch ? [fixedBatch] : batches
 
   return (
     <>
@@ -27,8 +29,9 @@ export function TimetableCreateButton({ batches, classes }: TimetableCreateButto
       </button>
       {open && (
         <TimetableCreatePanel
-          batches={batches}
+          batches={activeBatches}
           classes={classes}
+          fixedBatchId={fixedBatch?.id}
           onClose={() => setOpen(false)}
         />
       )}
