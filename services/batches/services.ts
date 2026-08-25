@@ -277,6 +277,14 @@ export class BatchesService {
     return { success: true };
   }
 
+  static async bulkRemoveAssignments(assignmentIds: string[], batchId: string) {
+    for (const assignmentId of assignmentIds) {
+      await this.removeAssignment(assignmentId, batchId);
+    }
+
+    return { success: true, removed: assignmentIds.length };
+  }
+
   static async remove(id: string) {
     const supabase = await createClient();
 

@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server.client";
 import ProfileStoreSync from "@/components/profile/profile-store-sync.component";
 import Sidebar from "@/components/admin/admin-sidebar.component";
+import { RouteProgress } from "@/components/navigation/route-progress.component";
 
 export default async function ProtectedLayout({
   children,
@@ -17,6 +18,7 @@ export default async function ProtectedLayout({
 
   return (
     <main>
+      <RouteProgress />
       <ProfileStoreSync profile={profile} />
       <Sidebar/>
       {children}

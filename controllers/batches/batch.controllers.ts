@@ -119,6 +119,33 @@ export class BatchController {
     }
   }
 
+  static async removeAssignmentsBulk(
+    request: NextRequest,
+    { params }: { params: Promise<{ id: string }> }
+  ) {
+    const { id } = await params;
+    const body = await request.json().catch(() => ({ assignmentIds: undefined }));
+    const { assignmentIds } = body;
+
+    if (
+      !Array.isArray(assignmentIds) ||
+      assignmentIds.length === 0 ||
+      assignmentIds.some((value) => typeof value !== "string")
+    ) {
+      return NextResponse.json(
+        { error: "assignmentIds must be a non-empty array of ids" },
+        { status: 400 }
+      );
+    }
+
+    try {
+      const result = await BatchesService.bulkRemoveAssignments(assignmentIds as string[], id);
+      return NextResponse.json(result);
+    } catch (error) {
+      return handleError(error);
+    }
+  }
+
   static async getTeacherModules(
     request: NextRequest,
     { params }: { params: Promise<{ id: string }> }

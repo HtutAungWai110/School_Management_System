@@ -3,9 +3,10 @@
 import { useEffect, useRef, useState } from "react"
 import Image from "next/image"
 import { usePathname } from "next/navigation"
-import { MoreVertical, UserMinus } from "lucide-react"
+import { Check, MoreVertical, MousePointerClick, UserMinus } from "lucide-react"
 
 import type { BatchAssignment } from "@/types/batch.type"
+import { cn } from "@/lib/utils.util"
 import { refetchData } from "@/lib/action.action"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog.component"
 
@@ -17,7 +18,23 @@ function formatDate(value: string) {
   return new Date(value).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
 }
 
-export function BatchStudentRow({ assignment, batchId }: { assignment: BatchAssignment; batchId: string }) {
+interface BatchStudentRowProps {
+  assignment: BatchAssignment
+  batchId: string
+  selectMode?: boolean
+  selected?: boolean
+  onToggleSelect?: () => void
+  onSelect?: () => void
+}
+
+export function BatchStudentRow({
+  assignment,
+  batchId,
+  selectMode = false,
+  selected = false,
+  onToggleSelect,
+  onSelect,
+}: BatchStudentRowProps) {
   const profile = assignment.profiles
   const pathname = usePathname()
 
@@ -66,7 +83,25 @@ export function BatchStudentRow({ assignment, batchId }: { assignment: BatchAssi
 
   return (
     <>
-      <li className="border-b border-primary/10 px-6 py-4 flex items-center gap-4">
+      <li
+        onClick={selectMode ? onToggleSelect : undefined}
+        className={cn(
+          "border-b border-primary/10 px-6 py-4 flex items-center gap-4",
+          selectMode && "cursor-pointer transition-colors",
+          selected ? "bg-primary-container/25" : selectMode && "hover:bg-surface-container-low/50"
+        )}
+      >
+        {selectMode && (
+          <span
+            aria-hidden="true"
+            className={cn(
+              "flex w-5 h-5 shrink-0 rounded-md border items-center justify-center transition-colors",
+              selected ? "bg-primary border-primary text-on-primary" : "border-outline-variant/40"
+            )}
+          >
+            {selected && <Check className="size-3.5" />}
+          </span>
+        )}
         {profile.avatar_url ? (
           <Image
             className="w-10 h-10 rounded-full object-cover border border-outline-variant/20"
@@ -123,6 +158,19 @@ export function BatchStudentRow({ assignment, batchId }: { assignment: BatchAssi
             </button>
             {menuOpen && (
               <div className="absolute right-0 top-9 z-10 min-w-[170px] rounded-lg border border-outline-variant/20 bg-surface-container-lowest shadow-lg py-1">
+                {onSelect && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMenuOpen(false)
+                      onSelect()
+                    }}
+                    className="w-full flex items-center gap-2 px-4 py-2 text-left text-[14px] leading-[20px] text-on-surface hover:bg-surface-container transition-colors"
+                  >
+                    <MousePointerClick className="w-4 h-4 text-on-surface-variant" />
+                    Select
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={() => {

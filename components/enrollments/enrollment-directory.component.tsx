@@ -56,7 +56,7 @@ export function EnrollmentDirectory({
 
   return (
     <>
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto min-h-50">
         <table className="w-full text-left border-collapse">
           <thead className="bg-surface-container-low">
             {selectMode ? (

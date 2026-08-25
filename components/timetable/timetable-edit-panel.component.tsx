@@ -192,7 +192,7 @@ export function TimetableEditPanel({ timetable, classes, onClose }: TimetableEdi
                   animate="center"
                   exit="exit"
                   transition={{ type: "spring", stiffness: 320, damping: 32 }}
-                  className="flex-1 space-y-5 overflow-y-auto"
+                  className="flex-1 space-y-5"
                 >
                   <div>
                     <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-on-surface-variant">

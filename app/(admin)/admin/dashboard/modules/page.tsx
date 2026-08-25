@@ -23,9 +23,9 @@ export default async function ModulesPage({ searchParams }: { searchParams: Prom
   console.log(modules[0])
   return (
     <div className="min-h-screen bg-background flex">
-      <main className="flex-1 ml-64">
+      <main className="flex-1 lg:ml-64">
         <header className="bg-background sticky top-0 z-10 w-full border-b border-outline-variant/10">
-          <div className="flex justify-between items-center px-12 py-4 max-w-[1440px] mx-auto">
+          <div className="flex justify-between items-center px-12 py-4 max-w-[1440px] mx-5">
             <h1 className="text-[24px] font-[600] leading-[32px] text-primary">Modules</h1>
             <div className="flex items-center gap-6">
               {/*<div className="flex items-center bg-surface-container-low px-4 py-2 rounded-lg border border-outline-variant/10">

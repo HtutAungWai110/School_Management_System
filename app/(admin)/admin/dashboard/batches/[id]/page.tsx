@@ -1,11 +1,11 @@
 import Link from "next/link"
-import { ArrowLeft, Bell, Calendar, CircleHelp, Users } from "lucide-react"
+import { ArrowLeft, Bell, BookX, Calendar, CircleHelp, Users } from "lucide-react"
 
 import { serverFetch } from "@/lib/server.service"
-import type { Batch } from "@/types/batch.type"
+import type { Batch, BatchModule } from "@/types/batch.type"
 import type { Class } from "@/types/class.type"
 import { BatchStatusBadge } from "@/components/batches/batch-status-badge.component"
-import { BatchStudentRow } from "@/components/batches/batch-student-row.component"
+import { BatchStudentsPanel } from "@/components/batches/batch-students-panel.component"
 import { BatchTimetable } from "@/components/batches/batch-timetable.component"
 
 function formatDate(value: string) {
@@ -15,22 +15,29 @@ function formatDate(value: string) {
 export default async function BatchDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
 
-  const [batchRes, classesRes] = await Promise.all([
+  const [batchRes, classesRes, batchModulesRes] = await Promise.all([
     serverFetch(`http://localhost:3000/api/batches/${id}`, { next: { revalidate: 120 } }),
     serverFetch("http://localhost:3000/api/classes", { next: { revalidate: 120 } }),
+    serverFetch(`http://localhost:3000/api/batches/${id}/batch_modules`, { next: { revalidate: 120 } }),
   ]);
   const json = await batchRes.json();
   const batch = json?.data as Batch | null;
   const classes = (await classesRes.json()) as Class[];
+  const batchModules = ((await batchModulesRes.json()) ?? []) as BatchModule[];
 
   const levels = batch?.batch_level ?? [];
   const students = batch?.batch_assignments ?? [];
 
+  const scheduledModuleIds = new Set(
+    (batch?.timetables ?? []).map((session) => session.modules?.id).filter(Boolean) as string[]
+  );
+  const unscheduledModules = batchModules.filter((module) => !scheduledModuleIds.has(module.id));
+
   return (
     <div className="min-h-screen bg-background flex">
-      <main className="flex-1 ml-64">
+      <main className="flex-1 lg:ml-64">
         <header className="bg-background sticky top-0 z-10 w-full border-b border-outline-variant/10">
-          <div className="flex justify-between items-center px-12 py-4 max-w-[1440px] mx-auto">
+          <div className="flex justify-between items-center px-12 py-4 max-w-[1440px] mx-5">
             <h1 className="text-[24px] font-[600] leading-[32px] text-primary">Batch Details</h1>
             <div className="flex items-center gap-6">
               <button className="text-on-surface-variant hover:text-primary transition-colors duration-200 flex items-center gap-1">
@@ -120,39 +127,40 @@ export default async function BatchDetailPage({ params }: { params: Promise<{ id
                     )}
                   </div>
                 </div>
-              </div>
-
-              <div className="lg:col-span-2 bg-surface-container-lowest rounded-xl border border-primary/10 overflow-hidden shadow-[0_4px_6px_-1px_rgba(15,23,42,0.05)]">
-                <div className="p-6 border-b border-outline-variant/10 flex justify-between items-center">
-                  <div>
-                    <h3 className="text-[16px] font-[600] leading-[24px] text-on-surface">Assigned Students</h3>
+                <div className="bg-surface-container-lowest rounded-xl border border-primary/10 overflow-hidden shadow-[0_4px_6px_-1px_rgba(15,23,42,0.05)]">
+                  <div className="p-6 border-b border-outline-variant/10">
+                    <div className="flex items-center gap-2">
+                      <BookX className="size-4 text-on-surface-variant" />
+                      <h3 className="text-[16px] font-[600] leading-[24px] text-on-surface">Unscheduled modules</h3>
+                    </div>
                     <p className="mt-0.5 text-[12px] leading-[16px] text-on-surface-variant">
-                      {students.length} student{students.length === 1 ? "" : "s"} in this batch
+                      {unscheduledModules.length} of {batchModules.length} modules picked by
+                      students {unscheduledModules.length === 1 ? "has" : "have"} no timetable slot yet.
                     </p>
+                  </div>
+                  <div className="p-6">
+                    {unscheduledModules.length === 0 ? (
+                      <p className="text-[14px] leading-[20px] text-on-surface-variant">
+                        All picked modules are scheduled.
+                      </p>
+                    ) : (
+                      <div className="flex flex-wrap gap-2">
+                        {unscheduledModules.map((module) => (
+                          <span
+                            key={module.id}
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-destructive/20 bg-destructive/5 px-2.5 py-1 text-[12px] font-[600] leading-[16px]"
+                          >
+                            <span className="font-bold text-on-surface">{module.code}</span>
+                            <span className="text-on-surface-variant">{module.title}</span>
+                          </span>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
-                {students.length === 0 ? (
-                  <div className="px-6 py-16 text-center">
-                    <Users className="mx-auto size-8 text-on-surface-variant/70" />
-                    <p className="mt-4 text-[14px] font-[600] leading-[20px] text-on-surface">
-                      No students assigned yet
-                    </p>
-                    <p className="mt-1 text-[12px] leading-[16px] text-on-surface-variant">
-                      Assign students to this batch from the Enrollments page.
-                    </p>
-                  </div>
-                ) : (
-                  <ul>
-                    {students.map((assignment) => (
-                      <BatchStudentRow
-                        key={assignment.id}
-                        assignment={assignment}
-                        batchId={id}
-                      />
-                    ))}
-                  </ul>
-                )}
               </div>
+
+              <BatchStudentsPanel batchId={id} students={students} />
             </div>
           )}
         </div>

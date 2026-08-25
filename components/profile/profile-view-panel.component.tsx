@@ -37,8 +37,16 @@ function idBars(id: string) {
     }))
 }
 
-function Field({ label, value, full = false }: { label: string; value: string; full?: boolean }) {
-  const empty = value.trim() === ""
+function Field({
+  label,
+  value,
+  full = false,
+}: {
+  label: string
+  value: string | null | undefined
+  full?: boolean
+}) {
+  const empty = !value || value.trim() === ""
   return (
     <div className={cn("min-w-0 border-t border-outline-variant/25 pt-3 pb-4", full && "col-span-2")}>
       <p className="text-[9px] font-bold uppercase tracking-[0.24em] text-on-surface-variant">{label}</p>

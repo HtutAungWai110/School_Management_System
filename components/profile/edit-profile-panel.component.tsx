@@ -189,7 +189,7 @@ export function EditProfilePanel({ profile, onClose }: EditProfilePanelProps) {
                     aria-invalid={!!errors.phone}
                     {...register("phone", {
                       validate: (value) =>
-                        value.trim() === "" || PHONE_PATTERN.test(value.trim()) || "Enter a valid phone number",
+                        value?.trim() === "" || PHONE_PATTERN.test(value?.trim()) || "Enter a valid phone number",
                     })}
                     type="text"
                     placeholder="+1 (555) 000-0000"
