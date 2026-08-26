@@ -13,4 +13,16 @@ export class AttendanceController {
       return handleError(error);
     }
   }
+  static async list(request: NextRequest, { params }: { params: Promise<{ batchId: string }> }) {
+    const { batchId } = await params;
+    const urlParms = request.nextUrl.searchParams;
+    const date = urlParms.get("date") ?? null;
+
+    try {
+      const {finalData, minDate, maxDate} = await AttendanceService.getAttendances(batchId, date)
+      return NextResponse.json({finalData, minDate, maxDate})
+    } catch (error) {
+      return handleError(error);
+    }
+  }
 }

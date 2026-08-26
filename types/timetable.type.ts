@@ -2,7 +2,7 @@ import type { Class } from "@/types/class.type";
 
 export type TimetableBatch = { id: string; batch_name: string };
 export type TimetableModule = { id: string; code: string; title: string };
-export type TimetableTeacher = { id: string; full_name: string };
+export type TimetableTeacher = { id: string; full_name: string; email?: string };
 export type TimetableClass = Class;
 
 export type TimetableStatus = "ongoing" | "on break" | "completed";

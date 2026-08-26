@@ -4,6 +4,7 @@ import { ArrowLeft, Bell, BookX, Calendar, CircleHelp, Users } from "lucide-reac
 import { serverFetch } from "@/lib/server.service"
 import type { Batch, BatchModule } from "@/types/batch.type"
 import type { Class } from "@/types/class.type"
+import { BatchAttendancePanel } from "@/components/batches/batch-attendance-panel.component"
 import { BatchStatusBadge } from "@/components/batches/batch-status-badge.component"
 import { BatchStudentsPanel } from "@/components/batches/batch-students-panel.component"
 import { BatchTimetable } from "@/components/batches/batch-timetable.component"
@@ -70,8 +71,9 @@ export default async function BatchDetailPage({ params }: { params: Promise<{ id
               </p>
             </div>
           ) : (
-            <div className="mt-8 grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <BatchTimetable
+            <>
+              <div className="mt-8 grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <BatchTimetable
                 batch={batch}
                 timetables={batch.timetables ?? []}
                 classes={classes ?? []}
@@ -161,7 +163,12 @@ export default async function BatchDetailPage({ params }: { params: Promise<{ id
               </div>
 
               <BatchStudentsPanel batchId={id} students={students} />
-            </div>
+              </div>
+
+              <div className="mt-6">
+                <BatchAttendancePanel batchId={id} />
+              </div>
+            </>
           )}
         </div>
 

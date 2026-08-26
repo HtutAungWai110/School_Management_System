@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server.client";
+import type { AttendanceCalendarResponse, AttendanceSession } from "@/types/attendance.type";
 
 type AttendanceData = {
   timetable_id: string;
@@ -75,6 +76,139 @@ export class AttendanceService {
     return {
       attendance_id: attendance.id,
       enrolled_students: studentFlatIds.length,
+    };
+  }
+
+  static async getAttendances(batchId: string, date: string | null): Promise<AttendanceCalendarResponse> {
+    const supabase = await createClient();
+
+    const query = supabase
+      .from("timetables")
+      .select(`
+        id,
+        modules(
+          id,
+          title,
+          code
+        ),
+        profiles(
+          id,
+          full_name,
+          email
+        ),
+        classes(
+          id,
+          class_number
+        ),
+        day_of_week,
+        start_time,
+        end_time,
+        status,
+        attendances!inner (
+          date,
+          student_attendances(
+            id,
+            status,
+            remark,
+            profiles(
+              id,
+              full_name,
+              email
+            )
+          )
+        )
+        `)
+      .eq('batch_id', batchId)
+
+    const { data: timetablIds, error: timetableError } = await supabase
+      .from("timetables")
+      .select("id")
+      .eq('batch_id', batchId)
+
+    if (timetableError) {
+      throw timetableError;
+    }
+
+    const timetableIds = timetablIds.map((item) => item.id);
+
+    const { data: minDateRow } = await supabase
+      .from("attendances")
+      .select("date")
+      .in("timetable_id", timetableIds)
+      .order("date", {ascending: true})
+      .limit(1)
+      .maybeSingle()
+
+    const { data: maxDateRow } = await supabase
+      .from("attendances")
+      .select("date")
+      .in("timetable_id", timetableIds)
+      .order("date", {ascending: false})
+      .limit(1)
+      .maybeSingle()
+
+    if (!minDateRow) {
+      return { finalData: [], minDate: null, maxDate: null };
+    }
+
+    const baseDate = date ? new Date(date) : new Date(minDateRow.date);
+    const startOfMonth = new Date(baseDate.getFullYear(), baseDate.getMonth(), 1);
+    const endOfMonth = new Date(baseDate.getFullYear(), baseDate.getMonth() + 1, 0);
+    const startDateStr = startOfMonth.toISOString().split('T')[0];
+    const endDateStr = endOfMonth.toISOString().split('T')[0];
+    query
+      .gte('attendances.date', startDateStr)
+      .lte('attendances.date', endDateStr);
+
+    const { data: attendanceData, error: attendanceDataError } = await query;
+    if (attendanceDataError) throw new Error(attendanceDataError.message);
+
+    type RawStudentAttendance = {
+      id: string;
+      status: AttendanceSession["attendances"][string][number]["status"];
+      remark: string | null;
+      profiles: { full_name: string; email: string } | null;
+    };
+
+    type RawAttendance = {
+      date: string;
+      student_attendances: RawStudentAttendance[];
+    };
+
+    const timetables = attendanceData as unknown as Array<
+      Omit<AttendanceSession, "attendances"> & { attendances: RawAttendance[] }
+    >;
+
+    const dataMap = new Map<string, AttendanceSession>();
+
+    timetables.forEach((item) => {
+      if (!dataMap.has(item.id)) {
+        dataMap.set(item.id, {
+          ...item,
+          attendances: {},
+        })
+      }
+      const target = dataMap.get(item.id)!;
+      item.attendances.forEach((attendanceItem) => {
+        if (!target.attendances[attendanceItem.date]) {
+          target.attendances[attendanceItem.date] = attendanceItem.student_attendances.map((student) => {
+            const { profiles, ...rest } = student
+            return {
+              ...rest,
+              full_name: profiles?.full_name ?? null,
+              email: profiles?.email ?? null,
+            }
+          })
+        }
+      })
+    })
+
+    const finalData = [...dataMap.values()];
+
+    return {
+      finalData,
+      minDate: minDateRow?.date ?? null,
+      maxDate: maxDateRow?.date ?? null,
     };
   }
 }

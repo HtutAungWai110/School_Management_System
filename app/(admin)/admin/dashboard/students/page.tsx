@@ -1,7 +1,7 @@
 import { MetricCard } from "@/components/admin/metric-card.component"
 import { PaginationNav } from "@/components/navigation/pagination-nav.component"
 import { ProfileTemplate } from "@/components/profile/profile-template.component"
-import { Search, CircleHelp, Bell, User, UserPlus, ClipboardCheck, Plus } from "lucide-react"
+import { CircleHelp, Bell, User, UserPlus, ClipboardCheck, Plus } from "lucide-react"
 import SearchBar from "@/components/search/searchbar.component"
 import FilterButton from "@/components/search/filter-dropdown.component"
 
