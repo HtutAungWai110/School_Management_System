@@ -108,6 +108,8 @@ export class AttendanceService {
           date,
           student_attendances(
             id,
+            attendance_id,
+            student_id,
             status,
             remark,
             profiles(
@@ -151,7 +153,7 @@ export class AttendanceService {
       return { finalData: [], minDate: null, maxDate: null };
     }
 
-    const baseDate = date ? new Date(date) : new Date(minDateRow.date);
+    const baseDate = date ? new Date(date) : new Date(maxDateRow?.date);
     const startOfMonth = new Date(baseDate.getFullYear(), baseDate.getMonth(), 1);
     const endOfMonth = new Date(baseDate.getFullYear(), baseDate.getMonth() + 1, 0);
     const startDateStr = startOfMonth.toISOString().split('T')[0];
@@ -165,6 +167,8 @@ export class AttendanceService {
 
     type RawStudentAttendance = {
       id: string;
+      attendance_id: string;
+      student_id: string;
       status: AttendanceSession["attendances"][string][number]["status"];
       remark: string | null;
       profiles: { full_name: string; email: string } | null;
@@ -210,5 +214,37 @@ export class AttendanceService {
       minDate: minDateRow?.date ?? null,
       maxDate: maxDateRow?.date ?? null,
     };
+  }
+
+  static async updateAttendance({id, attendanceId, studentId, status, remark = null}: {id: string; attendanceId: string; studentId: string; status: string; remark?: string | null; }) {
+    const supabase = await createClient();
+    const { data: attendanceExist, error: attendanceExistError } = await supabase
+      .from("student_attendances")
+      .select("*")
+      .eq("id", id)
+      .eq("attendance_id", attendanceId)
+      .eq("student_id", studentId)
+      .single();
+    if (attendanceExistError || !attendanceExist) throw new Error("Attendance not found");
+
+    const {data: attendanceUpdate, error: attendanceUpdateError} = await supabase
+      .from("student_attendances")
+      .update({ status, remark })
+      .eq("id", id)
+      .eq("attendance_id", attendanceId)
+      .eq("student_id", studentId)
+      .select()
+      .single();
+    if (attendanceUpdateError) throw new Error("Failed to update attendance");
+    return attendanceUpdate;
+  }
+
+  static async bulkUpdate(updates: Array<{ id: string; attendanceId: string; studentId: string; status: string; remark?: string | null }>) {
+    const results = [];
+    for (const update of updates) {
+      const result = await this.updateAttendance(update);
+      results.push(result);
+    }
+    return results;
   }
 }

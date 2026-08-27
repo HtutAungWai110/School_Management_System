@@ -79,6 +79,8 @@ export default async function BatchDetailPage({ params }: { params: Promise<{ id
                 classes={classes ?? []}
               />
 
+
+
               <div className="lg:col-span-1 space-y-6">
                 <div className="bg-surface-container-lowest rounded-xl border border-primary/10 overflow-hidden shadow-[0_4px_6px_-1px_rgba(15,23,42,0.05)]">
                   <div className="p-6 flex items-center gap-4">
@@ -164,10 +166,10 @@ export default async function BatchDetailPage({ params }: { params: Promise<{ id
 
               <BatchStudentsPanel batchId={id} students={students} />
               </div>
-
               <div className="mt-6">
                 <BatchAttendancePanel batchId={id} />
               </div>
+
             </>
           )}
         </div>

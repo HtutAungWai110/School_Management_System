@@ -9,6 +9,8 @@ export type AttendanceClass = {
 
 export type AttendanceStudent = {
   id: string;
+  attendance_id: string;
+  student_id: string;
   status: AttendanceStatus;
   remark: string | null;
   full_name: string | null;

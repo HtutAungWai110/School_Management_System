@@ -1,10 +1,6 @@
 import { NextRequest } from "next/server";
 import { AttendanceController } from "@/controllers/attendances/attendances.controllers";
 
-export async function POST(request: NextRequest) {
-  return AttendanceController.createAttendance(request)
-}
-
 export async function PATCH(request: NextRequest) {
-  return AttendanceController.update(request)
+  return AttendanceController.bulkUpdate(request)
 }

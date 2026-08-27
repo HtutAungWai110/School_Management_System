@@ -9,32 +9,11 @@ import {
   BookOpen,
 } from "lucide-react"
 import { cn } from "@/lib/utils.util"
-import type { AttendanceStudent } from "@/types/attendance.type"
 import { useAttendanceData } from "./use-attendance-data.hook"
-
-const STATUS_BADGE: Record<string, { text: string; bg: string }> = {
-  absent: { text: "text-red-700", bg: "bg-red-50 border-red-200" },
-  present: { text: "text-green-700", bg: "bg-green-50 border-green-200" },
-  late: { text: "text-yellow-700", bg: "bg-yellow-50 border-yellow-200" },
-}
-
-function StatusBadge({ status }: { status: string }) {
-  const style = STATUS_BADGE[status] ?? {
-    text: "text-gray-700",
-    bg: "bg-gray-50 border-gray-200",
-  }
-  return (
-    <span
-      className={cn(
-        "inline-flex items-center px-2 py-0.5 rounded-full border text-[11px] font-[600] leading-[14px] capitalize",
-        style.text,
-        style.bg
-      )}
-    >
-      {status}
-    </span>
-  )
-}
+import {
+  AttendanceStudentTable,
+  type AttendanceUpdate,
+} from "./attendance-student-table.component"
 
 function formatTime(time: string): string {
   const [h, m] = time.split(":")
@@ -44,9 +23,9 @@ function formatTime(time: string): string {
   return `${h12}:${m} ${ampm}`
 }
 
-function computeMonth(d: string | null, minDate: string | null): Date {
+function computeMonth(d: string | null, fallback: string | null): Date {
   if (d) return new Date(d + "T00:00:00")
-  if (minDate) return new Date(minDate + "T00:00:00")
+  if (fallback) return new Date(fallback + "T00:00:00")
   return new Date()
 }
 
@@ -56,15 +35,40 @@ function monthOf(dateStr: string): { year: number; month: number } {
 }
 
 export function BatchAttendancePanel({ batchId }: { batchId: string }) {
-  const { data, date, setDate, loading, error } = useAttendanceData(batchId)
+  const { data, date, setDate, loading, error, refresh } =
+    useAttendanceData(batchId)
 
   const sessions = data?.finalData ?? []
-  const viewingMonth = computeMonth(date, data?.minDate ?? null)
+  const viewingMonth = computeMonth(date, data?.maxDate ?? null)
   const minMonth = data?.minDate ? monthOf(data.minDate) : null
   const maxMonth = data?.maxDate ? monthOf(data.maxDate) : null
 
   const [expandedSessions, setExpandedSessions] = useState<Set<string>>(new Set())
   const [expandedDates, setExpandedDates] = useState<Set<string>>(new Set())
+  const [editKey, setEditKey] = useState<string | null>(null)
+  const [saving, setSaving] = useState(false)
+
+  async function handleSaveUpdates(updates: AttendanceUpdate[]) {
+    setSaving(true)
+    try {
+      const res = await fetch("/api/attendances/bulk", {
+        method: "PATCH",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updates),
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => null)
+        throw new Error(err?.error ?? "Failed to update attendance")
+      }
+      refresh()
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setSaving(false)
+      setEditKey(null)
+    }
+  }
 
   function toggleSession(sessionId: string) {
     setExpandedSessions((prev) => {
@@ -258,13 +262,12 @@ export function BatchAttendancePanel({ batchId }: { batchId: string }) {
                         dates.map((d) => {
                           const dateKey = `${session.id}|${d}`
                           const isDateExpanded = expandedDates.has(dateKey)
-                          const students = (session.attendances[d] ?? []).sort(
-                            (a: AttendanceStudent, b: AttendanceStudent) =>
-                              (a.full_name ?? "").localeCompare(b.full_name ?? "")
-                          )
+                          const students = session.attendances[d] ?? []
                           const presentCount = students.filter(
-                            (s: AttendanceStudent) => s.status === "present"
+                            (s) => s.status === "present"
                           ).length
+
+                          const isEditMode = editKey === dateKey
 
                           return (
                             <div key={d}>
@@ -296,50 +299,18 @@ export function BatchAttendancePanel({ batchId }: { batchId: string }) {
                                 </span>
                               </button>
 
-                              {/* Expanded: student table */}
                               {isDateExpanded && (
-                                <div className="pl-12 pr-5 pb-3">
-                                  <div className="overflow-x-auto border border-outline-variant/10 rounded-lg">
-                                    <table className="w-full text-left border-collapse">
-                                      <thead>
-                                        <tr className="border-b border-outline-variant/10 bg-surface-container-low/50">
-                                          <th className="px-4 py-2 text-[11px] font-[600] leading-[14px] text-on-surface-variant uppercase tracking-wider">
-                                            Full Name
-                                          </th>
-                                          <th className="px-4 py-2 text-[11px] font-[600] leading-[14px] text-on-surface-variant uppercase tracking-wider">
-                                            Email
-                                          </th>
-                                          <th className="px-4 py-2 text-[11px] font-[600] leading-[14px] text-on-surface-variant uppercase tracking-wider">
-                                            Status
-                                          </th>
-                                        </tr>
-                                      </thead>
-                                      <tbody>
-                                        {students.map((student, i) => (
-                                          <tr
-                                            key={student.id}
-                                            className={cn(
-                                              "border-b border-outline-variant/5 last:border-b-0",
-                                              i % 2 === 0
-                                                ? "bg-transparent"
-                                                : "bg-surface-container-low/10"
-                                            )}
-                                          >
-                                            <td className="px-4 py-2 text-[13px] font-[500] leading-[18px] text-on-surface">
-                                              {student.full_name ?? "Unknown"}
-                                            </td>
-                                            <td className="px-4 py-2 text-[13px] leading-[18px] text-on-surface-variant">
-                                              {student.email ?? "—"}
-                                            </td>
-                                            <td className="px-4 py-2">
-                                              <StatusBadge status={student.status} />
-                                            </td>
-                                          </tr>
-                                        ))}
-                                      </tbody>
-                                    </table>
-                                  </div>
-                                </div>
+                                <AttendanceStudentTable
+                                  key={`${dateKey}-${String(isEditMode)}`}
+                                  students={students}
+                                  editMode={isEditMode}
+                                  saving={saving}
+                                  onEnterEdit={() => setEditKey(dateKey)}
+                                  onCancel={() => setEditKey(null)}
+                                  onSave={(updates) => {
+                                    handleSaveUpdates(updates)
+                                  }}
+                                />
                               )}
                             </div>
                           )

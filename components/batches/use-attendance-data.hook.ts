@@ -1,14 +1,19 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import type { AttendanceCalendarResponse } from "@/types/attendance.type"
 
 export function useAttendanceData(batchId: string) {
   const [date, setDate] = useState<string | null>(null)
   const [data, setData] = useState<AttendanceCalendarResponse | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [reloadKey, setReloadKey] = useState(0)
 
   const loading = data === null && error === null
+
+  const refresh = useCallback(() => {
+    setReloadKey((k) => k + 1)
+  }, [])
 
   useEffect(() => {
     let cancelled = false
@@ -35,7 +40,7 @@ export function useAttendanceData(batchId: string) {
     return () => {
       cancelled = true
     }
-  }, [batchId, date])
+  }, [batchId, date, reloadKey])
 
-  return { data, date, setDate, loading, error }
+  return { data, date, setDate, loading, error, refresh }
 }
