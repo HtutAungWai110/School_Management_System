@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
-import { Clock, MoreVertical, Pencil, Trash2 } from "lucide-react"
+import { CalendarCheck, Clock, MoreVertical, Pencil, Trash2 } from "lucide-react"
 
 import type { Batch, BatchTimetable } from "@/types/batch.type"
 import type { Class } from "@/types/class.type"
@@ -11,6 +11,7 @@ import { TimetableStatusBadge } from "@/components/timetable/timetable-status-ba
 import { TimetableCreateButton } from "@/components/timetable/timetable-create-button.component"
 import { TimetableEditPanel } from "@/components/timetable/timetable-edit-panel.component"
 import { TimetableDeletePanel } from "@/components/timetable/timetable-delete-panel.component"
+import { AttendanceCreatePanel } from "./attendance-create-panel.component"
 
 function formatTime(time: string) {
   return time.slice(0, 5)
@@ -132,6 +133,7 @@ export function BatchTimetable({ batch, timetables, classes }: BatchTimetablePro
                                 session={session}
                                 timetable={toTimetable(session, batch)}
                                 classes={classes}
+                                batch={batch}
                               />
                             ))}
                           </div>
@@ -153,12 +155,14 @@ interface SessionCardProps {
   session: BatchTimetable
   timetable: Timetable
   classes: Class[]
+  batch: Batch
 }
 
-function SessionCard({ session, timetable, classes }: SessionCardProps) {
+function SessionCard({ session, timetable, classes, batch }: SessionCardProps) {
   const [menuOpen, setMenuOpen] = useState(false)
   const [editOpen, setEditOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
+  const [createOpen, setCreateOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -187,8 +191,16 @@ function SessionCard({ session, timetable, classes }: SessionCardProps) {
             <MoreVertical className="w-4 h-4" />
           </button>
           {menuOpen && (
-            <div className="absolute right-0 top-7 min-w-[130px] rounded-lg border border-outline-variant/20 bg-surface-container-lowest shadow-lg py-1">
+            <div className="absolute right-0 top-7 min-w-[150px] rounded-lg border border-outline-variant/20 bg-surface-container-lowest shadow-lg py-1">
               {[
+                {
+                  label: "Create attendance",
+                  icon: CalendarCheck,
+                  onClick: () => {
+                    setMenuOpen(false)
+                    setCreateOpen(true)
+                  },
+                },
                 {
                   label: "Edit",
                   icon: Pencil,
@@ -257,6 +269,14 @@ function SessionCard({ session, timetable, classes }: SessionCardProps) {
         <TimetableDeletePanel
           timetable={timetable}
           onClose={() => setDeleteOpen(false)}
+        />
+      )}
+      {createOpen && (
+        <AttendanceCreatePanel
+          session={session}
+          batchId={batch.id}
+          batchName={batch.batch_name}
+          onClose={() => setCreateOpen(false)}
         />
       )}
     </>

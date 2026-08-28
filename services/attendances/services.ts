@@ -1,14 +1,97 @@
 import { createClient } from "@/lib/supabase/server.client";
 import type { AttendanceCalendarResponse, AttendanceSession } from "@/types/attendance.type";
 
+const ATTENDANCE_SELECT = `
+  id,
+  modules(
+    id,
+    title,
+    code
+  ),
+  profiles(
+    id,
+    full_name,
+    email
+  ),
+  classes(
+    id,
+    class_number
+  ),
+  day_of_week,
+  start_time,
+  end_time,
+  status,
+  attendances!inner (
+    id,
+    date,
+    student_attendances(
+      id,
+      attendance_id,
+      student_id,
+      status,
+      remark,
+      profiles(
+        id,
+        full_name,
+        email
+      )
+    )
+  )
+  `
+
 type AttendanceData = {
   timetable_id: string;
   module_id: string;
   batch_id: string;
+  date: string | null;
 };
 
+type RawStudentAttendance = {
+  id: string;
+  attendance_id: string;
+  student_id: string;
+  status: AttendanceSession["attendances"][string][number]["status"];
+  remark: string | null;
+  profiles: { full_name: string; email: string } | null;
+};
+
+type RawAttendance = {
+  date: string;
+  student_attendances: RawStudentAttendance[];
+};
+
+function mapAttendance(
+  item: Omit<AttendanceSession, "attendances"> & { attendances: RawAttendance[] }
+): AttendanceSession {
+  const attendances: AttendanceSession["attendances"] = {};
+  item.attendances.forEach((attendanceItem) => {
+    if (!attendances[attendanceItem.date]) {
+      attendances[attendanceItem.date] = attendanceItem.student_attendances.map((student) => {
+        const { profiles, ...rest } = student
+        return {
+          ...rest,
+          full_name: profiles?.full_name ?? null,
+          email: profiles?.email ?? null,
+        }
+      })
+    }
+  })
+  return {
+    ...item,
+    attendances,
+  };
+}
+
+function buildFinalData(
+  attendanceData: Array<
+    Omit<AttendanceSession, "attendances"> & { attendances: RawAttendance[] }
+  >
+): AttendanceSession[] {
+  return attendanceData.map(mapAttendance);
+}
+
 export class AttendanceService {
-  static async create({ timetable_id, module_id, batch_id }: AttendanceData) {
+  static async create({ timetable_id, module_id, batch_id, date = null }: AttendanceData) {
     const supabase = await createClient();
 
     const { data: timetableData, error: timetableDataError } = await supabase
@@ -44,11 +127,13 @@ export class AttendanceService {
 
     const studentFlatIds = targetStudentsData.map((item) => item.student_id);
 
-    const { data: attendance, error: attendanceInsertError } = await supabase
+    const query =  supabase
       .from("attendances")
-      .insert({ timetable_id })
+      .insert({ timetable_id, date : date ?? new Date().toISOString() })
       .select("id")
       .single();
+
+    const { data: attendance, error: attendanceInsertError } = await query;
 
     if (attendanceInsertError) {
       if (attendanceInsertError.code === "23505") {
@@ -84,42 +169,7 @@ export class AttendanceService {
 
     const query = supabase
       .from("timetables")
-      .select(`
-        id,
-        modules(
-          id,
-          title,
-          code
-        ),
-        profiles(
-          id,
-          full_name,
-          email
-        ),
-        classes(
-          id,
-          class_number
-        ),
-        day_of_week,
-        start_time,
-        end_time,
-        status,
-        attendances!inner (
-          date,
-          student_attendances(
-            id,
-            attendance_id,
-            student_id,
-            status,
-            remark,
-            profiles(
-              id,
-              full_name,
-              email
-            )
-          )
-        )
-        `)
+      .select(ATTENDANCE_SELECT)
       .eq('batch_id', batchId)
 
     const { data: timetablIds, error: timetableError } = await supabase
@@ -165,49 +215,11 @@ export class AttendanceService {
     const { data: attendanceData, error: attendanceDataError } = await query;
     if (attendanceDataError) throw new Error(attendanceDataError.message);
 
-    type RawStudentAttendance = {
-      id: string;
-      attendance_id: string;
-      student_id: string;
-      status: AttendanceSession["attendances"][string][number]["status"];
-      remark: string | null;
-      profiles: { full_name: string; email: string } | null;
-    };
-
-    type RawAttendance = {
-      date: string;
-      student_attendances: RawStudentAttendance[];
-    };
-
     const timetables = attendanceData as unknown as Array<
       Omit<AttendanceSession, "attendances"> & { attendances: RawAttendance[] }
     >;
 
-    const dataMap = new Map<string, AttendanceSession>();
-
-    timetables.forEach((item) => {
-      if (!dataMap.has(item.id)) {
-        dataMap.set(item.id, {
-          ...item,
-          attendances: {},
-        })
-      }
-      const target = dataMap.get(item.id)!;
-      item.attendances.forEach((attendanceItem) => {
-        if (!target.attendances[attendanceItem.date]) {
-          target.attendances[attendanceItem.date] = attendanceItem.student_attendances.map((student) => {
-            const { profiles, ...rest } = student
-            return {
-              ...rest,
-              full_name: profiles?.full_name ?? null,
-              email: profiles?.email ?? null,
-            }
-          })
-        }
-      })
-    })
-
-    const finalData = [...dataMap.values()];
+    const finalData = buildFinalData(timetables);
 
     return {
       finalData,
@@ -237,6 +249,22 @@ export class AttendanceService {
       .single();
     if (attendanceUpdateError) throw new Error("Failed to update attendance");
     return attendanceUpdate;
+  }
+
+  static async getById(id: string) {
+    const supabase = await createClient();
+    const { data: attendanceData, error: attendanceDataError } = await supabase
+      .from("timetables")
+      .select(ATTENDANCE_SELECT)
+      .eq("attendances.id", id)
+      .single();
+    if (attendanceDataError) throw new Error(attendanceDataError.message);
+
+    return mapAttendance(
+      attendanceData as unknown as Omit<AttendanceSession, "attendances"> & {
+        attendances: RawAttendance[]
+      }
+    );
   }
 
   static async bulkUpdate(updates: Array<{ id: string; attendanceId: string; studentId: string; status: string; remark?: string | null }>) {

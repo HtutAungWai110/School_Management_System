@@ -5,9 +5,9 @@ import { handleError } from "@/lib/errors/error.handler";
 export class AttendanceController {
   static async createAttendance(request: NextRequest) {
     const body = await request.json();
-    const { timetable_id, module_id, batch_id } = body;
+    const { timetable_id, module_id, batch_id, date } = body;
     try {
-      const data = await AttendanceService.create({ timetable_id, module_id, batch_id })
+      const data = await AttendanceService.create({ timetable_id, module_id, batch_id, date })
       return NextResponse.json(data);
     } catch (error) {
       return handleError(error);
@@ -70,6 +70,18 @@ export class AttendanceController {
     try {
       const results = await AttendanceService.bulkUpdate(normalized);
       return NextResponse.json({ updated: results.length });
+    } catch (error) {
+      return handleError(error);
+    }
+  }
+  static async getById(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+    const { id } = await params;
+    if (!id) return NextResponse.json({ error: "id is required" }, { status: 400 });
+
+    try {
+      const attendanceData = await AttendanceService.getById(id);
+      if (!attendanceData) return NextResponse.json({ error: "Attendance not found" }, { status: 404 });
+      return NextResponse.json(attendanceData);
     } catch (error) {
       return handleError(error);
     }

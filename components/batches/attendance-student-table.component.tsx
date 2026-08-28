@@ -137,19 +137,19 @@ export function AttendanceStudentTable({
       </div>
 
       <div className="overflow-x-auto border border-outline-variant/10 rounded-lg">
-        <table className="w-full text-left border-collapse">
+        <table className="w-full table-fixed text-left border-collapse">
           <thead>
             <tr className="border-b border-outline-variant/10 bg-surface-container-low/50">
-              <th className="px-4 py-2 text-[11px] font-[600] leading-[14px] text-on-surface-variant uppercase tracking-wider">
+              <th className="w-[26%] px-4 py-2 text-[11px] font-[600] leading-[14px] text-on-surface-variant uppercase tracking-wider">
                 Full Name
               </th>
-              <th className="px-4 py-2 text-[11px] font-[600] leading-[14px] text-on-surface-variant uppercase tracking-wider">
+              <th className="w-[30%] px-4 py-2 text-[11px] font-[600] leading-[14px] text-on-surface-variant uppercase tracking-wider">
                 Email
               </th>
-              <th className="px-4 py-2 text-[11px] font-[600] leading-[14px] text-on-surface-variant uppercase tracking-wider">
+              <th className="w-[20%] px-4 py-2 text-[11px] font-[600] leading-[14px] text-on-surface-variant uppercase tracking-wider">
                 Status
               </th>
-              <th className="px-4 py-2 text-[11px] font-[600] leading-[14px] text-on-surface-variant uppercase tracking-wider">
+              <th className="w-[24%] px-4 py-2 text-[11px] font-[600] leading-[14px] text-on-surface-variant uppercase tracking-wider">
                 Remark
               </th>
             </tr>
@@ -165,10 +165,10 @@ export function AttendanceStudentTable({
                     i % 2 === 0 ? "bg-transparent" : "bg-surface-container-low/10"
                   )}
                 >
-                  <td className="px-4 py-2 text-[13px] font-[500] leading-[18px] text-on-surface">
+                  <td className="px-4 py-2 text-[13px] font-[500] leading-[18px] text-on-surface truncate">
                     {student.full_name ?? "Unknown"}
                   </td>
-                  <td className="px-4 py-2 text-[13px] leading-[18px] text-on-surface-variant">
+                  <td className="px-4 py-2 text-[13px] leading-[18px] text-on-surface-variant truncate">
                     {student.email ?? "—"}
                   </td>
                   <td className="px-4 py-2">
@@ -179,7 +179,7 @@ export function AttendanceStudentTable({
                         onValueChange={(v) => updateDraft(student.id, "status", v)}
                         placeholder="Status"
                         emptyLabel="No statuses"
-                        className="w-32"
+                        className="w-full min-w-[110px]"
                       />
                     ) : (
                       <StatusBadge status={student.status} />
@@ -190,7 +190,7 @@ export function AttendanceStudentTable({
                       <Input
                         value={draft?.remark ?? student.remark ?? ""}
                         placeholder="Add remark"
-                        className="h-8 w-48"
+                        className="h-8 w-full min-w-[140px]"
                         onChange={(e) =>
                           updateDraft(student.id, "remark", e.target.value)
                         }
