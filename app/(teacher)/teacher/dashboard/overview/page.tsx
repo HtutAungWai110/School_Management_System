@@ -1,8 +1,10 @@
 import { MetricCard } from "@/components/admin/metric-card.component"
-import { TimetableSessionTable, type TimetableSession } from "@/components/teachers/timetable-session-table.component"
+import { TimetableSessionWrapper } from "@/components/teachers/timetable-session-wrapper.component"
+import type { TimetableSession } from "@/components/teachers/timetable-session-table.component"
 import { Calendar, Clock, Layers, Users } from "lucide-react"
 
 import { serverFetch } from "@/lib/server.service"
+import type { Class } from "@/types/class.type"
 
 interface TeacherOverviewData {
   totalSessions: number
@@ -16,8 +18,12 @@ function getTodayDayOfWeek() {
 }
 
 export default async function TeacherOverviewPage() {
-  const data = await serverFetch("http://localhost:3000/api/teacher/overview", { next: { revalidate: 120 } })
-    .then((res) => res.json()) as TeacherOverviewData
+  const [data, classes] = await Promise.all([
+    serverFetch("http://localhost:3000/api/teacher/overview", { next: { revalidate: 120 } })
+      .then((res) => res.json()) as Promise<TeacherOverviewData>,
+    serverFetch("http://localhost:3000/api/classes", { next: { revalidate: 120 } })
+      .then((res) => res.json()) as Promise<Class[]>,
+  ])
 
   const sessions = data.timetableSessions ?? []
   const todayDay = getTodayDayOfWeek()
@@ -90,23 +96,29 @@ export default async function TeacherOverviewPage() {
             />
           </div>
 
-          {todaySessions.length > 0 && (
+          {todaySessions.length > 0 ? (
             <div className="mt-10">
-              <TimetableSessionTable
+              <TimetableSessionWrapper
                 title="Today"
                 subtitle={`${todaySessions.length} session${todaySessions.length !== 1 ? "s" : ""} today`}
                 sessions={todaySessions}
+                classes={classes}
               />
+            </div>
+          ) : (
+            <div className="mt-10 bg-surface-container-lowest rounded-xl border border-primary/10 p-8 text-center shadow-[0_4px_6px_-1px_rgba(15,23,42,0.05)]">
+              <p className="text-[14px] font-[500] leading-[20px] text-on-surface-variant">No today class</p>
             </div>
           )}
 
           {upcomingSessions.length > 0 && (
             <div className="mt-10">
-              <TimetableSessionTable
+              <TimetableSessionWrapper
                 title="Upcoming"
                 subtitle={`${upcomingSessions.length} session${upcomingSessions.length !== 1 ? "s" : ""} remaining`}
                 sessions={upcomingSessions}
                 showDay
+                classes={classes}
               />
             </div>
           )}

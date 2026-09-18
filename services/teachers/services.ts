@@ -130,6 +130,9 @@ export class TeachersService {
           title
         ),
         teacher_id,
+        profiles:teacher_id(
+          full_name
+        ),
         class_id,
         day_of_week,
         start_time,

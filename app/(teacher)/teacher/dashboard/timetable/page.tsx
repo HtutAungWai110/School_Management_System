@@ -1,7 +1,7 @@
-import { TimetableSessionTable, type TimetableSession } from "@/components/teachers/timetable-session-table.component"
+import { TimetableSessionWrapper } from "@/components/teachers/timetable-session-wrapper.component"
+import type { TimetableSession } from "@/components/teachers/timetable-session-table.component"
 import { serverFetch } from "@/lib/server.service"
-
-const dayNames = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+import type { Class } from "@/types/class.type"
 
 function getTodayDayOfWeek() {
   const jsDay = new Date().getDay()
@@ -9,8 +9,12 @@ function getTodayDayOfWeek() {
 }
 
 export default async function TimetablePage() {
-  const sessions = await serverFetch("http://localhost:3000/api/teacher/timetable", { next: { revalidate: 120 } })
-    .then((res) => res.json()) as TimetableSession[]
+  const [sessions, classes] = await Promise.all([
+    serverFetch("http://localhost:3000/api/teacher/timetable", { next: { revalidate: 120 } })
+      .then((res) => res.json()) as Promise<TimetableSession[]>,
+    serverFetch("http://localhost:3000/api/classes", { next: { revalidate: 120 } })
+      .then((res) => res.json()) as Promise<Class[]>,
+  ])
 
   const todayDay = getTodayDayOfWeek()
 
@@ -42,20 +46,26 @@ export default async function TimetablePage() {
         </header>
 
         <div className="px-12 py-10 max-w-[1440px] mx-auto space-y-10">
-          {todaySessions.length > 0 && (
-            <TimetableSessionTable
+          {todaySessions.length > 0 ? (
+            <TimetableSessionWrapper
               title="Today"
-              subtitle={`${dayNames[todayDay - 1]} — ${todaySessions.length} session${todaySessions.length !== 1 ? "s" : ""}`}
+              subtitle={`${todaySessions.length} session${todaySessions.length !== 1 ? "s" : ""} today`}
               sessions={todaySessions}
+              classes={classes}
             />
+          ) : (
+            <div className="bg-surface-container-lowest rounded-xl border border-primary/10 p-8 text-center shadow-[0_4px_6px_-1px_rgba(15,23,42,0.05)]">
+              <p className="text-[14px] font-[500] leading-[20px] text-on-surface-variant">No today class</p>
+            </div>
           )}
 
           {upcomingSessions.length > 0 && (
-            <TimetableSessionTable
+            <TimetableSessionWrapper
               title="Upcoming"
               subtitle={`${upcomingSessions.length} session${upcomingSessions.length !== 1 ? "s" : ""} remaining`}
               sessions={upcomingSessions}
               showDay
+              classes={classes}
             />
           )}
 
