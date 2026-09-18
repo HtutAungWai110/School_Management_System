@@ -29,4 +29,23 @@ export class TeacherController {
       return handleError(error);
     }
   }
+
+  static async getOverview(_request: NextRequest) {
+
+    try {
+      const {totalSessions, timetableSessions, totalUniqueStudents} = await TeachersService.getOverview();
+      return NextResponse.json({totalSessions, timetableSessions, totalUniqueStudents})
+    } catch (error) {
+      return handleError(error);
+    }
+  }
+
+  static async getTimetableSessions(_request: NextRequest) {
+    try {
+      const timetableSessions = await TeachersService.getTimetableSessions();
+      return NextResponse.json(timetableSessions);
+    } catch (error) {
+      return handleError(error);
+    }
+  }
 }

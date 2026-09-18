@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server.client";
+import { BatchesService } from "../batches/services";
 
 const PAGE_SIZE = 20;
 
@@ -110,5 +111,75 @@ export class TeachersService {
     );
 
     return { addResults, deleteResults };
+  }
+
+  static async getOverview() {
+    const supabase = await createClient();
+    const { data: timetableData, error: timetableError } = await supabase
+      .from("timetables")
+      .select(`
+        id,
+        batch_id,
+        batches(
+          batch_name,
+          status
+        ),
+        module_id,
+        modules(
+          code,
+          title
+        ),
+        teacher_id,
+        class_id,
+        day_of_week,
+        start_time,
+        end_time,
+        status
+        `)
+
+    if (timetableError) throw new Error(timetableError.message)
+
+    const timetableIds = timetableData.map(item => item.id)
+    const batchModuleIds = timetableData.map(item => {
+      return { batch_id: item.batch_id, module_id: item.module_id }
+    })
+
+    const studentCountMap: Map<string, number> = new Map();
+    const totalUniqueStudentSet: Set<string> = new Set();
+
+    const studentPromises = batchModuleIds.map(async (item) => {
+      const studentsArray = await BatchesService.getStudents(item.batch_id, item.module_id)
+      studentsArray.forEach((item: string) => {
+        if (!totalUniqueStudentSet.has(item)) totalUniqueStudentSet.add(item)
+      })
+      const key = `${item.batch_id}_${item.module_id}`
+      studentCountMap.set(key, studentsArray.length)
+    })
+
+    await Promise.all(studentPromises)
+
+    const { count: totalSessions } = await supabase
+      .from("attendances")
+      .select("*", {count: 'exact', head: true})
+      .in("timetable_id", timetableIds)
+
+
+    const timetableSessions = timetableData.map(item => {
+      const key = `${item.batch_id}_${item.module_id}`
+      return {...item, batches: {...item.batches, count: studentCountMap.get(key)}}
+    })
+
+    const totalUniqueStudents: number = [...totalUniqueStudentSet].length
+
+    return { totalSessions, timetableSessions, totalUniqueStudents };
+  }
+
+  static async getTimetableSessions() {
+    try {
+      const {timetableSessions} = await this.getOverview()
+      return timetableSessions
+    } catch{
+      throw new Error('Failed to get timetable sessions')
+    }
   }
 }

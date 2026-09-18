@@ -1,5 +1,7 @@
 import { createClient } from "@/lib/supabase/server.client";
 import type { BatchStatus, BatchAssignment, BatchModule, BatchTeacherModule } from "@/types/batch.type";
+import { asyncWrapProviders } from "async_hooks";
+import { count } from "console";
 
 const BATCH_SELECT = `
   id,
@@ -432,5 +434,37 @@ export class BatchesService {
 
     return (teacherModules ?? []) as unknown as BatchTeacherModule[];
 
+  }
+
+  static async getStudents(batchId: string, moduleId: string): Promise<string[]> {
+    const supabase = await createClient();
+
+    const { data: batchStudentsData, error: batchStudentsError } = await supabase
+      .from("batch_assignments")
+      .select("profiles(id)")
+      .eq("batch_id", batchId);
+
+    if (batchStudentsError) throw batchStudentsError;
+
+    const studentIds = batchStudentsData
+      .map((item) => (item.profiles as unknown as { id: string } | null)?.id)
+      .filter((id): id is string => Boolean(id));
+
+    const { data: targetStudentsData, error: targetStudentsError } = await supabase
+      .from("student_enrollments")
+      .select("student_id")
+      .in("student_id", studentIds)
+      .eq("module_id", moduleId)
+      .eq("status", "assigned");
+
+    if (targetStudentsError) throw targetStudentsError;
+
+    return targetStudentsData.map((item) => item.student_id);
+  }
+
+  static async getStudentCount(batchId: string, moduleId: string): Promise<number>{
+    const students = await this.getStudents(batchId, moduleId)
+    const studentCount = students.length
+    return studentCount;
   }
 }

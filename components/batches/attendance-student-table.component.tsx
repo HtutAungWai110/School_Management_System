@@ -77,6 +77,7 @@ export function AttendanceStudentTable({
       sorted.map((s) => [s.id, { remark: s.remark ?? "", status: s.status }])
     )
   )
+  const [selected, setSelected] = useState<Set<string>>(new Set())
 
   const updateDraft = (id: string, field: keyof Draft, value: string) => {
     setDrafts((prev) => ({
@@ -85,10 +86,19 @@ export function AttendanceStudentTable({
     }))
   }
 
-  const handleSave = () => {
+  const toggleSelect = (id: string) => {
+    setSelected((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  function buildUpdates(source: Record<string, Draft>): AttendanceUpdate[] {
     const updates: AttendanceUpdate[] = []
     sorted.forEach((s) => {
-      const draft = drafts[s.id]
+      const draft = source[s.id]
       if (!draft) return
       const remarkChanged = (draft.remark ?? "") !== (s.remark ?? "")
       const statusChanged = draft.status !== s.status
@@ -102,24 +112,65 @@ export function AttendanceStudentTable({
         })
       }
     })
-    onSave(updates)
+    return updates
+  }
+
+  function applyStatus(status: "present" | "absent") {
+    const nextDrafts: Record<string, Draft> = {}
+    selected.forEach((id) => {
+      const current = drafts[id] ?? { remark: "", status: "absent" }
+      nextDrafts[id] = { ...current, status }
+    })
+    const merged = { ...drafts, ...nextDrafts }
+    setDrafts(merged)
+    onSave(buildUpdates(merged))
+  }
+
+  const handleSave = () => {
+    onSave(buildUpdates(drafts))
   }
 
   const handleCancel = () => {
     setDrafts({})
+    setSelected(new Set())
     onCancel()
   }
 
+  const selectCol = editMode
+  const nameW = selectCol ? "w-[22%]" : "w-[26%]"
+  const emailW = selectCol ? "w-[26%]" : "w-[30%]"
+  const statusW = selectCol ? "w-[17%]" : "w-[20%]"
+  const remarkW = selectCol ? "w-[23%]" : "w-[24%]"
+
   return (
     <div className="pl-12 pr-5 pb-3">
-      <div className="flex items-center justify-end gap-2 mb-2">
+      <div className="flex flex-wrap items-center justify-end gap-2 mb-2">
         {!editMode ? (
           <Button type="button" size="sm" variant="outline" onClick={onEnterEdit}>
             <PenLine className="size-3.5" />
             Edit Attendance
           </Button>
         ) : (
-          <div className="flex items-center gap-2">
+          <>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              disabled={saving || selected.size === 0}
+              onClick={() => applyStatus("absent")}
+            >
+              Mark selected absent
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              disabled={saving || selected.size === 0}
+              onClick={() => applyStatus("present")}
+            >
+              Mark selected present
+            </Button>
+            <div className="h-4 w-px bg-outline-variant/20" />
             <Button
               type="button"
               size="sm"
@@ -132,7 +183,7 @@ export function AttendanceStudentTable({
             <Button type="button" size="sm" onClick={handleSave} disabled={saving}>
               {saving ? "Saving..." : "Save"}
             </Button>
-          </div>
+          </>
         )}
       </div>
 
@@ -140,16 +191,36 @@ export function AttendanceStudentTable({
         <table className="w-full table-fixed text-left border-collapse">
           <thead>
             <tr className="border-b border-outline-variant/10 bg-surface-container-low/50">
-              <th className="w-[26%] px-4 py-2 text-[11px] font-[600] leading-[14px] text-on-surface-variant uppercase tracking-wider">
+              {selectCol && (
+                <th className="w-[12%] px-4 py-2 text-center">
+                  <input
+                    type="checkbox"
+                    aria-label="Select all students"
+                    className="size-4 cursor-pointer accent-primary"
+                    checked={
+                      sorted.length > 0 && selected.size === sorted.length
+                    }
+                    onChange={() =>
+                      setSelected(
+                        selected.size === sorted.length
+                          ? new Set()
+                          : new Set(sorted.map((s) => s.id))
+                      )
+                    }
+                    disabled={saving}
+                  />
+                </th>
+              )}
+              <th className={cn(nameW, "px-4 py-2 text-[11px] font-[600] leading-[14px] text-on-surface-variant uppercase tracking-wider")}>
                 Full Name
               </th>
-              <th className="w-[30%] px-4 py-2 text-[11px] font-[600] leading-[14px] text-on-surface-variant uppercase tracking-wider">
+              <th className={cn(emailW, "px-4 py-2 text-[11px] font-[600] leading-[14px] text-on-surface-variant uppercase tracking-wider")}>
                 Email
               </th>
-              <th className="w-[20%] px-4 py-2 text-[11px] font-[600] leading-[14px] text-on-surface-variant uppercase tracking-wider">
+              <th className={cn(statusW, "px-4 py-2 text-[11px] font-[600] leading-[14px] text-on-surface-variant uppercase tracking-wider")}>
                 Status
               </th>
-              <th className="w-[24%] px-4 py-2 text-[11px] font-[600] leading-[14px] text-on-surface-variant uppercase tracking-wider">
+              <th className={cn(remarkW, "px-4 py-2 text-[11px] font-[600] leading-[14px] text-on-surface-variant uppercase tracking-wider")}>
                 Remark
               </th>
             </tr>
@@ -162,9 +233,22 @@ export function AttendanceStudentTable({
                   key={student.id}
                   className={cn(
                     "border-b border-outline-variant/5 last:border-b-0",
-                    i % 2 === 0 ? "bg-transparent" : "bg-surface-container-low/10"
+                    i % 2 === 0 ? "bg-transparent" : "bg-surface-container-low/10",
+                    selectCol && selected.has(student.id) && "bg-primary-fixed/20"
                   )}
                 >
+                  {selectCol && (
+                    <td className="px-4 py-2 text-center">
+                      <input
+                        type="checkbox"
+                        aria-label={`Select ${student.full_name ?? "student"}`}
+                        className="size-4 cursor-pointer accent-primary"
+                        checked={selected.has(student.id)}
+                        onChange={() => toggleSelect(student.id)}
+                        disabled={saving}
+                      />
+                    </td>
+                  )}
                   <td className="px-4 py-2 text-[13px] font-[500] leading-[18px] text-on-surface truncate">
                     {student.full_name ?? "Unknown"}
                   </td>

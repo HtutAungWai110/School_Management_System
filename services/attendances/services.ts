@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server.client";
+import { BatchesService } from "@/services/batches/services";
 import type { AttendanceCalendarResponse, AttendanceSession } from "@/types/attendance.type";
 
 const ATTENDANCE_SELECT = `
@@ -105,27 +106,7 @@ export class AttendanceService {
     if (timetableDataError) throw timetableDataError;
     if (!timetableData) throw new Error("Timetable not found");
 
-    const { data: batchStudentsData, error: batchStudentsError } = await supabase
-      .from("batch_assignments")
-      .select("profiles(id)")
-      .eq("batch_id", batch_id);
-
-    if (batchStudentsError) throw batchStudentsError;
-
-    const studentIds = batchStudentsData
-      .map((item) => (item.profiles as unknown as { id: string } | null)?.id)
-      .filter((id): id is string => Boolean(id));
-
-    const { data: targetStudentsData, error: targetStudentsError } = await supabase
-      .from("student_enrollments")
-      .select("student_id")
-      .in("student_id", studentIds)
-      .eq("module_id", module_id)
-      .eq("status", "assigned");
-
-    if (targetStudentsError) throw targetStudentsError;
-
-    const studentFlatIds = targetStudentsData.map((item) => item.student_id);
+    const studentFlatIds = await BatchesService.getStudents(batch_id, module_id);
 
     const query =  supabase
       .from("attendances")
