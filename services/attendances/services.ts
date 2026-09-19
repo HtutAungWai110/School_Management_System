@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server.client";
 import { BatchesService } from "@/services/batches/services";
 import type { AttendanceCalendarResponse, AttendanceSession } from "@/types/attendance.type";
 
-const ATTENDANCE_SELECT = `
+export const ATTENDANCE_SELECT = `
   id,
   modules(
     id,
@@ -56,12 +56,12 @@ type RawStudentAttendance = {
   profiles: { full_name: string; email: string } | null;
 };
 
-type RawAttendance = {
+export type RawAttendance = {
   date: string;
   student_attendances: RawStudentAttendance[];
 };
 
-function mapAttendance(
+export function mapAttendance(
   item: Omit<AttendanceSession, "attendances"> & { attendances: RawAttendance[] }
 ): AttendanceSession {
   const attendances: AttendanceSession["attendances"] = {};
@@ -83,7 +83,7 @@ function mapAttendance(
   };
 }
 
-function buildFinalData(
+export function buildFinalData(
   attendanceData: Array<
     Omit<AttendanceSession, "attendances"> & { attendances: RawAttendance[] }
   >
@@ -256,4 +256,6 @@ export class AttendanceService {
     }
     return results;
   }
+
+
 }

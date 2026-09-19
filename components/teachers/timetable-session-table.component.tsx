@@ -2,9 +2,16 @@
 
 import { useRef, useState, useEffect } from "react"
 import { MoreVertical, Pencil } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import Link from "next/link"
 import type { Class } from "@/types/class.type"
 import { TimetableEditPanel } from "./timetable-edit-panel.component"
 import { getModuleColorWithOpacity, STATUS_CONFIG, type StatusKey } from "@/lib/utils.util"
+
+function isToday(dayOfWeek: number): boolean {
+  const today = new Date().getDay() === 0 ? 7 : new Date().getDay()
+  return dayOfWeek === today
+}
 
 const dayNames = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
 
@@ -60,6 +67,8 @@ function SessionRow({
 }) {
   const [menuOpen, setMenuOpen] = useState(false)
   const [editOpen, setEditOpen] = useState(false)
+  const [checkedIn, setCheckedIn] = useState(false)
+  const [checkingIn, setCheckingIn] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
   const triggerRef = useRef<HTMLButtonElement>(null)
 
@@ -74,21 +83,65 @@ function SessionRow({
     return () => document.removeEventListener("mousedown", handleClickOutside)
   }, [menuOpen])
 
+  useEffect(() => {
+    if (!isToday(session.day_of_week)) return
+    async function fetchAttendance() {
+      try {
+        const res = await fetch(`/api/teacher/timetable/${session.id}/today`)
+        const data = await res.json()
+        if (data && data.id) {
+          setCheckedIn(true)
+        }
+      } catch (error) {
+        console.error(error)
+      }
+    }
+    fetchAttendance()
+  }, [session.id, session.day_of_week])
+
   const moduleColor = getModuleColorWithOpacity(session.module_id, 0.3)
   const statusCfg = STATUS_CONFIG[session.status as StatusKey]
+
+  async function handleCheckIn(session: TimetableSession) {
+    if (checkedIn || checkingIn) return
+    setCheckingIn(true)
+    try {
+      const res = await fetch("/api/attendances/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          timetable_id: session.id,
+          module_id: session.module_id,
+          batch_id: session.batch_id,
+          date: new Date().toISOString(),
+        }),
+      })
+      const data = await res.json()
+      console.log(data)
+      setCheckedIn(true)
+    } catch (error) {
+      console.error(error)
+    } finally {
+      setCheckingIn(false)
+    }
+  }
 
   return (
     <>
       <tr className="border-b border-primary/10 hover:bg-surface-container-low transition-colors">
         <td className="px-6 py-4">
           <div>
-            <span
-              className="inline-block text-[14px] font-[300] leading-[20px] px-2 py-0.5 rounded"
-              style={{ backgroundColor: moduleColor}}
-            >
-              {session.modules.code}
-            </span>
-            <p className="text-[12px] leading-[16px] text-on-surface-variant mt-0.5">{session.modules.title}</p>
+            <Link href={`/teacher/dashboard/timetable/${session.id}`}>
+              <span
+                className="inline-block text-[14px] font-[300] leading-[20px] px-2 py-0.5 rounded"
+                style={{ backgroundColor: moduleColor}}
+              >
+                {session.modules.code}
+              </span>
+            </Link>
+            <Link href={`/teacher/dashboard/timetable/${session.id}`}>
+              <p className="text-[12px] leading-[16px] text-on-surface-variant mt-0.5">{session.modules.title}</p>
+            </Link>
           </div>
         </td>
         <td className="px-6 py-4">
@@ -147,6 +200,17 @@ function SessionRow({
               </div>
             )}
           </div>
+          {isToday(session.day_of_week) && (
+            <Button
+              variant="default"
+              size="sm"
+              className="mt-2"
+              onClick={() => handleCheckIn(session)}
+              disabled={checkedIn || checkingIn}
+            >
+              {checkedIn ? "Checked in" : checkingIn ? "Checking in..." : "Check in"}
+            </Button>
+          )}
         </td>
       </tr>
 

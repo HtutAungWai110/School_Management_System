@@ -1,5 +1,8 @@
 import { createClient } from "@/lib/supabase/server.client";
 import { BatchesService } from "../batches/services";
+import { ATTENDANCE_SELECT, mapAttendance, buildFinalData, RawAttendance } from "../attendances/services";
+import type { AttendanceCalendarResponse, AttendanceSession } from "@/types/attendance.type";
+import { TeacherModule, TeacherModuleRow, TeacherModuleQueryRow } from "@/types/teacher-module.type";
 
 const PAGE_SIZE = 20;
 
@@ -184,5 +187,171 @@ export class TeachersService {
     } catch{
       throw new Error('Failed to get timetable sessions')
     }
+  }
+
+  static async getModules(): Promise<{ formattedData: TeacherModuleRow[] }> {
+    const supabase = await createClient();
+
+    const { data: modulesData, error: modulesError } = await supabase
+      .from("teacher_modules")
+      .select(`
+        id,
+        teacher_id,
+        module_id,
+        assigned_at,
+        modules(
+          code,
+          title,
+          modules_level(
+            levels(
+              id,
+              description
+            )
+          )
+        )
+        `)
+
+    if (modulesError) throw new Error(modulesError.message)
+
+    const formattedData = ((modulesData || []) as unknown as TeacherModuleQueryRow[]).map((item) => {
+      const modules = {
+        code: item.modules.code,
+        title: item.modules.title,
+        levels: item.modules.modules_level.map((ml) => ({
+          id: ml.levels.id,
+          description: ml.levels.description
+        }))
+      }
+      return {...item, modules}
+    })
+
+    return {formattedData}
+  }
+
+  static async getTimetableDetail(timetable_id: string) {
+    const supabase = await createClient();
+    const { data: timetableData, error: timetableError } = await supabase
+      .from("timetables")
+      .select(`
+        id,
+        batch_id,
+        batches(
+          batch_name,
+          status
+        ),
+        module_id,
+        modules(
+          code,
+          title
+        ),
+        teacher_id,
+        profiles:teacher_id(
+          full_name
+        ),
+        class_id,
+        day_of_week,
+        start_time,
+        end_time,
+        status
+        `)
+      .eq("id", timetable_id).single()
+
+    if (timetableError) throw new Error(timetableError.message)
+
+    const batchModuleIds = [{ batch_id: timetableData.batch_id, module_id: timetableData.module_id }]
+
+    const studentCountMap: Map<string, number> = new Map();
+
+    const studentPromises = batchModuleIds.map(async (item) => {
+      const studentsArray = await BatchesService.getStudents(item.batch_id, item.module_id)
+      const key = `${item.batch_id}_${item.module_id}`
+      studentCountMap.set(key, studentsArray.length)
+    })
+
+    await Promise.all(studentPromises)
+
+    const timetableDetail = { ...timetableData, batches: { ...timetableData.batches, count: studentCountMap.get(`${timetableData.batch_id}_${timetableData.module_id}`) } }
+
+
+    return timetableDetail;
+  }
+
+  static async getTodayAttendance(timetable_id: string) {
+    const supabase = await createClient();
+
+    const { data: attendanceData, error: attendanceDataError } = await supabase
+      .from("attendances")
+      .select("id")
+      .eq("timetable_id", timetable_id)
+      .eq("date", new Date().toISOString())
+      .single();
+
+    if (attendanceDataError) throw new Error(attendanceDataError.message);
+
+    return attendanceData;
+  }
+
+  static async getTimetableAttendances(timetable_id: string, date?: string | null): Promise<AttendanceCalendarResponse> {
+    const supabase = await createClient();
+
+    const query = supabase
+      .from("timetables")
+      .select(ATTENDANCE_SELECT)
+      .eq("id", timetable_id);
+
+    const { data: timetableIdsData, error: timetableError } = await supabase
+      .from("timetables")
+      .select("id")
+      .eq("id", timetable_id);
+
+    if (timetableError) {
+      throw timetableError;
+    }
+
+    const timetableIds = timetableIdsData.map((item) => item.id);
+
+    const { data: minDateRow } = await supabase
+      .from("attendances")
+      .select("date")
+      .in("timetable_id", timetableIds)
+      .order("date", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+
+    const { data: maxDateRow } = await supabase
+      .from("attendances")
+      .select("date")
+      .in("timetable_id", timetableIds)
+      .order("date", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (!minDateRow) {
+      return { finalData: [], minDate: null, maxDate: null };
+    }
+
+    const baseDate = date ? new Date(date) : new Date(maxDateRow?.date);
+    const startOfMonth = new Date(baseDate.getFullYear(), baseDate.getMonth(), 1);
+    const endOfMonth = new Date(baseDate.getFullYear(), baseDate.getMonth() + 1, 0);
+    const startDateStr = startOfMonth.toISOString().split("T")[0];
+    const endDateStr = endOfMonth.toISOString().split("T")[0];
+    query
+      .gte("attendances.date", startDateStr)
+      .lte("attendances.date", endDateStr);
+
+    const { data: attendanceData, error: attendanceDataError } = await query;
+    if (attendanceDataError) throw new Error(attendanceDataError.message);
+
+    const timetables = attendanceData as unknown as Array<
+      Omit<AttendanceSession, "attendances"> & { attendances: RawAttendance[] }
+    >;
+
+    const finalData = buildFinalData(timetables);
+
+    return {
+      finalData,
+      minDate: minDateRow?.date ?? null,
+      maxDate: maxDateRow?.date ?? null,
+    };
   }
 }
