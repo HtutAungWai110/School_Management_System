@@ -4,7 +4,7 @@ import { ArrowLeft, Bell, BookX, Calendar, CircleHelp, Users } from "lucide-reac
 import { serverFetch } from "@/lib/server.service"
 import type { Batch, BatchModule } from "@/types/batch.type"
 import type { Class } from "@/types/class.type"
-import { BatchAttendancePanel } from "@/components/batches/batch-attendance-panel.component"
+import { BatchAttendancePanel } from "@/components/attendances/attendance-panel.component"
 import { BatchStatusBadge } from "@/components/batches/batch-status-badge.component"
 import { BatchStudentsPanel } from "@/components/batches/batch-students-panel.component"
 import { BatchTimetable } from "@/components/batches/batch-timetable.component"

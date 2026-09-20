@@ -11,7 +11,7 @@ import { TimetableStatusBadge } from "@/components/timetable/timetable-status-ba
 import { TimetableCreateButton } from "@/components/timetable/timetable-create-button.component"
 import { TimetableEditPanel } from "@/components/timetable/timetable-edit-panel.component"
 import { TimetableDeletePanel } from "@/components/timetable/timetable-delete-panel.component"
-import { AttendanceCreatePanel } from "./attendance-create-panel.component"
+import { AttendanceCreatePanel } from "../attendances/attendance-create-panel.component"
 
 function formatTime(time: string) {
   return time.slice(0, 5)

@@ -34,9 +34,9 @@ function monthOf(dateStr: string): { year: number; month: number } {
   return { year: d.getFullYear(), month: d.getMonth() }
 }
 
-export function BatchAttendancePanel({ batchId }: { batchId: string }) {
+export function BatchAttendancePanel({ batchId, timetableId }: { batchId?: string; timetableId?: string }) {
   const { data, date, setDate, loading, error, refresh } =
-    useAttendanceData(batchId)
+    useAttendanceData(batchId, timetableId)
 
   const sessions = data?.finalData ?? []
   const viewingMonth = computeMonth(date, data?.maxDate ?? null)
@@ -155,7 +155,7 @@ export function BatchAttendancePanel({ batchId }: { batchId: string }) {
               {dateRangeLabel}
               {sessions.length > 0 && (
                 <span className="ml-2 text-on-background/10 bg-primary-fixed/50 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-[600] leading-[12px] border border-secondary-container/60">
-                  {sessions.length} session{sessions.length !== 1 ? "s" : ""} ·{" "}
+                  {sessions.length} session{sessions.length !== 1 ? "s" : ""} · {" "}
                   {totalStudents} student{totalStudents !== 1 ? "s" : ""}
                 </span>
               )}

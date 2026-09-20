@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react"
 import type { AttendanceCalendarResponse } from "@/types/attendance.type"
 
-export function useAttendanceData(batchId: string) {
+export function useAttendanceData(batchId?: string, timetableId?: string) {
   const [date, setDate] = useState<string | null>(null)
   const [data, setData] = useState<AttendanceCalendarResponse | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -20,7 +20,11 @@ export function useAttendanceData(batchId: string) {
     const params = new URLSearchParams()
     if (date) params.set("date", date)
 
-    fetch(`/api/attendances/${batchId}?${params}`, { credentials: "include" })
+    const url = timetableId
+      ? `/api/teacher/timetable/${timetableId}/attendances?${params}`
+      : `/api/attendances/${batchId}?${params}`
+
+    fetch(url, { credentials: "include" })
       .then((res) => {
         if (!res.ok) throw new Error("Failed to load attendance data")
         return res.json() as Promise<AttendanceCalendarResponse>
