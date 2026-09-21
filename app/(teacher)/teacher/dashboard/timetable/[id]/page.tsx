@@ -3,6 +3,7 @@ import type { TimetableSession } from "@/components/teachers/timetable-session-t
 import { serverFetch } from "@/lib/server.service"
 import type { Class } from "@/types/class.type"
 import { BatchAttendancePanel } from "@/components/attendances/attendance-panel.component"
+import TodayAttendancePanel from "@/components/attendances/today-attendance-panel.component"
 
 export default async function TimetableDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -50,6 +51,14 @@ export default async function TimetableDetailPage({ params }: { params: Promise<
 
         <div className="px-12 py-10 max-w-[1440px] mx-auto space-y-10">
           <TimetableSessionDetail session={session} classes={classes} />
+
+          <TodayAttendancePanel
+            timetable_id={id}
+            module_id={session.module_id}
+            batch_id={session.batch_id}
+            day_of_week={session.day_of_week}
+          />
+
           <BatchAttendancePanel timetableId={id} />
         </div>
       </main>

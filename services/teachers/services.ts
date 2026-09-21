@@ -3,6 +3,7 @@ import { BatchesService } from "../batches/services";
 import { ATTENDANCE_SELECT, mapAttendance, buildFinalData, RawAttendance } from "../attendances/services";
 import type { AttendanceCalendarResponse, AttendanceSession } from "@/types/attendance.type";
 import { TeacherModule, TeacherModuleRow, TeacherModuleQueryRow } from "@/types/teacher-module.type";
+import { attachReactRefresh } from "next/dist/build/webpack-config";
 
 const PAGE_SIZE = 20;
 
@@ -278,17 +279,17 @@ export class TeachersService {
 
   static async getTodayAttendance(timetable_id: string) {
     const supabase = await createClient();
+    const today = new Date().toISOString().split("T")[0]
 
     const { data: attendanceData, error: attendanceDataError } = await supabase
       .from("attendances")
       .select("id")
       .eq("timetable_id", timetable_id)
-      .eq("date", new Date().toISOString())
-      .single();
-
+      .eq("date", today)
+      .maybeSingle()
     if (attendanceDataError) throw new Error(attendanceDataError.message);
 
-    return attendanceData;
+    return attendanceData
   }
 
   static async getTimetableAttendances(timetable_id: string, date?: string | null): Promise<AttendanceCalendarResponse> {

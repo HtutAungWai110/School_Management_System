@@ -80,7 +80,7 @@ export class AttendanceController {
 
     try {
       const attendanceData = await AttendanceService.getById(id);
-      if (!attendanceData) return NextResponse.json({ error: "Attendance not found" }, { status: 404 });
+      // if (!attendanceData) return NextResponse.json({ error: "Attendance not found" }, { status: 404 });
       return NextResponse.json(attendanceData);
     } catch (error) {
       return handleError(error);

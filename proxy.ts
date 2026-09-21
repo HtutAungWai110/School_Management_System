@@ -60,10 +60,10 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL(home, request.url));
   }
 
-  // 4. Role-based Access Control - redirect to own home on role mismatch
-  if (user && currentRolePrefix && currentRolePrefix !== `/${profile?.role}`) {
-    return NextResponse.redirect(new URL(home, request.url));
-  }
+// 4. Role-based Access Control - redirect to own home on role mismatch
+    if (user && currentRolePrefix && profile?.role && currentRolePrefix !== `/${profile.role}`) {
+      return NextResponse.redirect(new URL(home, request.url));
+    }
 
   return supabaseResponse;
 }

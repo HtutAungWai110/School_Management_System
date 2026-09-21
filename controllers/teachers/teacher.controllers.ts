@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { TeachersService } from "@/services/teachers/services";
 import { handleError } from "@/lib/errors/error.handler";
-import { param } from "motion/react-client";
 
 export class TeacherController {
   static async list(request: NextRequest) {
@@ -67,6 +66,8 @@ export class TeacherController {
     } catch (error) {
       return handleError(error);
     }
+
+
 
   }
   static async getTimetableDetail(_request: NextRequest, { params }: { params: Promise<{id: string}>}) {
