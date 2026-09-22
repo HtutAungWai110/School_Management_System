@@ -44,7 +44,7 @@ export function useAttendanceData(batchId?: string, timetableId?: string) {
     return () => {
       cancelled = true
     }
-  }, [batchId, date, reloadKey])
+  }, [batchId, date, reloadKey, timetableId])
 
   return { data, date, setDate, loading, error, refresh }
 }

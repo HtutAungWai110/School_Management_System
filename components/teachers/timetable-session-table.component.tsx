@@ -2,17 +2,11 @@
 
 import { useRef, useState, useEffect } from "react"
 import { MoreVertical, Pencil } from "lucide-react"
-import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import type { Class } from "@/types/class.type"
 import { TimetableEditPanel } from "./timetable-edit-panel.component"
 import { TimetableCheckInButton } from "./timetable-check-in-button.component"
 import { getModuleColorWithOpacity, STATUS_CONFIG, type StatusKey } from "@/lib/utils.util"
-
-function isToday(dayOfWeek: number): boolean {
-  const today = new Date().getDay() === 0 ? 7 : new Date().getDay()
-  return dayOfWeek === today
-}
 
 const dayNames = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
 

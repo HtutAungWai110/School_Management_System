@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import useTodayAttendanceData from "./use-today-attendance-data.hook"
 import { TimetableCheckInButton } from "../teachers/timetable-check-in-button.component"
 import { AttendanceStudentTable } from "./attendance-student-table.component"
@@ -15,7 +15,7 @@ interface PanelProps {
 }
 
 export default function TodayAttendancePanel({ timetable_id, batch_id, module_id, day_of_week }: PanelProps) {
-  const { data, setData, loading, error, setAttendanceId, refetch } = useTodayAttendanceData(timetable_id)
+  const { data, setData, loading, setAttendanceId, refetch } = useTodayAttendanceData(timetable_id)
   const [editMode, setEditMode] = useState(false)
   const [saving, setSaving] = useState(false)
 
@@ -54,7 +54,7 @@ export default function TodayAttendancePanel({ timetable_id, batch_id, module_id
       }
       {!loading && data === null &&
         <div className="flex gap-5">
-          <span>Today class hasn't been checked in: </span>
+          <span>Today class hasn&apos;t been checked in: </span>
           <TimetableCheckInButton
             sessionId={timetable_id}
             dayOfWeek={day_of_week}

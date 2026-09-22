@@ -15,9 +15,9 @@ interface TimetableCheckInButtonProps {
   dayOfWeek: number
   moduleId: string
   batchId: string
-  isFetchAllowed: boolean
-  setData: ((attendances: Array<AttendanceStudent>) => void) | null
-  setAttendanceId: ((attendance_id: string) => void) | null
+  isFetchAllowed?: boolean
+  setData?: ((attendances: Array<AttendanceStudent>) => void) | null
+  setAttendanceId?: ((attendance_id: string) => void) | null
 }
 
 export function TimetableCheckInButton({ sessionId, dayOfWeek, moduleId, batchId, isFetchAllowed = false,  setData = null, setAttendanceId = null}: TimetableCheckInButtonProps) {

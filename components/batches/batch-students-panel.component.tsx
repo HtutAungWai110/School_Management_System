@@ -49,7 +49,7 @@ export function BatchStudentsPanel({ batchId, students }: BatchStudentsPanelProp
     setIsRemoving(true)
 
     try {
-      const res = await fetch(`/api/batches/${batchId}/assignments`, {
+      const res = await fetch(`/api/batches/${batchId}/batch_assignments`, {
         method: "DELETE",
         credentials: "include",
         headers: { "Content-Type": "application/json" },

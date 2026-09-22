@@ -12,7 +12,6 @@ export default function useTodayAttendanceData(timetableId: string) {
     let cancelled = false
     const url = `/api/teacher/timetable/${timetableId}/today`
 
-    setLoading(true)
     fetch(url, { credentials: "include" })
       .then(res => {
         if (!res.ok) throw new Error()
@@ -49,7 +48,7 @@ export default function useTodayAttendanceData(timetableId: string) {
       })
 
     return () => { cancelled = true }
-  }, [])
+  }, [timetableId])
 
   async function refetch() {
     if (!attendanceId) return;

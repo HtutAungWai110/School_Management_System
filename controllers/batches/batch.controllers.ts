@@ -159,4 +159,32 @@ export class BatchController {
       return handleError(error);
     }
   }
+
+  static async createAssignment(
+    request: NextRequest,
+    { params }: { params: Promise<{ id: string }> }
+  ) {
+    const { id } = await params;
+    const body = await request.json().catch(() => ({
+      module_id: undefined,
+      teacher_id: undefined,
+      deadline_at: undefined,
+    }));
+    const { module_id, teacher_id, deadline_at } = body;
+
+    if (!module_id || typeof module_id !== "string") {
+      return NextResponse.json({ error: "module_id is required" }, { status: 400 });
+    }
+
+    if (!teacher_id || typeof teacher_id !== "string") {
+      return NextResponse.json({ error: "teacher_id is required" }, { status: 400 });
+    }
+
+    try {
+      const data = await BatchesService.createAssignment(id, module_id, teacher_id, deadline_at ?? null);
+      return NextResponse.json({ data }, { status: 201 });
+    } catch (error) {
+      return handleError(error);
+    }
+  }
 }

@@ -30,8 +30,7 @@ export class TeacherController {
     }
   }
 
-  static async getOverview(_request: NextRequest) {
-
+  static async getOverview() {
     try {
       const {totalSessions, timetableSessions, totalUniqueStudents} = await TeachersService.getOverview();
       return NextResponse.json({totalSessions, timetableSessions, totalUniqueStudents})
@@ -40,7 +39,7 @@ export class TeacherController {
     }
   }
 
-  static async getTimetableSessions(_request: NextRequest) {
+  static async getTimetableSessions() {
     try {
       const timetableSessions = await TeachersService.getTimetableSessions();
       return NextResponse.json(timetableSessions);
@@ -49,7 +48,7 @@ export class TeacherController {
     }
   }
 
-  static async getModules(_request: NextRequest) {
+  static async getModules() {
     try {
       const { formattedData } = await TeachersService.getModules()
       return NextResponse.json(formattedData)

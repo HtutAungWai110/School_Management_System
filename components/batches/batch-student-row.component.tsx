@@ -60,7 +60,7 @@ export function BatchStudentRow({
     setIsRemoving(true)
 
     try {
-      const res = await fetch(`/api/batches/${batchId}/assignments/${assignment.id}`, {
+      const res = await fetch(`/api/batches/${batchId}/batch_assignments/${assignment.id}`, {
         method: "DELETE",
         credentials: "include",
       })

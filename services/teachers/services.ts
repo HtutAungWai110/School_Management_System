@@ -1,9 +1,8 @@
 import { createClient } from "@/lib/supabase/server.client";
 import { BatchesService } from "../batches/services";
-import { ATTENDANCE_SELECT, mapAttendance, buildFinalData, RawAttendance } from "../attendances/services";
+import { ATTENDANCE_SELECT, buildFinalData, RawAttendance } from "../attendances/services";
 import type { AttendanceCalendarResponse, AttendanceSession } from "@/types/attendance.type";
-import { TeacherModule, TeacherModuleRow, TeacherModuleQueryRow } from "@/types/teacher-module.type";
-import { attachReactRefresh } from "next/dist/build/webpack-config";
+import { TeacherModuleRow, TeacherModuleQueryRow } from "@/types/teacher-module.type";
 
 const PAGE_SIZE = 20;
 

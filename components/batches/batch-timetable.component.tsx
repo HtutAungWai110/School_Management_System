@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
-import { CalendarCheck, Clock, MoreVertical, Pencil, Trash2 } from "lucide-react"
+import { CalendarCheck, ClipboardList, Clock, MoreVertical, Pencil, Trash2 } from "lucide-react"
 
 import type { Batch, BatchTimetable } from "@/types/batch.type"
 import type { Class } from "@/types/class.type"
@@ -12,6 +12,7 @@ import { TimetableCreateButton } from "@/components/timetable/timetable-create-b
 import { TimetableEditPanel } from "@/components/timetable/timetable-edit-panel.component"
 import { TimetableDeletePanel } from "@/components/timetable/timetable-delete-panel.component"
 import { AttendanceCreatePanel } from "../attendances/attendance-create-panel.component"
+import { AssignmentCreatePanel } from "./assignment-create-panel.component"
 
 function formatTime(time: string) {
   return time.slice(0, 5)
@@ -163,6 +164,7 @@ function SessionCard({ session, timetable, classes, batch }: SessionCardProps) {
   const [editOpen, setEditOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [createOpen, setCreateOpen] = useState(false)
+  const [assignmentOpen, setAssignmentOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -199,6 +201,14 @@ function SessionCard({ session, timetable, classes, batch }: SessionCardProps) {
                   onClick: () => {
                     setMenuOpen(false)
                     setCreateOpen(true)
+                  },
+                },
+                {
+                  label: "Create assignment",
+                  icon: ClipboardList,
+                  onClick: () => {
+                    setMenuOpen(false)
+                    setAssignmentOpen(true)
                   },
                 },
                 {
@@ -277,6 +287,17 @@ function SessionCard({ session, timetable, classes, batch }: SessionCardProps) {
           batchId={batch.id}
           batchName={batch.batch_name}
           onClose={() => setCreateOpen(false)}
+        />
+      )}
+      {assignmentOpen && (
+        <AssignmentCreatePanel
+          batchId={batch.id}
+          moduleId={session.modules?.id ?? ""}
+          moduleCode={session.modules?.code ?? ""}
+          moduleTitle={session.modules?.title ?? ""}
+          teacherId={session.profiles?.id ?? ""}
+          teacherName={session.profiles?.full_name ?? ""}
+          onClose={() => setAssignmentOpen(false)}
         />
       )}
     </>

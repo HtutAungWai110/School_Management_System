@@ -1,7 +1,5 @@
 import { createClient } from "@/lib/supabase/server.client";
 import type { BatchStatus, BatchAssignment, BatchModule, BatchTeacherModule } from "@/types/batch.type";
-import { asyncWrapProviders } from "async_hooks";
-import { count } from "console";
 
 const BATCH_SELECT = `
   id,
@@ -466,5 +464,31 @@ export class BatchesService {
     const students = await this.getStudents(batchId, moduleId)
     const studentCount = students.length
     return studentCount;
+  }
+
+  static async createAssignment(
+    batchId: string,
+    moduleId: string,
+    teacherId: string,
+    deadlineAt: string | null = null
+  ) {
+    const supabase = await createClient();
+
+    const { data, error } = await supabase
+      .from("assignments")
+      .insert({
+        batch_id: batchId,
+        module_id: moduleId,
+        teacher_id: teacherId,
+        deadline_at: deadlineAt,
+      })
+      .select()
+      .single();
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    return data;
   }
 }
