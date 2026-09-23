@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server.client";
-import type { BatchStatus, BatchAssignment, BatchModule, BatchTeacherModule } from "@/types/batch.type";
+import type { BatchStatus, BatchAssignment, BatchModule, BatchTeacherModule, Assignment } from "@/types/batch.type";
 
 const BATCH_SELECT = `
   id,
@@ -490,5 +490,53 @@ export class BatchesService {
     }
 
     return data;
+  }
+
+  static async getAssignments(batchId: string): Promise<Assignment[]> {
+    const supabase = await createClient();
+
+    const { data, error } = await supabase
+      .from("assignments")
+      .select(`
+        id,
+        batch_id,
+        module_id,
+        teacher_id,
+        created_at,
+        deadline_at,
+        modules (
+          id,
+          code,
+          title
+        ),
+        profiles (
+          id,
+          full_name,
+          email,
+          phone
+        ),
+        student_assignments (
+          id,
+          assignment_id,
+          student_id,
+          turned_in_at,
+          file_path,
+          file_name,
+          profiles (
+            id,
+            full_name,
+            email,
+            phone
+          )
+        )
+      `)
+      .eq("batch_id", batchId)
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    return (data ?? []) as unknown as Assignment[];
   }
 }

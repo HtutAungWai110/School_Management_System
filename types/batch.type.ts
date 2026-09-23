@@ -58,6 +58,35 @@ export type BatchTeacherModule = {
   } | null;
 };
 
+export type AssignmentTeacher = {
+  id: string;
+  full_name: string;
+  email: string;
+  phone: string | null;
+};
+
+export type AssignmentStudent = {
+  id: string;
+  assignment_id: string;
+  student_id: string;
+  turned_in_at: string;
+  file_path: string;
+  file_name: string;
+  profiles: AssignmentTeacher | null;
+};
+
+export type Assignment = {
+  id: string;
+  batch_id: string;
+  module_id: string;
+  teacher_id: string;
+  created_at: string;
+  deadline_at: string | null;
+  modules: { id: string; code: string; title: string } | null;
+  profiles: AssignmentTeacher | null;
+  student_assignments: AssignmentStudent[];
+};
+
 export type Batch = {
   id: string;
   batch_name: string;

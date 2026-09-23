@@ -137,10 +137,11 @@ export function AttendanceStudentTable({
   }
 
   const selectCol = editMode
-  const nameW = selectCol ? "w-[22%]" : "w-[26%]"
-  const emailW = selectCol ? "w-[26%]" : "w-[30%]"
-  const statusW = selectCol ? "w-[17%]" : "w-[20%]"
-  const remarkW = selectCol ? "w-[23%]" : "w-[24%]"
+  const nameW = selectCol ? "w-[20%]" : "w-[24%]"
+  const emailW = selectCol ? "w-[22%]" : "w-[26%]"
+  const phoneW = selectCol ? "w-[16%]" : "w-[18%]"
+  const statusW = selectCol ? "w-[14%]" : "w-[14%]"
+  const remarkW = selectCol ? "w-[28%]" : "w-[18%]"
 
   return (
     <div className="pl-12 pr-5 pb-3">
@@ -217,6 +218,9 @@ export function AttendanceStudentTable({
               <th className={cn(emailW, "px-4 py-2 text-[11px] font-[600] leading-[14px] text-on-surface-variant uppercase tracking-wider")}>
                 Email
               </th>
+              <th className={cn(phoneW, "px-4 py-2 text-[11px] font-[600] leading-[14px] text-on-surface-variant uppercase tracking-wider")}>
+                Phone
+              </th>
               <th className={cn(statusW, "px-4 py-2 text-[11px] font-[600] leading-[14px] text-on-surface-variant uppercase tracking-wider")}>
                 Status
               </th>
@@ -254,6 +258,9 @@ export function AttendanceStudentTable({
                   </td>
                   <td className="px-4 py-2 text-[13px] leading-[18px] text-on-surface-variant truncate">
                     {student.email ?? "—"}
+                  </td>
+                  <td className="px-4 py-2 text-[13px] leading-[18px] text-on-surface-variant truncate">
+                    {student.phone ?? "—"}
                   </td>
                   <td className="px-4 py-2">
                     {editMode ? (

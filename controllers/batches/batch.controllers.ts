@@ -119,6 +119,20 @@ export class BatchController {
     }
   }
 
+  static async getAssignments(
+    request: NextRequest,
+    { params }: { params: Promise<{ id: string }> }
+  ) {
+    const { id } = await params;
+
+    try {
+      const result = await BatchesService.getAssignments(id);
+      return NextResponse.json(result);
+    } catch (error) {
+      return handleError(error);
+    }
+  }
+
   static async removeAssignmentsBulk(
     request: NextRequest,
     { params }: { params: Promise<{ id: string }> }

@@ -43,3 +43,7 @@ AGENTS.md
 CLAUDE.md
 .opencode/agents/
 graphify-out/
+database_schema.sql
+student-ids.json
+api-attendance-[batchId].data-example.json
+assignment-data-example.json

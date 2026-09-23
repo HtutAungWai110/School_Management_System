@@ -8,6 +8,7 @@ import { BatchAttendancePanel } from "@/components/attendances/attendance-panel.
 import { BatchStatusBadge } from "@/components/batches/batch-status-badge.component"
 import { BatchStudentsPanel } from "@/components/batches/batch-students-panel.component"
 import { BatchTimetable } from "@/components/batches/batch-timetable.component"
+import { AssignmentsPanel } from "@/components/assignments/assignments-panel.component"
 
 function formatDate(value: string) {
   return new Date(value).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
@@ -78,6 +79,10 @@ export default async function BatchDetailPage({ params }: { params: Promise<{ id
                 timetables={batch.timetables ?? []}
                 classes={classes ?? []}
               />
+
+              <div className="lg:col-span-3">
+                <AssignmentsPanel batchId={id} />
+              </div>
 
 
 

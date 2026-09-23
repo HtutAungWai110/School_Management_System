@@ -12,7 +12,8 @@ export const ATTENDANCE_SELECT = `
   profiles(
     id,
     full_name,
-    email
+    email,
+    phone
   ),
   classes(
     id,
@@ -34,7 +35,8 @@ export const ATTENDANCE_SELECT = `
       profiles(
         id,
         full_name,
-        email
+        email,
+        phone
       )
     )
   )
@@ -53,7 +55,7 @@ type RawStudentAttendance = {
   student_id: string;
   status: AttendanceSession["attendances"][string][number]["status"];
   remark: string | null;
-  profiles: { full_name: string; email: string } | null;
+  profiles: { full_name: string; email: string; phone: string } | null;
 };
 
 export type RawAttendance = {
@@ -73,6 +75,7 @@ export function mapAttendance(
           ...rest,
           full_name: profiles?.full_name ?? null,
           email: profiles?.email ?? null,
+          phone: profiles?.phone ?? null,
         }
       })
     }

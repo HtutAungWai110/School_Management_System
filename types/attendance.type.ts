@@ -15,6 +15,7 @@ export type AttendanceStudent = {
   remark: string | null;
   full_name: string | null;
   email: string | null;
+  phone: string | null;
 };
 
 export type AttendanceSession = {

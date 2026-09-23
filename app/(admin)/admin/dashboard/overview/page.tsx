@@ -2,6 +2,10 @@
 import { MetricCard } from "@/components/admin/metric-card.component"
 import { ActivityItem } from "@/components/admin/activity-item.component"
 import { AdmissionRow } from "@/components/admin/admission-row.component"
+import {
+  MonthlyAttendanceChart,
+  type MonthlyAttendance,
+} from "@/components/admin/monthly-attendance-chart.component"
 import { Search, CircleHelp, Bell, GraduationCap, User, Users, ClipboardList, AlertTriangle, Mail } from "lucide-react"
 
 import { serverFetch } from "@/lib/server.service"
@@ -9,9 +13,7 @@ import { serverFetch } from "@/lib/server.service"
 
 export default async function AdminPage() {
 
-  const { teacherCount, studentCount } = await serverFetch("http://localhost:3000/api/school/overview").then((res) => res.json())
-
-  console.log(teacherCount, studentCount)
+  const { teacherCount, studentCount, monthlyAttendance = [] } = await serverFetch("http://localhost:3000/api/school/overview").then((res) => res.json())
 
   return (
     <div className="min-h-screen bg-background flex">
@@ -67,45 +69,8 @@ export default async function AdminPage() {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            <div className="lg:col-span-8 bg-surface-container-lowest rounded-xl border border-primary/10 p-6 shadow-[0_4px_6px_-1px_rgba(15,23,42,0.05)]">
-              <div className="flex justify-between items-center mb-10">
-                <div>
-                  <h2 className="text-[20px] font-[600] leading-[28px] text-primary">Student Attendance</h2>
-                  <p className="text-[14px] leading-[20px] text-on-surface-variant mt-1">
-                    Average attendance rate this month: <span className="font-bold text-primary">94.2%</span>
-                  </p>
-                </div>
-                <select className="bg-surface-container-low border-none rounded-lg text-[12px] font-[500] leading-[16px] text-on-surface focus:ring-1 focus:ring-primary px-3 py-2">
-                  <option>Last 30 Days</option>
-                  <option>Last Quarter</option>
-                </select>
-              </div>
-              <div className="h-64 relative flex items-end justify-between gap-2 px-4">
-                <div className="absolute inset-0 border-b border-outline-variant/20 flex flex-col justify-between">
-                  <div className="w-full border-t border-outline-variant/5" />
-                  <div className="w-full border-t border-outline-variant/5" />
-                  <div className="w-full border-t border-outline-variant/5" />
-                  <div className="w-full border-t border-outline-variant/5" />
-                </div>
-                {[92, 75, 95, 83, 88, 94, 78].map((h, i) => (
-                  <div
-                    key={i}
-                    className={`w-full rounded-t-lg transition-all hover:brightness-110 relative group ${i === 4 ? "bg-primary" : "bg-secondary/10 hover:bg-secondary/30"}`}
-                    style={{ height: `${h}%` }}
-                  >
-                    <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-primary text-on-primary text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-                      {h}%
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <div className="flex justify-between mt-4 px-4">
-                {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((day, i) => (
-                  <span key={day} className={`text-[12px] font-[500] leading-[16px] ${i === 4 ? "text-primary font-bold" : "text-on-surface-variant"}`}>
-                    {day}
-                  </span>
-                ))}
-              </div>
+            <div className="lg:col-span-8">
+              <MonthlyAttendanceChart data={monthlyAttendance as MonthlyAttendance[]} />
             </div>
 
             <div className="lg:col-span-4 bg-surface-container-lowest rounded-xl border border-primary/10 p-6 shadow-[0_4px_6px_-1px_rgba(15,23,42,0.05)]">

@@ -1,12 +1,14 @@
 "use client"
 
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import {
   ChevronLeft,
   ChevronRight,
   ChevronDown,
   CalendarDays,
   BookOpen,
+  Mail,
+  Phone,
 } from "lucide-react"
 import { cn } from "@/lib/utils.util"
 import { useAttendanceData } from "./use-attendance-data.hook"
@@ -14,6 +16,12 @@ import {
   AttendanceStudentTable,
   type AttendanceUpdate,
 } from "./attendance-student-table.component"
+import {
+  buildModuleAttendanceStats,
+  buildStudentModuleRates,
+} from "./attendance-report.data"
+import { ModuleAttendancePie } from "./module-attendance-pie.component"
+import { StudentAttendanceRateChart } from "./student-attendance-rate-chart.component"
 
 function formatTime(time: string): string {
   const [h, m] = time.split(":")
@@ -38,7 +46,7 @@ export function BatchAttendancePanel({ batchId, timetableId }: { batchId?: strin
   const { data, date, setDate, loading, error, refresh } =
     useAttendanceData(batchId, timetableId)
 
-  const sessions = data?.finalData ?? []
+  const sessions = useMemo(() => data?.finalData ?? [], [data])
   const viewingMonth = computeMonth(date, data?.maxDate ?? null)
   const minMonth = data?.minDate ? monthOf(data.minDate) : null
   const maxMonth = data?.maxDate ? monthOf(data.maxDate) : null
@@ -47,6 +55,10 @@ export function BatchAttendancePanel({ batchId, timetableId }: { batchId?: strin
   const [expandedDates, setExpandedDates] = useState<Set<string>>(new Set())
   const [editKey, setEditKey] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
+  const [reportOpen, setReportOpen] = useState<{ pie: boolean; students: boolean }>({
+    pie: false,
+    students: false,
+  })
 
   async function handleSaveUpdates(updates: AttendanceUpdate[]) {
     setSaving(true)
@@ -129,6 +141,11 @@ export function BatchAttendancePanel({ batchId, timetableId }: { batchId?: strin
   })
   const totalStudents = studentIds.size
 
+  const moduleStats = useMemo(() => buildModuleAttendanceStats(sessions), [sessions])
+  const studentRates = useMemo(() => buildStudentModuleRates(sessions), [sessions])
+
+  const showReports = !loading && !error && sessions.length > 0
+
   return (
     <div className="bg-surface-container-lowest rounded-xl border border-primary/10 overflow-hidden shadow-[0_4px_6px_-1px_rgba(15,23,42,0.05)]">
       {/* Header */}
@@ -173,6 +190,74 @@ export function BatchAttendancePanel({ batchId, timetableId }: { batchId?: strin
           </button>
         </div>
       </div>
+
+      {showReports && (
+        <>
+          <section className="border-b border-outline-variant/10">
+            <button
+              type="button"
+              onClick={() =>
+                setReportOpen((prev) => ({ ...prev, pie: !prev.pie }))
+              }
+              className="w-full flex items-center gap-3 px-5 py-3.5 text-left transition-colors hover:bg-surface-container-low/50 cursor-pointer"
+              aria-expanded={reportOpen.pie}
+            >
+              <ChevronDown
+                className={cn(
+                  "w-4 h-4 text-on-surface-variant transition-transform duration-200 shrink-0",
+                  reportOpen.pie ? "rotate-0" : "-rotate-90"
+                )}
+              />
+              <div className="min-w-0">
+                <h4 className="text-[14px] font-[600] leading-[20px] text-on-surface">
+                  Module attendance summary
+                </h4>
+                <p className="mt-0.5 text-[12px] leading-[16px] text-on-surface-variant">
+                  Overall present, late and absent distribution per module with active
+                  sessions.
+                </p>
+              </div>
+            </button>
+            {reportOpen.pie && (
+              <div className="p-6 pt-4">
+                <ModuleAttendancePie modules={moduleStats} />
+              </div>
+            )}
+          </section>
+
+          <section className="border-b border-outline-variant/10">
+            <button
+              type="button"
+              onClick={() =>
+                setReportOpen((prev) => ({ ...prev, students: !prev.students }))
+              }
+              className="w-full flex items-center gap-3 px-5 py-3.5 text-left transition-colors hover:bg-surface-container-low/50 cursor-pointer"
+              aria-expanded={reportOpen.students}
+            >
+              <ChevronDown
+                className={cn(
+                  "w-4 h-4 text-on-surface-variant transition-transform duration-200 shrink-0",
+                  reportOpen.students ? "rotate-0" : "-rotate-90"
+                )}
+              />
+              <div className="min-w-0">
+                <h4 className="text-[14px] font-[600] leading-[20px] text-on-surface">
+                  Student attendance rates
+                </h4>
+                <p className="mt-0.5 text-[12px] leading-[16px] text-on-surface-variant">
+                  Percentage of recorded sessions attended per student, broken down by
+                  module.
+                </p>
+              </div>
+            </button>
+            {reportOpen.students && (
+              <div className="p-6 pt-4">
+                <StudentAttendanceRateChart students={studentRates} />
+              </div>
+            )}
+          </section>
+        </>
+      )}
 
       {/* Body */}
       <div>
@@ -235,8 +320,20 @@ export function BatchAttendancePanel({ batchId, timetableId }: { batchId?: strin
                       {session.modules?.title}
                     </span>
                     {session.profiles?.full_name && (
-                      <span className="text-[12px] font-[500] leading-[16px] text-on-surface-variant shrink-0">
-                        · {session.profiles.full_name}
+                      <span className="inline-flex items-center text-[12px] font-[500] leading-[16px] text-on-surface-variant shrink-0">
+                        {session.profiles.full_name}
+                        {session.profiles.email && (
+                          <>
+                            <Mail className="ml-1 size-3.5 text-on-surface-variant/80" />
+                            {session.profiles.email}
+                          </>
+                        )}
+                        {session.profiles.phone && (
+                          <>
+                            <Phone className="ml-1 size-3.5 text-on-surface-variant/80" />
+                            {session.profiles.phone}
+                          </>
+                        )}
                       </span>
                     )}
                     {session.classes?.class_number && (

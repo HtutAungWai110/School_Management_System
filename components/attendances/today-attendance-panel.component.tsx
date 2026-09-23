@@ -14,10 +14,17 @@ interface PanelProps {
   day_of_week: number
 }
 
+function isToday(dayOfWeek: number): boolean {
+  const today = new Date().getDay() === 0 ? 7 : new Date().getDay()
+  return dayOfWeek === today
+}
+
 export default function TodayAttendancePanel({ timetable_id, batch_id, module_id, day_of_week }: PanelProps) {
   const { data, setData, loading, setAttendanceId, refetch } = useTodayAttendanceData(timetable_id)
   const [editMode, setEditMode] = useState(false)
   const [saving, setSaving] = useState(false)
+
+
 
   const presentCount = data?.filter(item => item.status === "present").length
 
@@ -52,7 +59,7 @@ export default function TodayAttendancePanel({ timetable_id, batch_id, module_id
           </div>
         </div>
       }
-      {!loading && data === null &&
+      {!loading && data === null && isToday(day_of_week) &&
         <div className="flex gap-5">
           <span>Today class hasn&apos;t been checked in: </span>
           <TimetableCheckInButton
