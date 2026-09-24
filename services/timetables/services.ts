@@ -79,6 +79,23 @@ export class TimetablesService {
     const start = payload.start_time.slice(0, 5);
     const end = payload.end_time.slice(0, 5);
 
+    const [{ data: batch, error: batchError }, { data: module, error: moduleError }, { data: teacher, error: teacherError }, { data: klass, error: classError }] = await Promise.all([
+      supabase.from("batches").select("id").eq("id", payload.batch_id).maybeSingle(),
+      supabase.from("modules").select("id").eq("id", payload.module_id).maybeSingle(),
+      supabase.from("profiles").select("id").eq("id", payload.teacher_id).maybeSingle(),
+      supabase.from("classes").select("id").eq("id", payload.class_id).maybeSingle(),
+    ]);
+
+    if (batchError) throw new Error(batchError.message);
+    if (moduleError) throw new Error(moduleError.message);
+    if (teacherError) throw new Error(teacherError.message);
+    if (classError) throw new Error(classError.message);
+
+    if (!batch) throw new HttpError(404, "Batch not found");
+    if (!module) throw new HttpError(404, "Module not found");
+    if (!teacher) throw new HttpError(404, "Teacher not found");
+    if (!klass) throw new HttpError(404, "Class not found");
+
     const { data: existing, error: checkError } = await supabase
       .from("timetables")
       .select("id, day_of_week, start_time, end_time")

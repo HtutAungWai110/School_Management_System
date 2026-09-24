@@ -132,6 +132,20 @@ export class EnrollmentsService {
   static async assignToBatch(studentId: string, batchId: string, moduleIds: string[]) {
     const supabase = await createClient();
 
+    const { data: studentData, error: studentError } = await supabase
+      .from("profiles")
+      .select("id")
+      .eq("id", studentId)
+      .maybeSingle();
+
+    if (studentError) {
+      throw new Error(studentError.message);
+    }
+
+    if (!studentData) {
+      throw new HttpError(404, "Student not found");
+    }
+
     const { data: enrollments, error: enrollmentsError } = await supabase
       .from('student_enrollments')
       .select(`
@@ -156,10 +170,32 @@ export class EnrollmentsService {
         )
         `)
       .eq("id", batchId)
-      .single();
+      .maybeSingle();
 
     if (batchDataError) {
       throw new Error(batchDataError.message);
+    }
+
+    if (!batchData) {
+      throw new HttpError(404, "Batch not found");
+    }
+
+    if (moduleIds.length > 0) {
+      const { data: existingModules, error: modulesError } = await supabase
+        .from("modules")
+        .select("id")
+        .in("id", moduleIds);
+
+      if (modulesError) {
+        throw new Error(modulesError.message);
+      }
+
+      const validModuleIds = new Set((existingModules ?? []).map((m) => m.id));
+      const hasInvalidModules = moduleIds.some((moduleId) => !validModuleIds.has(moduleId));
+
+      if (hasInvalidModules) {
+        throw new HttpError(400, "Invalid module provided");
+      }
     }
 
     const studentLevelIds = new Set((enrollments ?? []).map((e) => e.level_id));

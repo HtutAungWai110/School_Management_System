@@ -1,6 +1,6 @@
 'use client';
-
 import AuthForm from "@/components/auth/auth-form.component";
+import { ToastPopup } from "@/components/ui/toast-popup.component";
 
 export default function LoginPage() {
   return (
@@ -22,11 +22,14 @@ export default function LoginPage() {
         </div>
       </header>
 
+      <ToastPopup />
+
       <main className="flex flex-1 items-center justify-center px-4 md:px-12 pt-28 pb-12">
-        <div className="w-full max-w-sm rounded-xl border border-outline-variant/15 bg-surface-container-lowest p-8 shadow-[0_4px_6px_-1px_rgba(15,23,42,0.05)]">
+        <div className="w-full max-w-sm rounded-xl border border-outline-variant/15 bg-surface-container-lowest p-8 shadow-[0_4px_6px_-1px_rgba(15,23,42,0.06)]">
           <AuthForm />
         </div>
       </main>
+
 
       <div className="fixed top-0 right-0 -z-10 opacity-10 pointer-events-none">
         <svg width="420" height="420" viewBox="0 0 420 420" fill="none" xmlns="http://www.w3.org/2000/svg">

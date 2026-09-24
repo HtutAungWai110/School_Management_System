@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server.client";
+import { HttpError } from "@/lib/errors/http.error";
 import type { BatchStatus, BatchAssignment, BatchModule, BatchTeacherModule, Assignment } from "@/types/batch.type";
 
 const BATCH_SELECT = `
@@ -166,6 +167,21 @@ export class BatchesService {
   static async create(batchName: string, levelIds: string[]) {
     const supabase = await createClient();
 
+    const uniqueLevelIds = [...new Set(levelIds)];
+
+    const { data: existingLevels, error: levelsCheckError } = await supabase
+      .from("levels")
+      .select("id")
+      .in("id", uniqueLevelIds);
+
+    if (levelsCheckError) {
+      throw new Error(levelsCheckError.message);
+    }
+
+    if ((existingLevels ?? []).length !== uniqueLevelIds.length) {
+      throw new HttpError(400, "Invalid level provided");
+    }
+
     const { data: batch, error: batchError } = await supabase
       .from("batches")
       .insert({ batch_name: batchName.trim() })
@@ -176,7 +192,7 @@ export class BatchesService {
       throw new Error(batchError.message);
     }
 
-    const levelRows = levelIds.map((level_id) => ({
+    const levelRows = uniqueLevelIds.map((level_id) => ({
       level_id,
       batch_id: batch.id,
     }));
@@ -473,6 +489,22 @@ export class BatchesService {
     deadlineAt: string | null = null
   ) {
     const supabase = await createClient();
+
+    const { data: timetableData, error: timetableError } = await supabase
+      .from("timetables")
+      .select("id")
+      .eq("batch_id", batchId)
+      .eq("module_id", moduleId)
+      .eq("teacher_id", teacherId)
+      .maybeSingle();
+
+    if (timetableError) {
+      throw new Error(timetableError.message);
+    }
+
+    if (!timetableData) {
+      throw new HttpError(400, "No timetable entry found for this batch, module, and teacher");
+    }
 
     const { data, error } = await supabase
       .from("assignments")

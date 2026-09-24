@@ -75,6 +75,7 @@ export function TimetableEditPanel({ session, classes, onClose }: TimetableEditP
     excludeId: session.id,
   })
 
+
   const dayLabel = DAY_OF_WEEK_LABELS[Number(watched.day_of_week)]
 
   const classOptions: Option[] = classes.map((classItem) => ({

@@ -7,6 +7,14 @@ import { Button } from '@/components/ui/button.component';
 import { Input } from '@/components/ui/input.component';
 import { loginWithEmail, signUpWithEmail } from '@/app/auth/auth.action';
 import { createClient } from '@/lib/supabase/browser.client';
+import {
+  sanitizeText,
+  isSafeEmail,
+  isSafeName,
+  hasEmoji,
+  containsControlCharacters,
+  containsUnsafeCharacters,
+} from '@/lib/validation/text.validation';
 import Image from 'next/image';
 
 type FormValues = {
@@ -39,10 +47,10 @@ export default function AuthForm() {
 
   const onSubmit = async (data: FormValues) => {
     const formData = new FormData();
-    formData.append('email', data.email);
-    formData.append('password', data.password);
+    formData.append('email', sanitizeText(data.email));
+    formData.append('password', sanitizeText(data.password));
     if (mode === 'signup') {
-      formData.append('fullName', data.fullName);
+      formData.append('fullName', sanitizeText(data.fullName));
       await signUpWithEmail(formData);
     } else {
       await loginWithEmail(formData);
@@ -84,6 +92,14 @@ export default function AuthForm() {
                   required: 'Name is required',
                   minLength: { value: 4, message: 'Name must be at least 4 characters' },
                   maxLength: { value: 20, message: 'Name must be at most 20 characters' },
+                  validate: (value) => {
+                    if (hasEmoji(value)) return 'Emoji are not allowed';
+                    if (containsControlCharacters(value) || containsUnsafeCharacters(value)) {
+                      return 'Name contains invalid characters';
+                    }
+                    if (!isSafeName(value)) return 'Name can only contain letters, spaces, and . \' -';
+                    return true;
+                  },
                 })}
                 type="text"
                 placeholder="Enter your full name"
@@ -109,6 +125,10 @@ export default function AuthForm() {
                 pattern: {
                   value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
                   message: 'Invalid email address',
+                },
+                validate: (value) => {
+                  if (!isSafeEmail(value)) return 'Email contains invalid characters';
+                  return true;
                 },
               })}
               type="text"
@@ -141,6 +161,10 @@ export default function AuthForm() {
                 minLength: { value: 8, message: 'Password must be at least 8 characters' },
                 validate: (value) => {
                   if (/\s/.test(value)) return 'Password cannot contain spaces';
+                  if (hasEmoji(value)) return 'Emoji are not allowed';
+                  if (containsControlCharacters(value) || containsUnsafeCharacters(value)) {
+                    return 'Password contains invalid characters';
+                  }
                   return true;
                 },
               })}
