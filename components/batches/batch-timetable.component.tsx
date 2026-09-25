@@ -1,7 +1,8 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
-import { CalendarCheck, ClipboardList, Clock, MoreVertical, Pencil, Trash2 } from "lucide-react"
+import { ArrowLeftRight, CalendarCheck, ClipboardList, Clock, MoreVertical, Pencil, Trash2 } from "lucide-react"
+import type { LucideIcon } from "lucide-react"
 
 import type { Batch, BatchTimetable } from "@/types/batch.type"
 import type { Class } from "@/types/class.type"
@@ -10,6 +11,7 @@ import { cn } from "@/lib/utils.util"
 import { TimetableStatusBadge } from "@/components/timetable/timetable-status-badge.component"
 import { TimetableCreateButton } from "@/components/timetable/timetable-create-button.component"
 import { TimetableEditPanel } from "@/components/timetable/timetable-edit-panel.component"
+import { TimetableSwapPanel } from "@/components/timetable/timetable-swap-panel.component"
 import { TimetableDeletePanel } from "@/components/timetable/timetable-delete-panel.component"
 import { AttendanceCreatePanel } from "../attendances/attendance-create-panel.component"
 import { AssignmentCreatePanel } from "./assignment-create-panel.component"
@@ -132,6 +134,7 @@ export function BatchTimetable({ batch, timetables, classes }: BatchTimetablePro
                               <SessionCard
                                 key={session.id}
                                 session={session}
+                                sessions={timetables}
                                 timetable={toTimetable(session, batch)}
                                 classes={classes}
                                 batch={batch}
@@ -154,17 +157,19 @@ export function BatchTimetable({ batch, timetables, classes }: BatchTimetablePro
 
 interface SessionCardProps {
   session: BatchTimetable
+  sessions: BatchTimetable[]
   timetable: Timetable
   classes: Class[]
   batch: Batch
 }
 
-function SessionCard({ session, timetable, classes, batch }: SessionCardProps) {
+function SessionCard({ session, sessions, timetable, classes, batch }: SessionCardProps) {
   const [menuOpen, setMenuOpen] = useState(false)
   const [editOpen, setEditOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [createOpen, setCreateOpen] = useState(false)
   const [assignmentOpen, setAssignmentOpen] = useState(false)
+  const [swapOpen, setSwapOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -177,6 +182,61 @@ function SessionCard({ session, timetable, classes, batch }: SessionCardProps) {
     document.addEventListener("mousedown", handleClickOutside)
     return () => document.removeEventListener("mousedown", handleClickOutside)
   }, [menuOpen])
+
+  const menuItems: {
+    label: string
+    icon: LucideIcon
+    className?: string
+    iconClassName?: string
+    onClick: () => void
+  }[] = [
+    {
+      label: "Create attendance",
+      icon: CalendarCheck,
+      onClick: () => {
+        setMenuOpen(false)
+        setCreateOpen(true)
+      },
+    },
+    {
+      label: "Create assignment",
+      icon: ClipboardList,
+      onClick: () => {
+        setMenuOpen(false)
+        setAssignmentOpen(true)
+      },
+    },
+    ...(session.status === "ongoing"
+      ? [
+          {
+            label: "Swap schedule",
+            icon: ArrowLeftRight,
+            onClick: () => {
+              setMenuOpen(false)
+              setSwapOpen(true)
+            },
+          },
+        ]
+      : []),
+    {
+      label: "Edit",
+      icon: Pencil,
+      onClick: () => {
+        setMenuOpen(false)
+        setEditOpen(true)
+      },
+    },
+    {
+      label: "Delete",
+      icon: Trash2,
+      className: "text-destructive hover:bg-destructive/10",
+      iconClassName: "text-destructive",
+      onClick: () => {
+        setMenuOpen(false)
+        setDeleteOpen(true)
+      },
+    },
+  ]
 
   return (
     <>
@@ -194,42 +254,7 @@ function SessionCard({ session, timetable, classes, batch }: SessionCardProps) {
           </button>
           {menuOpen && (
             <div className="absolute right-0 top-7 min-w-[150px] rounded-lg border border-outline-variant/20 bg-surface-container-lowest shadow-lg py-1">
-              {[
-                {
-                  label: "Create attendance",
-                  icon: CalendarCheck,
-                  onClick: () => {
-                    setMenuOpen(false)
-                    setCreateOpen(true)
-                  },
-                },
-                {
-                  label: "Create assignment",
-                  icon: ClipboardList,
-                  onClick: () => {
-                    setMenuOpen(false)
-                    setAssignmentOpen(true)
-                  },
-                },
-                {
-                  label: "Edit",
-                  icon: Pencil,
-                  onClick: () => {
-                    setMenuOpen(false)
-                    setEditOpen(true)
-                  },
-                },
-                {
-                  label: "Delete",
-                  icon: Trash2,
-                  className: "text-destructive hover:bg-destructive/10",
-                  iconClassName: "text-destructive",
-                  onClick: () => {
-                    setMenuOpen(false)
-                    setDeleteOpen(true)
-                  },
-                },
-              ].map(({ label, icon: Icon, className, iconClassName, onClick }) => (
+              {menuItems.map(({ label, icon: Icon, className, iconClassName, onClick }) => (
                 <button
                   key={label}
                   type="button"
@@ -268,6 +293,15 @@ function SessionCard({ session, timetable, classes, batch }: SessionCardProps) {
         </div>
       </div>
 
+      {swapOpen && (
+        <TimetableSwapPanel
+          session={timetable}
+          sessions={sessions.map((item) => toTimetable(item, batch))}
+          classes={classes}
+          refetchPaths={[`/admin/dashboard/batches/${batch.id}`]}
+          onClose={() => setSwapOpen(false)}
+        />
+      )}
       {editOpen && (
         <TimetableEditPanel
           timetable={timetable}

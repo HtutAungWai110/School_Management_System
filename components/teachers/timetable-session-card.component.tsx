@@ -1,12 +1,13 @@
 "use client"
 
 import { useRef, useState, useEffect } from "react"
-import { MoreVertical, Pencil, MapPin } from "lucide-react"
+import { ArrowLeftRight, MoreVertical, Pencil, MapPin } from "lucide-react"
 import Link from "next/link"
 import type { Class } from "@/types/class.type"
 import { TimetableEditPanel } from "./timetable-edit-panel.component"
+import { TimetableSwapPanel } from "@/components/timetable/timetable-swap-panel.component"
 import { TimetableCheckInButton } from "./timetable-check-in-button.component"
-import { getModuleColorWithOpacity, STATUS_CONFIG, type StatusKey } from "@/lib/utils.util"
+import { getClassroomLabel, getModuleColorWithOpacity, STATUS_CONFIG, type StatusKey } from "@/lib/utils.util"
 import type { TimetableSession } from "./timetable-session-table.component"
 
 interface TimetableSessionCardProps {
@@ -18,6 +19,7 @@ interface TimetableSessionCardProps {
 export function TimetableSessionCard({ session, classes, compact = false }: TimetableSessionCardProps) {
   const [menuOpen, setMenuOpen] = useState(false)
   const [editOpen, setEditOpen] = useState(false)
+  const [swapOpen, setSwapOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
   const triggerRef = useRef<HTMLButtonElement>(null)
 
@@ -58,9 +60,22 @@ if (compact) {
                >
                  <MoreVertical className="w-3 h-3" />
                </button>
-               {menuOpen && (
-                 <div className="absolute right-0 top-full z-50 mt-1 w-32 rounded-lg border border-outline-variant/20 bg-surface-container-lowest shadow-lg animate-in fade-in-0 zoom-in-95">
-                   <button
+                {menuOpen && (
+                  <div className="absolute right-0 top-full z-50 mt-1 w-32 rounded-lg border border-outline-variant/20 bg-surface-container-lowest shadow-lg animate-in fade-in-0 zoom-in-95">
+                    {session.status === "ongoing" && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setMenuOpen(false)
+                          setSwapOpen(true)
+                        }}
+                        className="flex w-full items-center gap-1.5 px-2.5 py-1.5 text-[11px] leading-[14px] text-on-surface hover:bg-surface-container transition-colors rounded-lg"
+                      >
+                        <ArrowLeftRight className="w-3 h-3" />
+                        Swap schedule
+                      </button>
+                    )}
+                    <button
                      type="button"
                      onClick={() => {
                        setMenuOpen(false)
@@ -86,10 +101,10 @@ if (compact) {
              <p className="text-[9px] leading-[12px] text-on-surface-variant truncate">
                {session.batches.batch_name} · {session.batches.count}
              </p>
-             <div className="flex items-center gap-1 text-[9px] leading-[12px] text-on-surface-variant">
-               <MapPin className="w-2.5 h-2.5 shrink-0" />
-               <span className="truncate">Lab-{session.class_id.slice(0, 2).toUpperCase()}</span>
-             </div>
+              <div className="flex items-center gap-1 text-[9px] leading-[12px] text-on-surface-variant">
+                <MapPin className="w-2.5 h-2.5 shrink-0" />
+                <span className="truncate">{getClassroomLabel(session.class_id, classes)}</span>
+              </div>
            </div>
  
            <div className="mt-1.5 flex items-center gap-1">
@@ -111,16 +126,28 @@ if (compact) {
            />
          </div>
  
-         {editOpen && (
-           <TimetableEditPanel
-             session={session}
-             classes={classes ?? []}
-             onClose={() => {
-               setEditOpen(false)
-               triggerRef.current?.focus()
-             }}
-           />
-         )}
+          {editOpen && (
+            <TimetableEditPanel
+              session={session}
+              classes={classes ?? []}
+              onClose={() => {
+                setEditOpen(false)
+                triggerRef.current?.focus()
+              }}
+            />
+          )}
+
+          {swapOpen && (
+            <TimetableSwapPanel
+              session={session}
+              classes={classes}
+              refetchPaths={["/teacher/dashboard/overview", "/teacher/dashboard/timetable"]}
+              onClose={() => {
+                setSwapOpen(false)
+                triggerRef.current?.focus()
+              }}
+            />
+          )}
        </>
      )
    }
@@ -160,9 +187,22 @@ return (
              >
                <MoreVertical className="w-3.5 h-3.5" />
              </button>
-             {menuOpen && (
-               <div className="absolute right-0 top-full z-50 mt-1 w-36 rounded-lg border border-outline-variant/20 bg-surface-container-lowest shadow-lg animate-in fade-in-0 zoom-in-95">
-                 <button
+              {menuOpen && (
+                <div className="absolute right-0 top-full z-50 mt-1 w-36 rounded-lg border border-outline-variant/20 bg-surface-container-lowest shadow-lg animate-in fade-in-0 zoom-in-95">
+                  {session.status === "ongoing" && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMenuOpen(false)
+                        setSwapOpen(true)
+                      }}
+                      className="flex w-full items-center gap-2 px-3 py-2 text-[13px] leading-[18px] text-on-surface hover:bg-surface-container transition-colors rounded-lg"
+                    >
+                      <ArrowLeftRight className="w-3.5 h-3.5" />
+                      Swap schedule
+                    </button>
+                  )}
+                  <button
                    type="button"
                    onClick={() => {
                      setMenuOpen(false)
@@ -184,13 +224,17 @@ return (
            </p>
          </Link>
  
-         <div className="space-y-1.5">
-           <div className="flex items-center gap-1.5 text-[11px] leading-[14px] text-on-surface-variant">
-             <span className="font-[600] text-on-surface">{session.batches.batch_name}</span>
-             <span>·</span>
-             <span>{session.batches.count} students</span>
-           </div>
-         </div>
+          <div className="space-y-1.5">
+            <div className="flex items-center gap-1.5 text-[11px] leading-[14px] text-on-surface-variant">
+              <span className="font-[600] text-on-surface">{session.batches.batch_name}</span>
+              <span>·</span>
+              <span>{session.batches.count} students</span>
+            </div>
+            <div className="flex items-center gap-1.5 text-[11px] leading-[14px] text-on-surface-variant">
+              <MapPin className="w-3 h-3 shrink-0" />
+              <span className="truncate">{getClassroomLabel(session.class_id, classes)}</span>
+            </div>
+          </div>
          <TimetableCheckInButton
            sessionId={session.id}
            dayOfWeek={session.day_of_week}
@@ -199,16 +243,28 @@ return (
          />
        </div>
  
-       {editOpen && (
-         <TimetableEditPanel
-           session={session}
-           classes={classes ?? []}
-           onClose={() => {
-             setEditOpen(false)
-             triggerRef.current?.focus()
-           }}
-         />
-       )}
-     </>
-   )
-}
+        {editOpen && (
+          <TimetableEditPanel
+            session={session}
+            classes={classes ?? []}
+            onClose={() => {
+              setEditOpen(false)
+              triggerRef.current?.focus()
+            }}
+          />
+        )}
+
+        {swapOpen && (
+          <TimetableSwapPanel
+            session={session}
+            classes={classes}
+            refetchPaths={["/teacher/dashboard/overview", "/teacher/dashboard/timetable"]}
+            onClose={() => {
+              setSwapOpen(false)
+              triggerRef.current?.focus()
+            }}
+          />
+        )}
+      </>
+    )
+ }

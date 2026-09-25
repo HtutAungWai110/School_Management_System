@@ -1,4 +1,5 @@
 'use client';
+import { Suspense } from 'react';
 import AuthForm from "@/components/auth/auth-form.component";
 import { ToastPopup } from "@/components/ui/toast-popup.component";
 
@@ -22,7 +23,9 @@ export default function LoginPage() {
         </div>
       </header>
 
-      <ToastPopup />
+      <Suspense fallback={null}>
+        <ToastPopup />
+      </Suspense>
 
       <main className="flex flex-1 items-center justify-center px-4 md:px-12 pt-28 pb-12">
         <div className="w-full max-w-sm rounded-xl border border-outline-variant/15 bg-surface-container-lowest p-8 shadow-[0_4px_6px_-1px_rgba(15,23,42,0.06)]">

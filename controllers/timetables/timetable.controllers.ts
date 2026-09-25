@@ -140,6 +140,30 @@ export class TimetableController {
     }
   }
 
+  static async swap(
+    request: NextRequest,
+    { params }: { params: Promise<{ id: string }> }
+  ) {
+    const { id } = await params;
+    const body = await request.json().catch(() => ({ other_id: undefined }));
+    const { other_id } = body;
+
+    if (!other_id || typeof other_id !== "string") {
+      return NextResponse.json({ error: "other_id is required" }, { status: 400 });
+    }
+
+    if (other_id === id) {
+      return NextResponse.json({ error: "Choose a different session to swap with" }, { status: 400 });
+    }
+
+    try {
+      const data = await TimetablesService.swap(id, other_id);
+      return NextResponse.json({ data });
+    } catch (error) {
+      return handleError(error);
+    }
+  }
+
   static async create(request: NextRequest) {
     const body = await request
       .json()

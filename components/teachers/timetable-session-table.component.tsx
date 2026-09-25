@@ -1,12 +1,13 @@
 "use client"
 
 import { useRef, useState, useEffect } from "react"
-import { MoreVertical, Pencil } from "lucide-react"
+import { ArrowLeftRight, MoreVertical, Pencil } from "lucide-react"
 import Link from "next/link"
 import type { Class } from "@/types/class.type"
 import { TimetableEditPanel } from "./timetable-edit-panel.component"
+import { TimetableSwapPanel } from "@/components/timetable/timetable-swap-panel.component"
 import { TimetableCheckInButton } from "./timetable-check-in-button.component"
-import { getModuleColorWithOpacity, STATUS_CONFIG, type StatusKey } from "@/lib/utils.util"
+import { getClassroomLabel, getModuleColorWithOpacity, STATUS_CONFIG, type StatusKey } from "@/lib/utils.util"
 
 const dayNames = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
 
@@ -62,6 +63,7 @@ function SessionRow({
   }) {
     const [menuOpen, setMenuOpen] = useState(false)
     const [editOpen, setEditOpen] = useState(false)
+    const [swapOpen, setSwapOpen] = useState(false)
     const menuRef = useRef<HTMLDivElement>(null)
     const triggerRef = useRef<HTMLButtonElement>(null)
 
@@ -103,6 +105,11 @@ function SessionRow({
           <td className="px-6 py-4">
             <span className="text-[14px] font-[500] leading-[20px] text-on-surface">{session.batches.count}</span>
           </td>
+          <td className="px-6 py-4">
+            <span className="text-[14px] font-[500] leading-[20px] text-on-surface-variant">
+              {getClassroomLabel(session.class_id, classes)}
+            </span>
+          </td>
           {showDay && (
             <td className="px-6 py-4">
               <span className="text-[14px] font-[500] leading-[20px] text-on-surface">{dayNames[session.day_of_week - 1] ?? `Day ${session.day_of_week}`}</span>
@@ -139,6 +146,19 @@ function SessionRow({
               </button>
               {menuOpen && (
                 <div className="absolute right-0 top-full z-50 mt-1 w-40 rounded-lg border border-outline-variant/20 bg-surface-container-lowest shadow-lg animate-in fade-in-0 zoom-in-95">
+                  {session.status === "ongoing" && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMenuOpen(false)
+                        setSwapOpen(true)
+                      }}
+                      className="flex w-full items-center gap-2 px-3 py-2 text-[14px] leading-[20px] text-on-surface hover:bg-surface-container transition-colors"
+                    >
+                      <ArrowLeftRight className="w-4 h-4" />
+                      Swap schedule
+                    </button>
+                  )}
                   <button
                     type="button"
                     onClick={() => {
@@ -162,6 +182,18 @@ function SessionRow({
           </td>
         </tr>
 
+        {swapOpen && (
+          <TimetableSwapPanel
+            session={session}
+            classes={classes}
+            refetchPaths={["/teacher/dashboard/overview", "/teacher/dashboard/timetable"]}
+            onClose={() => {
+              setSwapOpen(false)
+              triggerRef.current?.focus()
+            }}
+          />
+        )}
+
         {editOpen && (
           <TimetableEditPanel
             session={session}
@@ -178,8 +210,8 @@ function SessionRow({
 
 export function TimetableSessionTable({ title, subtitle, sessions, showDay = false, classes, embedded = false }: TimetableSessionTableProps) {
   const headers = showDay
-    ? ["Module", "Batch", "Students", "Day", "Time", "Status", ""]
-    : ["Module", "Batch", "Students", "Time", "Status", ""]
+    ? ["Module", "Batch", "Students", "Classroom", "Day", "Time", "Status", ""]
+    : ["Module", "Batch", "Students", "Classroom", "Time", "Status", ""]
 
   const table = (
     <div className="overflow-x-auto min-h-40">

@@ -8,58 +8,17 @@ import type {
   TeacherAvailabilitySlot,
 } from "@/types/timetable.type"
 
-type FetchState<T> =
-  | { key: string; status: "ready"; data: T }
-  | { key: string; status: "error"; message: string }
+interface AvailabilityData {
+  teacher: TeacherAvailabilitySlot[]
+  class: ClassAvailabilitySlot[]
+  batch: BatchAvailabilitySlot[]
+}
 
 interface UseTimetableAvailabilityParams {
   classId?: string
   teacherId?: string
   batchId?: string
   excludeId?: string
-}
-
-function useAvailability<T>(
-  key: string | undefined,
-  pathPrefix: string,
-  errorMessage: string
-) {
-  const [state, setState] = useState<FetchState<T[]> | null>(null)
-
-  useEffect(() => {
-    if (!key) return
-
-    let cancelled = false
-
-    fetch(`${pathPrefix}/${key}`, { credentials: "include" })
-      .then((res) => {
-        if (!res.ok) throw new Error(errorMessage)
-        return res.json() as Promise<T[]>
-      })
-      .then((data) => {
-        if (!cancelled) setState({ key, status: "ready", data: data ?? [] })
-      })
-      .catch((err) => {
-        if (!cancelled) {
-          setState({
-            key,
-            status: "error",
-            message: err instanceof Error ? err.message : errorMessage,
-          })
-        }
-      })
-
-    return () => {
-      cancelled = true
-    }
-  }, [key, pathPrefix, errorMessage])
-
-  const current = state?.key === key ? state : null
-  const loading = !!key && !current
-  const error = current?.status === "error" ? current.message : null
-  const slots = current?.status === "ready" ? current.data : null
-
-  return { loading, error, slots }
 }
 
 function findOccupant<T extends { id: string; day_of_week: number; start_time: string }>(
@@ -79,47 +38,88 @@ function findOccupant<T extends { id: string; day_of_week: number; start_time: s
   )
 }
 
+interface AvailabilityResult {
+  key: string
+  data: AvailabilityData | null
+  error: string | null
+}
+
+const EMPTY_RESULT: AvailabilityResult = { key: "", data: null, error: null }
+
 export function useTimetableAvailability({
   classId,
   teacherId,
   batchId,
   excludeId,
 }: UseTimetableAvailabilityParams) {
-  const classAvailability = useAvailability<ClassAvailabilitySlot>(
-    classId,
-    "/api/timetables/class",
-    "Couldn't load class availability."
-  )
+  const [result, setResult] = useState<AvailabilityResult>(EMPTY_RESULT)
 
-  const teacherAvailability = useAvailability<TeacherAvailabilitySlot>(
-    teacherId,
-    "/api/timetables/teacher",
-    "Couldn't load teacher availability."
-  )
+  const requestKey = classId && teacherId && batchId ? `${classId}|${teacherId}|${batchId}` : null
 
-  const batchAvailability = useAvailability<BatchAvailabilitySlot>(
-    batchId,
-    "/api/timetables/batch",
-    "Couldn't load batch availability."
-  )
+  useEffect(() => {
+    if (!classId || !teacherId || !batchId) return
+
+    const key = `${classId}|${teacherId}|${batchId}`
+    let cancelled = false
+
+    fetch("/api/timetables/check-session-availability", {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        batch_id: batchId,
+        teacher_id: teacherId,
+        class_id: classId,
+      }),
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error("Couldn't load session availability.")
+        return res.json() as Promise<AvailabilityData>
+      })
+      .then((data) => {
+        if (!cancelled) {
+          setResult({ key, data, error: null })
+        }
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          setResult({
+            key,
+            data: null,
+            error: err instanceof Error ? err.message : "Couldn't load session availability.",
+          })
+        }
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [classId, teacherId, batchId])
+
+  const isCurrent = !!requestKey && result.key === requestKey
+  const data = isCurrent ? result.data : null
+  const error = isCurrent ? result.error : null
+  const loading = !!requestKey && !isCurrent
+
+  const teacherSlots = data?.teacher ?? null
+  const classSlots = data?.class ?? null
+  const batchSlots = data?.batch ?? null
 
   function getClassOccupant(dayOfWeek: number, startTime: string): ClassAvailabilitySlot | null {
-    return findOccupant(classAvailability.slots, excludeId, dayOfWeek, startTime)
+    return findOccupant(classSlots, excludeId, dayOfWeek, startTime)
   }
 
   function getTeacherOccupant(dayOfWeek: number, startTime: string): TeacherAvailabilitySlot | null {
-    return findOccupant(teacherAvailability.slots, excludeId, dayOfWeek, startTime)
+    return findOccupant(teacherSlots, excludeId, dayOfWeek, startTime)
   }
 
   function getBatchOccupant(dayOfWeek: number, startTime: string): BatchAvailabilitySlot | null {
-    return findOccupant(batchAvailability.slots, excludeId, dayOfWeek, startTime)
+    return findOccupant(batchSlots, excludeId, dayOfWeek, startTime)
   }
 
   return {
-    isLoading:
-      classAvailability.loading || teacherAvailability.loading || batchAvailability.loading,
-    error:
-      classAvailability.error || teacherAvailability.error || batchAvailability.error,
+    isLoading: loading,
+    error,
     getClassOccupant,
     getTeacherOccupant,
     getBatchOccupant,

@@ -219,10 +219,6 @@ export class TimetablesService {
       throw new HttpError(404, "Timetable not found.");
     }
 
-    if (existing.status !== "ongoing") {
-      throw new HttpError(400, "Only ongoing timetables can be edited.");
-    }
-
     const classId = payload.class_id ?? existing.class_id;
     const dayOfWeek = payload.day_of_week ?? existing.day_of_week;
     const start = (payload.start_time ?? existing.start_time).slice(0, 5);
@@ -446,5 +442,82 @@ export class TimetablesService {
     }
 
     return data ?? [];
+  }
+
+  static async swap(id: string, otherId: string) {
+    const supabase = await createClient();
+
+    const { data: current, error: currentError } = await supabase
+      .from("timetables")
+      .select("id, day_of_week, start_time, end_time, status")
+      .eq("id", id)
+      .maybeSingle();
+
+    if (currentError) {
+      throw new Error(currentError.message);
+    }
+
+    if (!current) {
+      throw new HttpError(404, "Timetable not found.");
+    }
+
+    if (current.status !== "ongoing") {
+      throw new HttpError(400, "Only ongoing sessions can be swapped.");
+    }
+
+    const { data: other, error: otherError } = await supabase
+      .from("timetables")
+      .select("id, day_of_week, start_time, end_time, status")
+      .eq("id", otherId)
+      .maybeSingle();
+
+    if (otherError) {
+      throw new Error(otherError.message);
+    }
+
+    if (!other) {
+      throw new HttpError(404, "Timetable to swap with not found.");
+    }
+
+    if (other.status !== "ongoing") {
+      throw new HttpError(400, "Only ongoing sessions can be swapped.");
+    }
+
+    const { error: updateCurrentError } = await supabase
+      .from("timetables")
+      .update({
+        day_of_week: other.day_of_week,
+        start_time: other.start_time,
+        end_time: other.end_time,
+      })
+      .eq("id", current.id);
+
+    if (updateCurrentError) {
+      throw new Error(updateCurrentError.message);
+    }
+
+    const { error: updateOtherError } = await supabase
+      .from("timetables")
+      .update({
+        day_of_week: current.day_of_week,
+        start_time: current.start_time,
+        end_time: current.end_time,
+      })
+      .eq("id", other.id);
+
+    if (updateOtherError) {
+      await supabase
+        .from("timetables")
+        .update({
+          day_of_week: current.day_of_week,
+          start_time: current.start_time,
+          end_time: current.end_time,
+        })
+        .eq("id", current.id);
+
+      throw new Error(updateOtherError.message);
+    }
+
+    return { success: true };
   }
 }

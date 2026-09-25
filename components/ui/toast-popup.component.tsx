@@ -1,40 +1,42 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { X, AlertCircle, CheckCircle } from 'lucide-react'
 
 import { cn } from '@/lib/utils.util'
 
 export function ToastPopup() {
+  const router = useRouter()
+  const pathname = usePathname()
   const searchParams = useSearchParams()
   const error = searchParams.get('error')
   const message = searchParams.get('message')
-  const [visible, setVisible] = useState(false)
   const [exiting, setExiting] = useState(false)
 
   const content = error || message
   const isError = !!error
 
   useEffect(() => {
-    if (content) {
-      setVisible(true)
-      const timer = setTimeout(() => {
-        setExiting(true)
-        setTimeout(() => {
-          setVisible(false)
-          setExiting(false)
-        }, 300)
-      }, 4000)
-      return () => clearTimeout(timer)
-    }
-  }, [content])
+    if (!content) return
 
-  if (!content || !visible) return null
+    const timer = setTimeout(() => {
+      setExiting(true)
+      setTimeout(() => {
+        router.replace(pathname, { scroll: false })
+      }, 300)
+    }, 4000)
+
+    return () => clearTimeout(timer)
+  }, [content, pathname, router])
+
+  if (!content) return null
 
   function handleClose() {
     setExiting(true)
-    setTimeout(() => setVisible(false), 300)
+    setTimeout(() => {
+      router.replace(pathname, { scroll: false })
+    }, 300)
   }
 
   return (

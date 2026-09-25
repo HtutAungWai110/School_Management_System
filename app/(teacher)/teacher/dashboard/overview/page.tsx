@@ -69,8 +69,8 @@ export default async function TeacherOverviewPage() {
             <MetricCard
               icon={Calendar}
               label="Total Sessions"
-              value={sessions.length}
-              badge="This Week"
+              value={data.totalSessions}
+              badge="All time"
               subtitle="Taught"
             />
             <MetricCard

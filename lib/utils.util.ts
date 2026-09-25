@@ -1,6 +1,8 @@
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 
+import type { Class } from "@/types/class.type"
+
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
@@ -25,3 +27,20 @@ export const STATUS_CONFIG = {
 } as const
 
 export type StatusKey = keyof typeof STATUS_CONFIG
+
+export function getClassroomLabel(
+  classId: string | null | undefined,
+  classes: Class[] | null | undefined
+) {
+  if (!classId || !classes) return "—"
+
+  const classroom = classes.find((item) => item.id === classId)
+  if (!classroom) return "—"
+
+  const classNumber = classroom.class_number?.trim()
+  const location = classroom.location?.trim()
+
+  if (classNumber && location) return `Class ${classNumber} · ${location}`
+  if (classNumber) return `Class ${classNumber}`
+  return location || "—"
+}
