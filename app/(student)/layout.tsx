@@ -1,10 +1,9 @@
 import { createClient } from "@/lib/supabase/server.client"
 import ProfileStoreSync from "@/components/profile/profile-store-sync.component"
 import { AccountCompletionReminder } from "@/components/profile/account-completion-reminder.component"
-import TeacherSidebar from "@/components/teachers/teacher-sidebar.component"
 import { RouteProgress } from "@/components/navigation/route-progress.component"
 
-export default async function TeacherLayout({
+export default async function StudentLayout({
   children,
 }: {
   children: React.ReactNode
@@ -18,8 +17,7 @@ export default async function TeacherLayout({
     <main>
       <RouteProgress />
       <ProfileStoreSync profile={profile} />
-      <AccountCompletionReminder settingsHref="/teacher/dashboard/settings" />
-      <TeacherSidebar />
+      <AccountCompletionReminder settingsHref="/student/dashboard/settings" />
       {children}
     </main>
   )
