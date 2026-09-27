@@ -11,6 +11,7 @@ export class LevelsService {
         description,
         created_at,
         modules_level(
+          required,
           modules(
             id,
             code,

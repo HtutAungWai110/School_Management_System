@@ -16,4 +16,22 @@ export class StudentController {
       return handleError(error);
     }
   }
+
+  static async getOverview() {
+    try {
+      const {coursesEnrolledCount, assignedBatchesCount, timetableData} = await StudentsService.getStudentOverview()
+      return NextResponse.json({coursesEnrolledCount, assignedBatchesCount, timetableData})
+    } catch (error) {
+      return handleError(error);
+    }
+  }
+
+  static async getEnrollments() {
+    try {
+      const {enrollments} = await StudentsService.getEnrollments()
+      return NextResponse.json({enrollments})
+    } catch (error) {
+      return handleError(error);
+    }
+  }
 }

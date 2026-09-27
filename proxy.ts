@@ -47,7 +47,7 @@ export async function proxy(request: NextRequest) {
   );
 
   const home = profile?.role
-    ? `/${profile.role}/dashboard/overview`
+    ? `/${profile.role}`
     : '/admin/dashboard/overview';
 
   // 2. Unauthenticated Redirects

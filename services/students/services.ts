@@ -58,4 +58,80 @@ export class StudentsService {
 
     return { students, totalCount, newEnrollments, page, totalPages: Math.ceil(totalCount / PAGE_SIZE) };
   }
+
+  static async getStudentOverview() {
+    const supabase = await createClient();
+
+    const { count: coursesEnrolledCount, error: courseEnrollmentError } = await supabase
+      .from("student_enrollments")
+      .select("module_id")
+
+    if (courseEnrollmentError) {
+      throw new Error(courseEnrollmentError.message)
+    }
+
+    const { count: assignedBatchesCount, error: batchesError } = await supabase
+      .from("batches")
+      .select("*")
+
+    if (batchesError) {
+      throw new Error(batchesError.message)
+    }
+
+    const { data: timetableData, error: timetableDataError } = await supabase
+      .from("timetables")
+      .select(`
+        *,
+        batches(
+          batch_name
+        ),
+        modules(
+          title,
+          code
+        ),
+        profiles(
+          full_name,
+          email
+        ),
+        classes(
+          class_number,
+          location
+        )
+        `)
+
+
+    if (timetableDataError) {
+      throw new Error(timetableDataError.message)
+    }
+
+    return {coursesEnrolledCount, assignedBatchesCount, timetableData}
+
+  }
+
+  static async getEnrollments() {
+    const supabase = await createClient()
+
+    const { data: enrollmentsData, error: enrollmentsError } = await supabase
+      .from("student_enrollments")
+      .select(`
+        id,
+        enrolled_at,
+        status,
+        modules(
+          id,
+          code,
+          title
+        ),
+        levels(
+          id,
+          description
+        )
+        `)
+
+    if (enrollmentsError) {
+      throw new Error(enrollmentsError.message)
+    }
+
+    return {enrollments: enrollmentsData.length === 0 ? null : enrollmentsData}
+  }
 }

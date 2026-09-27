@@ -3,6 +3,21 @@ import { ProfileService } from "@/services/profile/services";
 import { handleError } from "@/lib/errors/error.handler";
 
 export class ProfileController {
+  static async patch(
+    request: NextRequest,
+    { params }: { params: Promise<{ id: string }> }
+  ) {
+    const { id } = await params;
+    const data = await request.json().catch(() => ({}));
+
+    try {
+      const result = await ProfileService.patch(id, data);
+      return NextResponse.json(result);
+    } catch (error) {
+      return handleError(error);
+    }
+  }
+
   static async update(
     request: NextRequest,
     { params }: { params: Promise<{ id: string }> }

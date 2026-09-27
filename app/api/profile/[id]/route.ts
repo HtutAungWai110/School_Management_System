@@ -1,6 +1,10 @@
 import { NextRequest } from "next/server";
 import { ProfileController } from "@/controllers/profile/profile.controllers";
 
+export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  return ProfileController.patch(request, { params });
+}
+
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   return ProfileController.update(request, { params });
 }

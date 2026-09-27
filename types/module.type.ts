@@ -3,6 +3,7 @@ export type Level = {
   description: string
   created_at: string
   modules_level: {
+    required: string
     modules: Module
   }[]
 }
