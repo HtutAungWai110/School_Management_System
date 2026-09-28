@@ -1,0 +1,56 @@
+import type { Level } from "@/types/module.type"
+
+export const TYPE_META = {
+  core: {
+    label: "Core",
+    pill: "bg-secondary-fixed text-on-secondary-fixed",
+    dot: "bg-secondary",
+  },
+  mandatory: {
+    label: "Mandatory",
+    pill: "bg-amber-100 text-amber-900",
+    dot: "bg-amber-600",
+  },
+  specialist: {
+    label: "Specialist",
+    pill: "bg-purple-100 text-purple-900",
+    dot: "bg-purple-600",
+  },
+  elective: {
+    label: "Elective",
+    pill: "bg-emerald-100 text-emerald-900",
+    dot: "bg-emerald-600",
+  },
+} as const
+
+export type TypeKey = keyof typeof TYPE_META
+
+export const LEVEL_LABELS: Record<string, string> = {
+  "3": "Foundation Level",
+  "4": "Undergraduate Year 1",
+  "5": "Advanced Level",
+}
+
+export function parseLevel(description: string) {
+  const match = description.match(/\bLEVEL\s*(\d+)/i)
+  const number = match?.[1] ?? null
+  const title = description.replace(/\bLEVEL\s*\d+\s*/i, "").trim()
+  return { number, title: title || description }
+}
+
+export function groupByRequired(level: Level) {
+  const groups = new Map<string, { label: string; units: { id: string; code: string; title: string }[] }>()
+  const order: string[] = []
+  for (const entry of level.modules_level) {
+    const meta = TYPE_META[entry.required as TypeKey] ?? TYPE_META.elective
+    const key = meta.label
+    let group = groups.get(key)
+    if (!group) {
+      group = { label: meta.label, units: [] }
+      groups.set(key, group)
+      order.push(key)
+    }
+    group.units.push({ id: entry.modules.id, code: entry.modules.code, title: entry.modules.title })
+  }
+  return order.map((key) => groups.get(key)!)
+}
