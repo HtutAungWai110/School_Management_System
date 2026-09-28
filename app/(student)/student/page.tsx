@@ -2,7 +2,6 @@
 
 import { useState } from "react"
 import Image from "next/image"
-import Link from "next/link"
 import {
   ArrowRight,
   Building2,
@@ -12,14 +11,14 @@ import {
   Download,
   DoorOpen,
   ExternalLink,
-  LayoutDashboard,
   Lock,
   MapPin,
   Pin,
   ShieldCheck,
 } from "lucide-react"
 
-import ProfileCard from "@/components/profile/profile-card.component"
+import StudentPortalFooter from "@/components/student/student-portal-footer.component"
+import StudentPortalHeader from "@/components/student/student-portal-header.component"
 import { useProfileStore } from "@/components/profile/profile.state"
 import { cn } from "@/lib/utils.util"
 
@@ -85,14 +84,6 @@ const FEED: FeedItem[] = [
   },
 ]
 
-const NAV_LINKS = [
-  { label: "Portal Home", href: "/student", active: true },
-  { label: "Academics", href: "#", active: false },
-  { label: "Resources", href: "#", active: false },
-]
-
-const LEGAL_LINKS = ["Help Center", "Privacy Policy", "Terms of Service"]
-
 function formatToday() {
   return new Date().toLocaleDateString("en-US", {
     weekday: "long",
@@ -110,54 +101,7 @@ export default function StudentLandingPage() {
 
   return (
     <div className="min-h-screen bg-surface text-on-surface">
-      <header className="fixed top-0 left-0 w-full z-50 bg-surface/80 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)]">
-        <div className="h-16 max-w-[1440px] mx-auto px-6 md:px-12 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Link
-              href="/student/dashboard/overview"
-              className="inline-flex items-center gap-1 px-4 py-2 rounded-lg bg-primary-container text-on-primary text-[14px] font-[600] leading-[16px] tracking-[0.05em] hover:bg-secondary transition-colors"
-            >
-              <LayoutDashboard className="w-[18px] h-[18px]" />
-              <span>Go to Dashboard</span>
-            </Link>
-
-            <ProfileCard />
-          </div>
-
-          <div className="flex items-center gap-4">
-            <nav className="hidden lg:flex items-center gap-6">
-              {NAV_LINKS.map((link) => (
-                <Link
-                  key={link.label}
-                  href={link.href}
-                  aria-current={link.active ? "page" : undefined}
-                  className={cn(
-                    "text-[14px] font-[600] leading-[16px] tracking-[0.05em] transition-colors",
-                    link.active
-                      ? "text-on-surface"
-                      : "text-on-surface-variant hover:text-on-surface"
-                  )}
-                >
-                  {link.label}
-                </Link>
-              ))}
-            </nav>
-
-            <div className="flex items-center gap-2 pl-4">
-              <Image
-                src="/codepoint_logo.png"
-                alt="CodePoint Academy"
-                width={28}
-                height={28}
-                className="w-7 h-7 rounded object-contain"
-              />
-              <span className="text-[20px] font-[600] leading-[28px] tracking-tight text-on-surface">
-                CodePoint Academy
-              </span>
-            </div>
-          </div>
-        </div>
-      </header>
+      <StudentPortalHeader active="home" />
 
       <div className="w-full pt-16 bg-surface min-h-[calc(100vh-140px)]">
         <div className="max-w-[1440px] mx-auto px-6 md:px-12 py-10">
@@ -384,24 +328,7 @@ export default function StudentLandingPage() {
         </div>
       </div>
 
-      <footer className="w-full bg-surface-container-low shadow-[0_1px_8px_rgba(0,0,0,0.04)]">
-        <div className="max-w-[1440px] mx-auto px-6 md:px-12 py-6 flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="text-[14px] leading-[20px] text-on-surface-variant">
-            © 2024 CodePoint Academy School Management System. All rights reserved.
-          </div>
-          <nav className="flex items-center gap-6">
-            {LEGAL_LINKS.map((link) => (
-              <a
-                key={link}
-                href="#"
-                className="text-[12px] font-[500] leading-[16px] text-on-surface-variant hover:text-on-surface transition-colors"
-              >
-                {link}
-              </a>
-            ))}
-          </nav>
-        </div>
-      </footer>
+      <StudentPortalFooter />
     </div>
   )
 }
