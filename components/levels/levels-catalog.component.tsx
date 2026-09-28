@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useMemo } from "react"
-import { Search, X, ArrowRight, ShieldCheck } from "lucide-react"
+import { Search, X, ArrowRight, BadgeCheck, Terminal, Code, GraduationCap } from "lucide-react"
 
 import { cn } from "@/lib/utils.util"
 import type { Level } from "@/types/module.type"
@@ -14,22 +14,40 @@ const TYPE_META = {
   },
   mandatory: {
     label: "Mandatory",
-    pill: "bg-primary-container text-on-primary",
-    dot: "bg-primary-fixed",
+    pill: "bg-amber-100 text-amber-900",
+    dot: "bg-amber-600",
   },
   specialist: {
     label: "Specialist",
-    pill: "bg-surface-container-lowest text-on-surface",
-    dot: "bg-surface-dim",
+    pill: "bg-purple-100 text-purple-900",
+    dot: "bg-purple-600",
   },
   elective: {
     label: "Elective",
-    pill: "bg-surface-container-high text-on-surface-variant",
-    dot: "bg-outline-variant",
+    pill: "bg-emerald-100 text-emerald-900",
+    dot: "bg-emerald-600",
   },
 } as const
 
 type TypeKey = keyof typeof TYPE_META
+
+const LEVEL_LABELS: Record<string, string> = {
+  "3": "Foundation Level",
+  "4": "Undergraduate Year 1",
+  "5": "Advanced Level",
+}
+
+function LevelIcon({ num }: { num: string }) {
+  const Icon = num === "3" ? Terminal : num === "4" ? Code : GraduationCap
+  return <Icon className="w-5 h-5" />
+}
+
+function parseLevel(description: string) {
+  const match = description.match(/\bLEVEL\s*(\d+)/i)
+  const number = match?.[1] ?? null
+  const title = description.replace(/\bLEVEL\s*\d+\s*/i, "").trim()
+  return { number, title: title || description }
+}
 
 export default function LevelsCatalog({ initialLevels }: { initialLevels: Level[] }) {
   const [query, setQuery] = useState("")
@@ -39,8 +57,7 @@ export default function LevelsCatalog({ initialLevels }: { initialLevels: Level[
     const seen: string[] = []
     for (const level of initialLevels) {
       const { number } = parseLevel(level.description)
-      const key = number ? `l${number}` : ""
-      if (key && !seen.includes(key)) seen.push(key)
+      if (number && !seen.includes(number)) seen.push(number)
     }
     return seen
   }, [initialLevels])
@@ -50,34 +67,32 @@ export default function LevelsCatalog({ initialLevels }: { initialLevels: Level[
     const items: { label: string; key: string; count: number }[] = [
       { label: `All Programs (${allCount})`, key: "All", count: allCount },
     ]
-    for (const key of levelOptions) {
-      const num = key.replace("l", "")
-      const level = initialLevels.find(
-        (l) => parseLevel(l.description).number === num
-      )
+    for (const num of levelOptions) {
+      const level = initialLevels.find((l) => parseLevel(l.description).number === num)
       const count = level ? level.modules_level.length : 0
       const { title } = parseLevel(level?.description ?? "")
-      items.push({
-        label: `Level ${num} ${title} (${count})`,
-        key,
-        count,
-      })
+      items.push({ label: `Level ${num} ${title} (${count})`, key: `l${num}`, count })
     }
     return items
   }, [initialLevels, levelOptions])
 
-  const filtered = useMemo(() => {
-    const base = filter === "All" ? initialLevels : initialLevels.filter((l) => parseLevel(l.description).number === filter.replace("l", ""))
-    if (!query.trim()) return base
+  const visibleLevels = useMemo(() => {
+    const levels =
+      filter === "All"
+        ? initialLevels
+        : initialLevels.filter((l) => parseLevel(l.description).number === filter.replace("l", ""))
+    if (!query.trim()) return levels
     const q = query.toLowerCase()
-    return base.map((level) => ({
-      ...level,
-      modules_level: level.modules_level.filter(
-        (m) =>
-          m.modules.code.toLowerCase().includes(q) ||
-          m.modules.title.toLowerCase().includes(q)
-      ),
-    })).filter((l) => l.modules_level.length > 0)
+    return levels
+      .map((level) => ({
+        ...level,
+        modules_level: level.modules_level.filter(
+          (m) =>
+            m.modules.code.toLowerCase().includes(q) ||
+            m.modules.title.toLowerCase().includes(q)
+        ),
+      }))
+      .filter((l) => l.modules_level.length > 0)
   }, [initialLevels, filter, query])
 
   const totalDiplomas = initialLevels.length
@@ -91,7 +106,7 @@ export default function LevelsCatalog({ initialLevels }: { initialLevels: Level[
         <div className="absolute -left-12 bottom-0 w-64 h-64 rounded-full bg-surface-container-high/60 blur-2xl pointer-events-none" />
         <div className="relative z-10 flex flex-col gap-1">
           <span className="text-[12px] font-[500] leading-[16px] text-on-surface-variant flex items-center gap-1">
-            <ShieldCheck className="w-4 h-4" />
+            <BadgeCheck className="w-4 h-4" />
             Academic Programs &amp; Qualifications Framework
           </span>
           <h1 className="text-[32px] font-[700] leading-[40px] tracking-[-0.02em] text-on-surface mt-1">
@@ -134,11 +149,7 @@ export default function LevelsCatalog({ initialLevels }: { initialLevels: Level[
             placeholder="Search modules (e.g. NCC1000, Python, Databases)..."
           />
           {query && (
-            <button
-              type="button"
-              onClick={() => setQuery("")}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-on-surface"
-            >
+            <button type="button" onClick={() => setQuery("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-on-surface">
               <X className="w-4 h-4" />
             </button>
           )}
@@ -179,64 +190,112 @@ export default function LevelsCatalog({ initialLevels }: { initialLevels: Level[
         })}
       </div>
 
-      {/* Module Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filtered.map((level) =>
-          level.modules_level.map((entry) => {
-            const meta = TYPE_META[entry.required as TypeKey] ?? TYPE_META.elective
-            return (
-              <article
-                key={entry.modules.id}
-                className="group p-4 rounded-xl bg-surface-container-lowest shadow-sm hover:shadow-md transition-all flex flex-col justify-between"
-              >
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="font-mono text-[12px] font-[500] tracking-wide text-secondary bg-surface-container-low px-2 py-0.5 rounded">
-                      {entry.modules.code}
+      {/* Level Sections */}
+      <div className="flex flex-col gap-6">
+        {visibleLevels.map((level) => {
+          const { number, title } = parseLevel(level.description)
+          const num = number ?? "0"
+          const label = LEVEL_LABELS[num] ?? `Level ${num}`
+          const groups = groupByRequired(level)
+          const totalModules = level.modules_level.length
+          const breakdown = groups
+            .map((g) => `${g.units.length} ${g.label}${g.units.length === 1 ? "" : "s"}`)
+            .join(" • ")
+
+          return (
+            <section key={level.id} className="diploma-section space-y-4">
+              {/* Section Header Card */}
+              <div className="p-6 rounded-xl bg-surface-container-lowest shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded text-[12px] font-[500] leading-[16px] bg-primary-fixed text-on-primary-fixed">
+                      {label}
                     </span>
-                    <span className={cn("inline-flex items-center gap-1 px-2.5 py-0.5 rounded text-[12px] font-[500] leading-[16px]", meta.pill)}>
-                      <span className={cn("w-1.5 h-1.5 rounded-full", meta.dot)} />
-                      {meta.label}
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded text-[12px] font-[500] leading-[16px] bg-surface-container text-on-surface-variant">
+                      RQF Level {num}
                     </span>
                   </div>
-                  <div>
-                    <h3 className="text-[18px] font-[600] leading-[24px] text-on-surface group-hover:text-primary transition-colors">
-                      {entry.modules.title}
-                    </h3>
+                  <h2 className="text-[22px] font-[600] leading-[28px] text-on-surface tracking-tight">
+                    {title}
+                  </h2>
+                </div>
+                <div className="flex items-center gap-3 self-start md:self-auto">
+                  <div className="text-right hidden sm:block">
+                    <div className="text-[14px] font-[500] leading-[20px] text-on-surface">{totalModules} Total Modules</div>
+                    <div className="text-[12px] font-[500] leading-[16px] text-on-surface-variant">{breakdown}</div>
                   </div>
+                  <div className="w-10 h-10 rounded-lg bg-surface-container-low flex items-center justify-center text-primary-container">
+                      <LevelIcon num={num} />
+                    </div>
                 </div>
-                <div className="mt-4 pt-3 flex items-center justify-between border-t border-surface-container-high/30">
-                  <button
-                    type="button"
-                    className={cn(
-                      "inline-flex items-center gap-1 text-[14px] font-[500] leading-[20px] transition-colors",
-                      "text-primary hover:text-secondary"
-                    )}
-                  >
-                    <span>Syllabus</span>
-                    <ArrowRight className="w-4 h-4" />
-                  </button>
-                </div>
-              </article>
-            )
-          })
-        )}
+              </div>
+
+              {/* Module Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {level.modules_level.map((entry) => {
+                  const meta = TYPE_META[entry.required as TypeKey] ?? TYPE_META.elective
+                  return (
+                    <article
+                      key={entry.modules.id}
+                      className="group p-4 rounded-xl bg-surface-container-lowest shadow-sm hover:shadow-md transition-all flex flex-col justify-between"
+                    >
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <span className="font-mono text-[12px] font-[500] tracking-wide text-secondary bg-surface-container-low px-2 py-0.5 rounded">
+                            {entry.modules.code}
+                          </span>
+                          <span className={cn("inline-flex items-center gap-1 px-2.5 py-0.5 rounded text-[12px] font-[500] leading-[16px]", meta.pill)}>
+                            <span className={cn("w-1.5 h-1.5 rounded-full", meta.dot)} />
+                            {meta.label}
+                          </span>
+                        </div>
+                        <div>
+                          <h3 className="text-[18px] font-[600] leading-[24px] text-on-surface group-hover:text-primary transition-colors">
+                            {entry.modules.title}
+                          </h3>
+                        </div>
+                      </div>
+                      <div className="mt-4 pt-3 flex items-center justify-between border-t border-surface-container-high/30">
+                        <span className="text-[12px] font-[500] leading-[16px] text-on-surface-variant">12 Credits</span>
+                        <button
+                          type="button"
+                          className="inline-flex items-center gap-1 text-[14px] font-[500] leading-[20px] text-primary hover:text-secondary transition-colors"
+                        >
+                          <span>Syllabus</span>
+                          <ArrowRight className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </article>
+                  )
+                })}
+              </div>
+            </section>
+          )
+        })}
       </div>
 
-      {filtered.length === 0 && (
+      {visibleLevels.length === 0 && (
         <div className="rounded-xl bg-surface-container-lowest p-10 text-center shadow-sm">
-          <p className="text-[14px] leading-[20px] text-on-surface-variant">
-            No modules match your filters.
-          </p>
+          <p className="text-[14px] leading-[20px] text-on-surface-variant">No modules match your filters.</p>
         </div>
       )}
     </div>
   )
 }
 
-function parseLevel(description: string) {
-  const match = description.match(/\bLEVEL\s*(\d+)/i)
-  const number = match?.[1] ?? null
-  const title = description.replace(/\bLEVEL\s*\d+\s*/i, "").trim()
-  return { number, title: title || description }
+function groupByRequired(level: Level) {
+  const groups = new Map<string, { label: string; badge: string; units: { id: string; code: string; title: string }[] }>()
+  const order: string[] = []
+  for (const entry of level.modules_level) {
+    const meta = TYPE_META[entry.required as TypeKey] ?? TYPE_META.elective
+    const key = meta.label
+    let group = groups.get(key)
+    if (!group) {
+      group = { label: meta.label, badge: meta.pill, units: [] }
+      groups.set(key, group)
+      order.push(key)
+    }
+    group.units.push({ id: entry.modules.id, code: entry.modules.code, title: entry.modules.title })
+  }
+  return order.map((key) => groups.get(key)!)
 }

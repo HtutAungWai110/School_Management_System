@@ -1,18 +1,14 @@
+import { serverFetch } from "@/lib/server.service"
 import LevelsCatalog from "@/components/levels/levels-catalog.component"
 import StudentPortalHeader from "@/components/student/student-portal-header.component"
 import StudentPortalFooter from "@/components/student/student-portal-footer.component"
 import type { Level } from "@/types/module.type"
 
-async function getLevels(): Promise<Level[]> {
-  const res = await fetch("/api/levels", { cache: "no-store" })
-  if (!res.ok) {
-    throw new Error("Failed to fetch levels")
-  }
-  return res.json()
-}
-
 export default async function LevelsPage() {
-  const levels = await getLevels()
+  const levels = (await serverFetch(
+    `http://localhost:3000/api/levels`,
+    { next: { revalidate: 120 } }
+  ).then((res) => res.json())) as Level[]
 
   return (
     <div className="min-h-screen bg-surface text-on-surface">
