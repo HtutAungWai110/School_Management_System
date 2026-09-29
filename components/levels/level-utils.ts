@@ -3,8 +3,8 @@ import type { Level } from "@/types/module.type"
 export const TYPE_META = {
   core: {
     label: "Core",
-    pill: "bg-secondary-fixed text-on-secondary-fixed",
-    dot: "bg-secondary",
+    pill: "bg-cyan-100",
+    dot: "bg-cyan-500",
   },
   mandatory: {
     label: "Mandatory",
@@ -36,6 +36,35 @@ export function parseLevel(description: string) {
   const number = match?.[1] ?? null
   const title = description.replace(/\bLEVEL\s*\d+\s*/i, "").trim()
   return { number, title: title || description }
+}
+
+export interface ModuleEntry {
+  required: string
+  modules: { id: string; code: string; title: string }
+}
+
+export interface LevelRule {
+  requiredCounts: Partial<Record<TypeKey, number>>
+  electiveLimit: number
+}
+
+export const LEVEL_RULES: Record<string, LevelRule> = {
+  "diploma in computing": { requiredCounts: { core: 5 }, electiveLimit: 0 },
+  "diploma in computing with business management": {
+    requiredCounts: { core: 4, mandatory: 3 },
+    electiveLimit: 1,
+  },
+  "advanced diploma in computing": { requiredCounts: { specialist: 4 }, electiveLimit: 2 },
+  "advanced diploma in computing with business management": {
+    requiredCounts: { specialist: 4 },
+    electiveLimit: 2,
+  },
+}
+
+export function getLevelRule(description: string): LevelRule {
+  const { number, title } = parseLevel(description)
+  const key = `${number === "5" ? "advanced " : ""}${title}`.toLowerCase()
+  return LEVEL_RULES[key] ?? { requiredCounts: {}, electiveLimit: 0 }
 }
 
 export function groupByRequired(level: Level) {
