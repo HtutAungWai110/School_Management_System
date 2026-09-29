@@ -58,9 +58,9 @@ export default function EnrollCoursePanel({ level }: Props) {
             transition={{ duration: 0.3, ease: [0.32, 0.72, 0, 1] }}
             className="overflow-hidden"
           >
-            <div className="mt-3 rounded-xl bg-surface-container-lowest shadow-sm">
+            <div className="mt-3 rounded-xl bg-surface-container-lowest shadow-sm ">
               <div className="px-5 pt-5 pb-4">
-                <div className="flex items-baseline justify-center gap-2">
+                <div className="flex items-baseline gap-2">
                   <h3 className="text-[13px] font-medium text-on-surface">Select modules</h3>
                   <span className="text-[12px] text-on-surface-variant">
                     {electiveLimit === 0
@@ -69,13 +69,13 @@ export default function EnrollCoursePanel({ level }: Props) {
                   </span>
                 </div>
 
-                <div className="mx-auto mt-4 w-full max-w-sm space-y-5">
+                <div className="mt-4 w-full max-w-2xl space-y-5">
                 {groups.map((group) => {
                   const meta = TYPE_META[group.key]
                   const isLocked = LOCKED.includes(group.key)
                   return (
                     <div key={group.key} className="space-y-1">
-                      <div className="flex items-center justify-center gap-1.5 pb-1">
+                      <div className="flex items-center gap-1.5 pb-1">
                         <span className={cn("w-1.5 h-1.5 rounded-full", meta.dot)} />
                         <span className="text-[11px] font-medium uppercase tracking-[0.08em] text-on-surface-variant">
                           {meta.label}
@@ -94,9 +94,8 @@ export default function EnrollCoursePanel({ level }: Props) {
                             disabled={isLocked || blocked}
                             onClick={() => group.key === "elective" && toggleElective(unit.id)}
                             aria-pressed={checked}
-                            title={unit.title}
                             className={cn(
-                              "w-full flex items-center justify-center gap-2 rounded-md py-1.5 text-center transition-colors",
+                              "w-full flex items-center gap-2.5 rounded-md py-1.5 text-left transition-colors",
                               isLocked || blocked
                                 ? "cursor-default text-on-surface-variant"
                                 : "cursor-pointer hover:bg-surface-container-low"
@@ -121,7 +120,7 @@ export default function EnrollCoursePanel({ level }: Props) {
                                 )}
                               </AnimatePresence>
                             </span>
-                            <span className="font-mono text-[12px] leading-4 text-primary">{unit.code}</span>
+                            <span className="text-[13px] leading-[18px] text-pretty">{unit.title}</span>
                           </button>
                         )
                       })}
