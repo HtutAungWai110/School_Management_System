@@ -35,12 +35,12 @@ export default function EnrollCoursePanel({ level }: Props) {
   }
 
   return (
-    <div className="w-full lg:w-[300px] shrink-0">
+    <div className="w-full">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
-        className="group w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-primary text-on-primary text-[14px] font-medium transition-opacity hover:opacity-90"
+        className="group inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-primary text-on-primary text-[14px] font-medium transition-opacity hover:opacity-90"
       >
         Enroll Course
         <motion.span animate={{ rotate: open ? 180 : 0 }} transition={{ duration: 0.25 }} className="flex">
@@ -59,7 +59,7 @@ export default function EnrollCoursePanel({ level }: Props) {
             className="overflow-hidden"
           >
             <div className="mt-3 rounded-xl bg-surface-container-lowest shadow-sm">
-              <div className="px-5 pt-5 pb-4 space-y-5">
+              <div className="px-5 pt-5 pb-4">
                 <div className="flex items-baseline justify-center gap-2">
                   <h3 className="text-[13px] font-medium text-on-surface">Select modules</h3>
                   <span className="text-[12px] text-on-surface-variant">
@@ -69,6 +69,7 @@ export default function EnrollCoursePanel({ level }: Props) {
                   </span>
                 </div>
 
+                <div className="mx-auto mt-4 w-full max-w-sm space-y-5">
                 {groups.map((group) => {
                   const meta = TYPE_META[group.key]
                   const isLocked = LOCKED.includes(group.key)
@@ -127,6 +128,7 @@ export default function EnrollCoursePanel({ level }: Props) {
                     </div>
                   )
                 })}
+                </div>
               </div>
 
               <div className="flex items-center justify-end px-5 py-3.5">

@@ -28,7 +28,7 @@ export default function LevelSection({
 
   return (
     <section className="diploma-section space-y-4">
-      <div className="p-6 rounded-xl bg-surface-container-lowest shadow-sm flex flex-col lg:flex-row lg:items-start justify-between gap-4">
+      <div className="p-6 rounded-xl bg-surface-container-lowest shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="space-y-1">
           <div className="flex items-center gap-2">
             <span className="inline-flex items-center px-2.5 py-0.5 rounded text-[12px] font-[500] leading-[16px] bg-primary-fixed text-on-primary-fixed">
@@ -42,19 +42,17 @@ export default function LevelSection({
             {level.description}
           </h2>
         </div>
-        <div className="flex flex-col lg:items-end gap-3 self-start">
-          <div className="flex items-center gap-3">
-            <div className="text-right hidden sm:block">
-              <div className="text-[14px] font-[500] leading-[20px] text-on-surface">{totalModules} Total Modules</div>
-              <div className="text-[12px] font-[500] leading-[16px] text-on-surface-variant">{breakdown}</div>
-            </div>
-            <div className="w-10 h-10 rounded-lg bg-surface-container-low flex items-center justify-center text-primary-container">
-              <LevelIcon num={num} />
-            </div>
+        <div className="flex items-center gap-3 self-start md:self-auto">
+          <div className="text-right hidden sm:block">
+            <div className="text-[14px] font-[500] leading-[20px] text-on-surface">{totalModules} Total Modules</div>
+            <div className="text-[12px] font-[500] leading-[16px] text-on-surface-variant">{breakdown}</div>
           </div>
-          <EnrollCoursePanel level={level} />
+          <div className="w-10 h-10 rounded-lg bg-surface-container-low flex items-center justify-center text-primary-container">
+            <LevelIcon num={num} />
+          </div>
         </div>
       </div>
+      <EnrollCoursePanel level={level} />
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {level.modules_level.map((entry) => (
           <ModuleCard key={entry.modules.id} code={entry.modules.code} title={entry.modules.title} required={entry.required} />
