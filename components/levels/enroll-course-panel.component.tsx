@@ -2,13 +2,22 @@
 
 import { useState } from "react"
 import { AnimatePresence, motion } from "motion/react"
-import { ChevronDown, Check, Lock } from "lucide-react"
+import { ChevronDown, Check, Lock, Loader2, CircleAlert } from "lucide-react"
 
 import { cn } from "@/lib/utils.util"
 import { TYPE_META, type TypeKey, type ModuleEntry, getLevelRule } from "./level-utils"
 
 const GROUP_ORDER: TypeKey[] = ["core", "mandatory", "specialist", "elective"]
 const LOCKED: TypeKey[] = ["core", "mandatory", "specialist"]
+
+type EnrollStatus = "idle" | "loading" | "success" | "error"
+
+interface EnrollmentResult {
+  data: unknown
+  error: { message: string } | null
+  status: number
+  statusText: string
+}
 
 interface Props {
   level: { id: string; description: string; modules_level: ModuleEntry[] }
@@ -17,6 +26,8 @@ interface Props {
 export default function EnrollCoursePanel({ level }: Props) {
   const [open, setOpen] = useState(false)
   const [selectedElectives, setSelectedElectives] = useState<string[]>([])
+  const [status, setStatus] = useState<EnrollStatus>("idle")
+  const [message, setMessage] = useState("")
 
   const { electiveLimit } = getLevelRule(level.description)
 
@@ -27,19 +38,60 @@ export default function EnrollCoursePanel({ level }: Props) {
 
   const atLimit = selectedElectives.length >= electiveLimit
   const isComplete = selectedElectives.length === electiveLimit
+  const isBusy = status === "loading"
 
   function toggleElective(id: string) {
+    setStatus("idle")
+    setMessage("")
     setSelectedElectives((prev) =>
       prev.includes(id) ? prev.filter((v) => v !== id) : prev.length < electiveLimit ? [...prev, id] : prev
     )
   }
 
-  function handleEnroll() {
+  async function handleEnroll() {
     const payload = level.modules_level
       .filter((entry) => LOCKED.includes(entry.required as TypeKey) || selectedElectives.includes(entry.modules.id))
       .map((entry) => ({ level_id: level.id, module_id: entry.modules.id }))
 
-    console.log(payload)
+    setStatus("loading")
+    setMessage("")
+
+    try {
+      const res = await fetch("/api/student/enrollments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+        credentials: "include",
+      })
+
+      const data = await res.json()
+
+      if (!res.ok) {
+        setStatus("error")
+        setMessage(data?.error ?? "Enrollment failed. Please try again.")
+        return
+      }
+
+      const results: EnrollmentResult[] = data?.enrollmentResults ?? []
+      const succeeded = results.filter((r) => r?.error == null).length
+      const failed = results.length - succeeded
+
+      if (succeeded === 0) {
+        setStatus("error")
+        setMessage(results[0]?.error?.message ?? "Enrollment failed. Please try again.")
+        return
+      }
+
+      setStatus("success")
+      setMessage(
+        failed > 0
+          ? `${succeeded} of ${results.length} modules enrolled · ${failed} failed`
+          : `${succeeded} module${succeeded === 1 ? "" : "s"} enrolled successfully`
+      )
+    } catch {
+      setStatus("error")
+      setMessage("Could not reach the server. Please try again.")
+    }
   }
 
   return (
@@ -99,12 +151,12 @@ export default function EnrollCoursePanel({ level }: Props) {
                           <button
                             key={unit.id}
                             type="button"
-                            disabled={isLocked || blocked}
+                            disabled={isLocked || blocked || isBusy}
                             onClick={() => group.key === "elective" && toggleElective(unit.id)}
                             aria-pressed={checked}
                             className={cn(
                               "w-full flex items-center gap-2.5 rounded-md py-1.5 text-left transition-colors",
-                              isLocked || blocked
+                              isLocked || blocked || isBusy
                                 ? "cursor-default text-on-surface-variant"
                                 : "cursor-pointer hover:bg-surface-container-low"
                             )}
@@ -138,15 +190,49 @@ export default function EnrollCoursePanel({ level }: Props) {
                 </div>
               </div>
 
-              <div className="flex items-center justify-end px-5 py-3.5">
-                <button
-                  type="button"
-                  disabled={!isComplete}
-                  onClick={handleEnroll}
-                  className="px-4 py-2 rounded-lg text-[14px] font-medium bg-primary text-on-primary transition-opacity enabled:hover:opacity-90 disabled:opacity-35 disabled:cursor-not-allowed"
-                >
-                  Enroll
-                </button>
+              <div className="flex items-center gap-3 px-5 py-3.5">
+                <div className="flex-1 min-w-0">
+                  <AnimatePresence mode="wait" initial={false}>
+                    {status === "success" && (
+                      <motion.p
+                        key="success"
+                        initial={{ opacity: 0, y: 4 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.2 }}
+                        className="flex items-center gap-1.5 text-[13px] leading-[18px] text-on-surface"
+                      >
+                        <Check className="w-4 h-4 shrink-0 text-emerald-600" />
+                        {message}
+                      </motion.p>
+                    )}
+                    {status === "error" && (
+                      <motion.p
+                        key="error"
+                        initial={{ opacity: 0, y: 4 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.2 }}
+                        className="flex items-start gap-1.5 text-[13px] leading-[18px] text-error"
+                      >
+                        <CircleAlert className="w-4 h-4 shrink-0 mt-px" />
+                        {message}
+                      </motion.p>
+                    )}
+                  </AnimatePresence>
+                </div>
+
+                {status !== "success" && (
+                  <button
+                    type="button"
+                    disabled={!isComplete || isBusy}
+                    onClick={handleEnroll}
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-[14px] font-medium bg-primary text-on-primary transition-opacity enabled:hover:opacity-90 disabled:opacity-35 disabled:cursor-not-allowed"
+                  >
+                    {isBusy && <Loader2 className="w-4 h-4 animate-spin" />}
+                    {isBusy ? "Enrolling" : "Enroll"}
+                  </button>
+                )}
               </div>
             </div>
           </motion.div>
