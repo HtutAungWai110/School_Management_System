@@ -40,7 +40,7 @@ export default function EnrollCoursePanel({ level }: Props) {
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
-        className="group inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-primary text-on-primary text-[14px] font-medium transition-opacity hover:opacity-90"
+        className="group inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-full bg-surface-container-high text-on-surface text-[14px] font-medium transition-colors hover:opacity-80"
       >
         Enroll Course
         <motion.span animate={{ rotate: open ? 180 : 0 }} transition={{ duration: 0.25 }} className="flex">
