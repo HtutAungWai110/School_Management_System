@@ -1,0 +1,122 @@
+[
+  {
+    "code": "NCC1000",
+    "description": "Essential techniques for academic research, effective communication, report writing, and delivering engaging presentations."
+  },
+  {
+    "code": "NCC1001",
+    "description": "Explores emerging digital technologies, societal impacts, digital ethics, and foundational computer literacy."
+  },
+  {
+    "code": "NCC1002",
+    "description": "Fundamental concepts of computing including binary logic, hardware components, software layers, and simple problem-solving."
+  },
+  {
+    "code": "NCC1003",
+    "description": "Practical introduction to algorithm development, syntax, controls, and structured programming using Python."
+  },
+  {
+    "code": "NCC1004",
+    "description": "Foundational mathematical topics required for software development, including sets, logic, functions, and algebra."
+  },
+  {
+    "code": "NCC2001",
+    "description": "Discrete mathematics, algorithm complexity analysis, graph theory, and mathematical proofs used in computer science."
+  },
+  {
+    "code": "NCC2002",
+    "description": "Fundamentals of networking architectures, protocols, TCP/IP stack models, routing, and basic network administration."
+  },
+  {
+    "code": "NCC2003",
+    "description": "Computer architecture, processor design, memory management, and low-level operating system operations."
+  },
+  {
+    "code": "NCC2004",
+    "description": "Relational database design, SQL querying, entity-relationship modeling, and database normalization techniques."
+  },
+  {
+    "code": "NCC2005",
+    "description": "Building modern, responsive web user interfaces using HTML5, CSS3, JavaScript, and current client-side frameworks."
+  },
+  {
+    "code": "NCC2006",
+    "description": "Object-oriented modeling, UML diagrams, requirements gathering, and system design patterns."
+  },
+  {
+    "code": "NCC2007",
+    "description": "Principles of software lifecycle management, testing strategies, version control, and quality assurance."
+  },
+  {
+    "code": "NCC2008",
+    "description": "Core object-oriented programming techniques including inheritance, encapsulation, polymorphism, and abstraction."
+  },
+  {
+    "code": "NCC2009",
+    "description": "Digital business strategies, e-commerce platforms, payment gateways, and digital marketing strategies."
+  },
+  {
+    "code": "NCC2010",
+    "description": "Core organizational management concepts, leadership styles, operational planning, and workforce management."
+  },
+  {
+    "code": "NCC2011",
+    "description": "Business structures, corporate environments, financial principles, and stakeholder communication."
+  },
+  {
+    "code": "NCC2012",
+    "description": "Principles of cybersecurity, encryption protocols, network defense mechanisms, threat detection, and risk management."
+  },
+  {
+    "code": "NCC2013",
+    "description": "Independent capstone project involving system design, implementation, evaluation, and formal documentation."
+  },
+  {
+    "code": "NCC2014",
+    "description": "Agile methodologies, Scrum framework, user story mapping, sprint planning, and iterative software delivery."
+  },
+  {
+    "code": "NCC2015",
+    "description": "Server-side logic development, RESTful API design, server authentication, and database integration."
+  },
+  {
+    "code": "NCC2016",
+    "description": "IT project lifecycle management, budgeting, scheduling, risk analysis, and resource planning."
+  },
+  {
+    "code": "NCC2017",
+    "description": "Design and build native or cross-platform mobile applications, covering mobile UI design, state management, and device features."
+  },
+  {
+    "code": "NCC2018",
+    "description": "Strategic deployment of enterprise information systems, data architecture, and alignment with business objectives."
+  },
+  {
+    "code": "NCC2019",
+    "description": "Operational efficiency, supply chain basics, process automation, and quality management in business environments."
+  },
+  {
+    "code": "NCC2020",
+    "description": "Applied business project integrating IT solutions to address operational or organizational challenges."
+  },
+  {
+    "code": "NCC2021",
+    "description": "Introduction to AI fundamentals, machine learning concepts, neural networks, search algorithms, and practical applications."
+  },
+  {
+    "code": "NCC2022",
+    "description": "Data manipulation, statistical analysis, and interactive dashboard creation using Pandas, NumPy, and visualization libraries."
+  },
+  {
+    "code": "NCC2023",
+    "description": "Big data infrastructure, predictive modeling concepts, data pipelines, and scalable data analytics."
+  },
+  {
+    "code": "NCC2024",
+    "description": "Career planning, portfolio preparation, interview skills, industry certifications, and workplace readiness in tech."
+  },
+  {
+    "code": "NCC2025",
+    "description": "End-to-end system development lifecycle, covering domain modeling, software design patterns, and deployment."
+  }
+]

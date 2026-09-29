@@ -1,0 +1,22 @@
+[
+  {
+    "title": "LEVEL 3 Diploma in Computing",
+    "description": "An entry-level foundation program introducing essential computing, mathematics, programming, and study skills."
+  },
+  {
+    "title": "Level 4 Diploma in Computing",
+    "description": "Equivalent to the first year of a UK bachelor's degree, covering core software engineering, databases, networking, and algorithms."
+  },
+  {
+    "title": "Level 4 Diploma in Computing with Business Management",
+    "description": "Combines core Level 4 computing skills with essential business, management, and eBusiness principles."
+  },
+  {
+    "title": "Level 5 Diploma in Computing",
+    "description": "Equivalent to the second year of a UK bachelor's degree, focusing on advanced topics like AI, cybersecurity, mobile dev, and agile project delivery."
+  },
+  {
+    "title": "Level 5 Diploma in Computing with Business Management",
+    "description": "Advanced technical training paired with business operations, information systems management, and enterprise IT strategy."
+  }
+]

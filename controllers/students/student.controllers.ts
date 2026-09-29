@@ -34,4 +34,14 @@ export class StudentController {
       return handleError(error);
     }
   }
+
+  static async createEnrollments(request: NextRequest) {
+    try {
+      const body = await request.json()
+      const { enrollmentResults } = await StudentsService.createEnrollment(body)
+      return NextResponse.json({ enrollmentResults })
+    } catch (error) {
+      return handleError(error);
+    }
+  }
 }
