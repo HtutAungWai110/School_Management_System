@@ -26,9 +26,9 @@ export const TYPE_META = {
 export type TypeKey = keyof typeof TYPE_META
 
 export const LEVEL_LABELS: Record<string, string> = {
-  "3": "Foundation Level",
+  "3": "Undergraduate Foundation",
   "4": "Undergraduate Year 1",
-  "5": "Advanced Level",
+  "5": "Undergraduate Year 2",
 }
 
 export function parseLevel(description: string) {

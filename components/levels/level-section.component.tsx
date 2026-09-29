@@ -1,6 +1,6 @@
 import { Terminal, Code, GraduationCap } from "lucide-react"
 
-import type { ModuleEntry } from "./level-utils"
+import { LEVEL_LABELS, type ModuleEntry } from "./level-utils"
 import ModuleCard from "./module-card.component"
 import EnrollCoursePanel from "./enroll-course-panel.component"
 
@@ -32,7 +32,7 @@ export default function LevelSection({
         <div className="space-y-1">
           <div className="flex items-center gap-2">
             <span className="inline-flex items-center px-2.5 py-0.5 rounded text-[12px] font-[500] leading-[16px] bg-primary-fixed text-on-primary-fixed">
-              {levelLabel}
+              {LEVEL_LABELS[num] ?? `Level ${num}`}
             </span>
             <span className="inline-flex items-center px-2.5 py-0.5 rounded text-[12px] font-[500] leading-[16px] bg-surface-container text-on-surface-variant">
               RQF Level {num}
