@@ -1,7 +1,8 @@
 "use client"
 
 import { useState } from "react"
-import { ChevronDown, Lock, Check, LockKeyhole } from "lucide-react"
+import { AnimatePresence, motion } from "motion/react"
+import { ChevronDown, Check, Lock } from "lucide-react"
 
 import { cn } from "@/lib/utils.util"
 import { TYPE_META, type TypeKey, type ModuleEntry, getLevelRule } from "./level-utils"
@@ -17,8 +18,7 @@ export default function EnrollCoursePanel({ level }: Props) {
   const [open, setOpen] = useState(false)
   const [selectedElectives, setSelectedElectives] = useState<string[]>([])
 
-  const rule = getLevelRule(level.description)
-  const electiveLimit = rule.electiveLimit
+  const { electiveLimit } = getLevelRule(level.description)
 
   const groups = GROUP_ORDER.map((key) => ({
     key,
@@ -35,100 +35,113 @@ export default function EnrollCoursePanel({ level }: Props) {
   }
 
   return (
-    <div className="w-full md:w-[320px] self-start">
+    <div className="w-full lg:w-[300px] shrink-0">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
-        className="w-full inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-lg bg-primary text-on-primary text-[14px] font-[500] leading-[20px] hover:opacity-90 transition-opacity"
+        className="group w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-primary text-on-primary text-[14px] font-medium transition-opacity hover:opacity-90"
       >
         Enroll Course
-        <ChevronDown className={cn("w-4 h-4 transition-transform", open && "rotate-180")} />
+        <motion.span animate={{ rotate: open ? 180 : 0 }} transition={{ duration: 0.25 }} className="flex">
+          <ChevronDown className="w-4 h-4" />
+        </motion.span>
       </button>
 
-      {open && (
-        <div className="mt-3 rounded-xl bg-surface-container-lowest shadow-sm border border-surface-container-high/30 overflow-hidden">
-          <div className="p-4 space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-[14px] font-[600] leading-[20px] text-on-surface">Select Modules</h3>
-              <span className="text-[12px] font-[500] leading-[16px] text-on-surface-variant">
-                {electiveLimit === 0
-                  ? "No electives"
-                  : `${selectedElectives.length} / ${electiveLimit} elective${electiveLimit === 1 ? "" : "s"}`}
-              </span>
-            </div>
-
-            {groups.map((group) => {
-              const meta = TYPE_META[group.key]
-              const isLocked = LOCKED.includes(group.key)
-              return (
-                <div key={group.key} className="space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <span className={cn("inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[12px] font-[500] leading-[16px]", meta.pill)}>
-                      <span className={cn("w-1.5 h-1.5 rounded-full", meta.dot)} />
-                      {meta.label}
-                    </span>
-                    {isLocked && (
-                      <span className="inline-flex items-center gap-1 text-[11px] font-[500] leading-[14px] text-outline">
-                        <Lock className="w-3 h-3" />
-                        Required
-                      </span>
-                    )}
-                  </div>
-
-                  {group.units.map((entry) => {
-                    const unit = entry.modules
-                    const checked = isLocked || selectedElectives.includes(unit.id)
-                    const disabled = isLocked || (group.key === "elective" && !checked && atLimit)
-                    return (
-                      <button
-                        key={unit.id}
-                        type="button"
-                        disabled={disabled}
-                        onClick={() => group.key === "elective" && toggleElective(unit.id)}
-                        aria-pressed={checked}
-                        className={cn(
-                          "w-full flex items-center gap-2.5 p-2 rounded-lg text-left transition-colors",
-                          disabled ? "cursor-not-allowed opacity-60" : "hover:bg-surface-container-low cursor-pointer"
-                        )}
-                      >
-                        <span
-                          className={cn(
-                            "w-4 h-4 shrink-0 rounded border flex items-center justify-center",
-                            checked ? "bg-primary border-primary" : "border-outline"
-                          )}
-                        >
-                          {checked && <Check className="w-3 h-3 text-on-primary" />}
-                        </span>
-                        <span className="min-w-0">
-                          <span className="block font-mono text-[11px] leading-[14px] text-primary">{unit.code}</span>
-                          <span className="block text-[13px] leading-[18px] text-on-surface truncate">{unit.title}</span>
-                        </span>
-                      </button>
-                    )
-                  })}
+      <AnimatePresence initial={false}>
+        {open && (
+          <motion.div
+            key="panel"
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.3, ease: [0.32, 0.72, 0, 1] }}
+            className="overflow-hidden"
+          >
+            <div className="mt-3 rounded-xl bg-surface-container-lowest shadow-sm">
+              <div className="px-5 pt-5 pb-4 space-y-5">
+                <div className="flex items-baseline justify-center gap-2">
+                  <h3 className="text-[13px] font-medium text-on-surface">Select modules</h3>
+                  <span className="text-[12px] text-on-surface-variant">
+                    {electiveLimit === 0
+                      ? "all required"
+                      : `${selectedElectives.length} of ${electiveLimit} elective${electiveLimit === 1 ? "" : "s"}`}
+                  </span>
                 </div>
-              )
-            })}
-          </div>
 
-          <div className="flex items-center justify-end gap-3 px-4 py-3 border-t border-surface-container-high/30 bg-surface-container-low">
-            {!isComplete && (
-              <span className="text-[12px] font-[500] leading-[16px] text-on-surface-variant">
-                {electiveLimit === 0 ? "All modules are required" : `Select ${electiveLimit - selectedElectives.length} more`}
-              </span>
-            )}
-            <button
-              type="button"
-              disabled={!isComplete}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary text-on-primary text-[14px] font-[500] leading-[20px] transition-opacity enabled:hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed"
-            >
-              <LockKeyhole className="w-4 h-4" />
-              Enroll
-            </button>
-          </div>
-        </div>
-      )}
+                {groups.map((group) => {
+                  const meta = TYPE_META[group.key]
+                  const isLocked = LOCKED.includes(group.key)
+                  return (
+                    <div key={group.key} className="space-y-1">
+                      <div className="flex items-center justify-center gap-1.5 pb-1">
+                        <span className={cn("w-1.5 h-1.5 rounded-full", meta.dot)} />
+                        <span className="text-[11px] font-medium uppercase tracking-[0.08em] text-on-surface-variant">
+                          {meta.label}
+                        </span>
+                        {isLocked && <Lock className="w-3 h-3 text-outline" />}
+                      </div>
+
+                      {group.units.map((entry) => {
+                        const unit = entry.modules
+                        const checked = isLocked || selectedElectives.includes(unit.id)
+                        const blocked = group.key === "elective" && !checked && atLimit
+                        return (
+                          <button
+                            key={unit.id}
+                            type="button"
+                            disabled={isLocked || blocked}
+                            onClick={() => group.key === "elective" && toggleElective(unit.id)}
+                            aria-pressed={checked}
+                            title={unit.title}
+                            className={cn(
+                              "w-full flex items-center justify-center gap-2 rounded-md py-1.5 text-center transition-colors",
+                              isLocked || blocked
+                                ? "cursor-default text-on-surface-variant"
+                                : "cursor-pointer hover:bg-surface-container-low"
+                            )}
+                          >
+                            <span
+                              className={cn(
+                                "grid place-items-center w-4 h-4 shrink-0 rounded-full transition-colors",
+                                checked ? "bg-primary" : "bg-surface-container-high"
+                              )}
+                            >
+                              <AnimatePresence initial={false}>
+                                {checked && (
+                                  <motion.span
+                                    initial={{ scale: 0.4, opacity: 0 }}
+                                    animate={{ scale: 1, opacity: 1 }}
+                                    exit={{ scale: 0.4, opacity: 0 }}
+                                    transition={{ duration: 0.15 }}
+                                  >
+                                    <Check className="w-2.5 h-2.5 text-on-primary" />
+                                  </motion.span>
+                                )}
+                              </AnimatePresence>
+                            </span>
+                            <span className="font-mono text-[12px] leading-4 text-primary">{unit.code}</span>
+                          </button>
+                        )
+                      })}
+                    </div>
+                  )
+                })}
+              </div>
+
+              <div className="flex items-center justify-end px-5 py-3.5">
+                <button
+                  type="button"
+                  disabled={!isComplete}
+                  className="px-4 py-2 rounded-lg text-[14px] font-medium bg-primary text-on-primary transition-opacity enabled:hover:opacity-90 disabled:opacity-35 disabled:cursor-not-allowed"
+                >
+                  Enroll
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }
