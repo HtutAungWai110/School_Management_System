@@ -34,6 +34,14 @@ export default function EnrollCoursePanel({ level }: Props) {
     )
   }
 
+  function handleEnroll() {
+    const payload = level.modules_level
+      .filter((entry) => LOCKED.includes(entry.required as TypeKey) || selectedElectives.includes(entry.modules.id))
+      .map((entry) => ({ level_id: level.id, module_id: entry.modules.id }))
+
+    console.log(payload)
+  }
+
   return (
     <div className="w-full">
       <button
@@ -134,6 +142,7 @@ export default function EnrollCoursePanel({ level }: Props) {
                 <button
                   type="button"
                   disabled={!isComplete}
+                  onClick={handleEnroll}
                   className="px-4 py-2 rounded-lg text-[14px] font-medium bg-primary text-on-primary transition-opacity enabled:hover:opacity-90 disabled:opacity-35 disabled:cursor-not-allowed"
                 >
                   Enroll
