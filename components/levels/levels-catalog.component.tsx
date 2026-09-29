@@ -5,14 +5,22 @@ import { BadgeCheck } from "lucide-react"
 
 import type { Level } from "@/types/module.type"
 
-import { parseLevel } from "./level-utils"
+import { normalizeTitle, parseLevel } from "./level-utils"
 import MetricBadges from "./metric-badges.component"
 import SearchBar from "./search-bar.component"
 import RequirementLegend from "./requirement-legend.component"
 import FilterTabs from "./filter-tabs.component"
 import LevelSection from "./level-section.component"
 
-export default function LevelsCatalog({ initialLevels }: { initialLevels: Level[] }) {
+export default function LevelsCatalog({
+  initialLevels,
+  levelBriefs,
+  moduleBriefs,
+}: {
+  initialLevels: Level[]
+  levelBriefs: Record<string, string>
+  moduleBriefs: Record<string, string>
+}) {
   const [query, setQuery] = useState("")
   const [filter, setFilter] = useState<string>("All")
 
@@ -94,7 +102,15 @@ export default function LevelsCatalog({ initialLevels }: { initialLevels: Level[
         {visibleLevels.map((level) => {
           const { number } = parseLevel(level.description)
           const num = number ?? "0"
-          return <LevelSection key={level.id} level={level} levelLabel={num} />
+          return (
+            <LevelSection
+              key={level.id}
+              level={level}
+              levelLabel={num}
+              brief={levelBriefs[normalizeTitle(level.description)]}
+              moduleBriefs={moduleBriefs}
+            />
+          )
         })}
       </div>
 

@@ -31,6 +31,10 @@ export const LEVEL_LABELS: Record<string, string> = {
   "5": "Undergraduate Year 2",
 }
 
+export function normalizeTitle(value: string) {
+  return value.trim().replace(/\s+/g, " ").toLowerCase()
+}
+
 export function parseLevel(description: string) {
   const match = description.match(/\bLEVEL\s*(\d+)/i)
   const number = match?.[1] ?? null

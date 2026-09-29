@@ -3,7 +3,17 @@ import { ArrowRight } from "lucide-react"
 import { cn } from "@/lib/utils.util"
 import { TYPE_META, type TypeKey } from "./level-utils"
 
-export default function ModuleCard({ code, title, required }: { code: string; title: string; required: string }) {
+export default function ModuleCard({
+  code,
+  title,
+  required,
+  brief,
+}: {
+  code: string
+  title: string
+  required: string
+  brief?: string
+}) {
   const meta = TYPE_META[required as TypeKey] ?? TYPE_META.elective
   return (
     <article className="group p-4 rounded-xl bg-surface-container-lowest shadow-sm hover:shadow-md transition-all flex flex-col justify-between">
@@ -21,6 +31,11 @@ export default function ModuleCard({ code, title, required }: { code: string; ti
           <h3 className="text-[18px] font-[600] leading-[24px] text-on-surface group-hover:text-primary transition-colors">
             {title}
           </h3>
+          {brief && (
+            <p className="mt-1.5 text-[13px] leading-[18px] text-on-surface-variant text-pretty">
+              {brief}
+            </p>
+          )}
         </div>
       </div>
       <div className="mt-4 pt-3 flex items-center justify-between border-t border-surface-container-high/30">

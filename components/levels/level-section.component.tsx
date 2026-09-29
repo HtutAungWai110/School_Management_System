@@ -12,9 +12,13 @@ export function LevelIcon({ num }: { num: string }) {
 export default function LevelSection({
   level,
   levelLabel,
+  brief,
+  moduleBriefs,
 }: {
   level: { id: string; description: string; modules_level: ModuleEntry[] }
   levelLabel: string
+  brief?: string
+  moduleBriefs: Record<string, string>
 }) {
   const num = levelLabel
   const totalModules = level.modules_level.length
@@ -41,6 +45,11 @@ export default function LevelSection({
           <h2 className="text-[22px] font-[600] leading-[28px] text-on-surface tracking-tight">
             {level.description}
           </h2>
+          {brief && (
+            <p className="max-w-2xl text-[14px] leading-[20px] text-on-surface-variant text-pretty">
+              {brief}
+            </p>
+          )}
         </div>
         <div className="flex items-center gap-3 self-start md:self-auto">
           <div className="text-right hidden sm:block">
@@ -55,7 +64,13 @@ export default function LevelSection({
       <EnrollCoursePanel level={level} />
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {level.modules_level.map((entry) => (
-          <ModuleCard key={entry.modules.id} code={entry.modules.code} title={entry.modules.title} required={entry.required} />
+          <ModuleCard
+            key={entry.modules.id}
+            code={entry.modules.code}
+            title={entry.modules.title}
+            required={entry.required}
+            brief={moduleBriefs[entry.modules.code]}
+          />
         ))}
       </div>
     </section>

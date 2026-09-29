@@ -3,6 +3,17 @@ import LevelsCatalog from "@/components/levels/levels-catalog.component"
 import StudentPortalHeader from "@/components/student/student-portal-header.component"
 import StudentPortalFooter from "@/components/student/student-portal-footer.component"
 import type { Level } from "@/types/module.type"
+import levelDescriptions from "@/public/descriptions/levels.json"
+import moduleDescriptions from "@/public/descriptions/modules.json"
+import { normalizeTitle } from "@/components/levels/level-utils"
+
+const levelBriefs = Object.fromEntries(
+  levelDescriptions.map((entry) => [normalizeTitle(entry.title), entry.description])
+)
+
+const moduleBriefs = Object.fromEntries(
+  moduleDescriptions.map((entry) => [entry.code, entry.description])
+)
 
 export default async function LevelsPage() {
   const levels = (await serverFetch(
@@ -16,7 +27,11 @@ export default async function LevelsPage() {
 
       <div className="w-full pt-16 bg-surface min-h-[calc(100vh-140px)]">
         <div className="max-w-[1440px] mx-auto px-6 md:px-12 py-10">
-          <LevelsCatalog initialLevels={levels} />
+          <LevelsCatalog
+            initialLevels={levels}
+            levelBriefs={levelBriefs}
+            moduleBriefs={moduleBriefs}
+          />
         </div>
       </div>
 
