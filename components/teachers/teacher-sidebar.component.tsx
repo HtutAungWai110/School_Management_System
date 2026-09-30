@@ -3,7 +3,6 @@
 import { useState } from "react"
 import Image from "next/image"
 import ProfileCard from "@/components/profile/profile-card.component"
-import ThemeToggle from "@/components/theme/theme-toggle.component"
 import { LayoutDashboard, Calendar, Book, Settings, Menu, X } from "lucide-react"
 import { usePathname } from "next/navigation"
 import Link from "next/link"
@@ -75,10 +74,7 @@ export default function TeacherSidebar() {
           })}
         </nav>
         <div className="p-6 border-t border-outline-variant/10">
-          <div className="flex items-center justify-between">
-            <ProfileCard />
-            <ThemeToggle />
-          </div>
+          <ProfileCard />
         </div>
       </aside>
     </>
