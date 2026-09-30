@@ -24,15 +24,15 @@
 :root {
   color-scheme: light;
 
-  /* Brand — teal. A green pulled toward blue: distinct from a stock
-     emerald while still reading as green. Primary is teal-700, not -600,
-     because white on teal-600 is 3.6:1 and fails AA for 14px text;
-     teal-700 is 5.5:1. */
-  --c-brand: #0f766e;
-  --c-brand-hover: #115e59;
-  --c-brand-soft: #f0fdfa;
-  --c-brand-line: #99f6e4;
-  --c-brand-ink: #134e4a;
+  /* Brand — petrol. A dark green pushed toward blue, past the point
+     where it reads as "teal" and into a colder blue-green. Primary is
+     hue 188 at 7.9:1 on white; hover goes darker (10.6:1) so hover
+     raises contrast rather than lowering it. */
+  --c-brand: #0e5a66;
+  --c-brand-hover: #0a4550;
+  --c-brand-soft: #eef6f7;
+  --c-brand-line: #9ecdd4;
+  --c-brand-ink: #0b3d47;
 
   /* Neutrals — slate */
   --c-page: #f8fafc;
@@ -47,8 +47,8 @@
   --c-ink-faint: #94a3b8;
 
   /* Supporting hues — violet for specialist, sky for elective.
-     Deliberately NOT teal, which is reserved for brand/action
-     so a coloured pill is never ambiguous. */
+     Deliberately NOT the brand petrol, which is reserved for
+     brand/action so a coloured pill is never ambiguous. */
   --c-violet: #7c3aed;
   --c-violet-soft: #f5f3ff;
   --c-violet-ink: #4c1d95;
@@ -100,7 +100,7 @@
   --on-primary: #ffffff;
   --primary-container: var(--c-brand-soft);
   --on-primary-container: var(--c-brand-ink);
-  --primary-fixed: #ccfbf1;
+  --primary-fixed: #cdeef2;
   --on-primary-fixed: var(--c-brand-ink);
   --on-primary-fixed-variant: var(--c-brand-hover);
   --on-secondary: #ffffff;
@@ -142,11 +142,11 @@
 .dark {
   color-scheme: dark;
 
-  --c-brand: #2dd4bf;
-  --c-brand-hover: #5eead4;
-  --c-brand-soft: #042f2e;
-  --c-brand-line: #115e59;
-  --c-brand-ink: #99f6e4;
+  --c-brand: #57c7d1;
+  --c-brand-hover: #7fdbe3;
+  --c-brand-soft: #0a2f38;
+  --c-brand-line: #155e6b;
+  --c-brand-ink: #a5dfe6;
 
   --c-page: #0a0f1a;
   --c-card: #0f172a;
@@ -208,7 +208,7 @@
   --on-primary: #020617;
   --primary-container: var(--c-brand-soft);
   --on-primary-container: var(--c-brand-ink);
-  --primary-fixed: #115e59;
+  --primary-fixed: #0d4a56;
   --on-primary-fixed: var(--c-brand-ink);
   --on-primary-fixed-variant: var(--c-brand-hover);
   --on-secondary: #020617;

@@ -1,10 +1,11 @@
 import type { Level } from "@/types/module.type"
 
 /**
- * Module-type encoding. Teal is deliberately absent — it is the
- * brand/action colour, so a teal pill would read as "primary" rather
- * than "elective". Core takes slate because it is the most numerous
- * group and should be the quietest; choice (elective) takes sky.
+ * Module-type encoding. The brand petrol is deliberately absent — it is
+ * the brand/action colour, so a petrol pill would read as "primary"
+ * rather than "elective". Core takes slate because it is the most
+ * numerous group and should be the quietest; choice takes blue, which
+ * sits far enough from the brand petrol to stay distinct.
  */
 export const TYPE_META = {
   core: {
@@ -24,8 +25,8 @@ export const TYPE_META = {
   },
   elective: {
     label: "Elective",
-    pill: "bg-sky-50 text-sky-800 dark:bg-sky-950/60 dark:text-sky-300",
-    dot: "bg-sky-500",
+    pill: "bg-blue-50 text-blue-800 dark:bg-blue-950/60 dark:text-blue-300",
+    dot: "bg-blue-500",
   },
 } as const
 
