@@ -2,6 +2,10 @@ import { createClient } from "@/lib/supabase/server.client";
 
 const PAGE_SIZE = 20;
 
+function normalizeTitle(value: string) {
+  return value.trim().replace(/\s+/g, " ").toLowerCase();
+}
+
 export class StudentsService {
   static async list(search: string, filter: string, page: number) {
     const supabase = await createClient();
@@ -211,7 +215,10 @@ export class StudentsService {
       levels: { description: string }
     }
 
-    const requiredValidMap = new Map<string, Record<string, string | number>>()
+    // `level` is the qualification title; the rest are per-type tallies.
+    type LevelCombination = { level: string } & Record<string, string | number>
+
+    const requiredValidMap = new Map<string, LevelCombination>()
 
     ;(moduleLevelsData as unknown as ModuleLevelRow[]).forEach(item => {
       let level = requiredValidMap.get(item.levels.description)
@@ -235,24 +242,29 @@ export class StudentsService {
       throw new Error("Invalid enrollment!")
     }
 
-    if (levelModulesCombination.level === "Level 3 Diploma in Computing") {
+    // Level titles come from the DB and their casing has varied ("LEVEL 3"
+    // vs "Level 3"), so compare normalised rather than by exact string.
+    const levelKey = normalizeTitle(levelModulesCombination.level)
+
+    if (levelKey === "level 3 diploma in computing") {
       if (levelModulesCombination.core !== 5) {
         throw new Error("Invalid enrollment!")
       }
-    } else if (levelModulesCombination.level === "Level 4 Diploma in Computing") {
+    } else if (levelKey === "level 4 diploma in computing") {
       if (levelModulesCombination.core !== 5 || levelModulesCombination.mandatory !== 3) {
         throw new Error("Invalid enrollment!")
       }
-    } else if (levelModulesCombination.level === "Level 4 Diploma in Computing with Business Management") {
+    } else if (levelKey === "level 4 diploma in computing with business management") {
       if (levelModulesCombination.core !== 4 || levelModulesCombination.mandatory !== 3 || levelModulesCombination.elective !== 1 ) {
         throw new Error("Invalid enrollment!")
       }
-    } else if (levelModulesCombination.level === "Level 5 Diploma in Computing") {
+    } else if (levelKey === "level 5 diploma in computing") {
       if (levelModulesCombination.specialist !== 4 || levelModulesCombination.elective !== 2) {
         throw new Error("Invalid enrollment!")
       }
-    } else if (levelModulesCombination.level === "Level 5 Diploma in Computing with Business Management") {
-      if (levelModulesCombination.core !== 4 || levelModulesCombination.elective !== 2) {
+    } else if (levelKey === "level 5 diploma in computing with business management") {
+      // level-rules.md specifies 4 specialist + 2 elective for this diploma.
+      if (levelModulesCombination.specialist !== 4 || levelModulesCombination.elective !== 2) {
         throw new Error("Invalid enrollment!")
       }
     } else {

@@ -37,8 +37,8 @@ export async function proxy(request: NextRequest) {
   const publicRoutes = ['/login', '/'];
 
   const roleRoutes: Record<string, string> = {
-    admin: '/admin/dashboard/overview',
-    teacher: '/teacher/dashboard/overview',
+    admin: '/admin',
+    teacher: '/teacher',
     student: '/student',
   };
 

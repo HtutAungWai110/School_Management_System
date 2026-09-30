@@ -136,7 +136,7 @@ export default async function SettingsPage() {
               <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-on-surface-variant">Session</p>
 
               <div className="mt-5 flex items-center gap-2.5">
-                <span className="size-2.5 rounded-full bg-emerald-500" aria-hidden="true" />
+                <span className="size-2.5 rounded-full bg-primary" aria-hidden="true" />
                 <span className="text-[14px] font-[600] leading-[16px] text-on-surface">Signed in</span>
               </div>
               <p className="mt-2 break-words text-[13px] leading-[18px] text-on-surface-variant">{email}</p>

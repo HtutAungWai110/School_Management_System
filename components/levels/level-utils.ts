@@ -1,8 +1,8 @@
 import type { Level } from "@/types/module.type"
 
 /**
- * Module-type encoding. Emerald is deliberately absent — it is the
- * brand/action colour, so a green pill would read as "primary" rather
+ * Module-type encoding. Teal is deliberately absent — it is the
+ * brand/action colour, so a teal pill would read as "primary" rather
  * than "elective". Core takes slate because it is the most numerous
  * group and should be the quietest; choice (elective) takes sky.
  */
