@@ -2,20 +2,18 @@
 
 import { useSyncExternalStore } from "react"
 import { useTheme } from "next-themes"
-import { Sun, Moon, Monitor } from "lucide-react"
-
-import { cn } from "@/lib/utils.util"
+import { ChevronDown } from "lucide-react"
 
 const OPTIONS = [
-  { value: "light", label: "Light", Icon: Sun, note: "Always the light palette" },
-  { value: "dark", label: "Dark", Icon: Moon, note: "Always the dark palette" },
-  { value: "system", label: "System", Icon: Monitor, note: "Follow your device setting" },
+  { value: "light", label: "Light mode" },
+  { value: "dark", label: "Dark mode" },
+  { value: "system", label: "System default" },
 ] as const
 
 const emptySubscribe = () => () => {}
 
-// next-themes reads localStorage, so nothing is known during SSR. Render
-// the shell without an active choice until the client has mounted,
+// next-themes reads localStorage, so the chosen value is unknown during
+// SSR. Render the select with no selection until the client has mounted,
 // otherwise the markup would mismatch and React would discard it.
 function useIsMounted() {
   return useSyncExternalStore(
@@ -30,46 +28,29 @@ export default function ThemePreference() {
   const mounted = useIsMounted()
 
   return (
-    <div>
-      <p className="text-[14px] font-medium text-foreground">Appearance</p>
-      <p className="mt-0.5 text-[14px] text-on-surface-variant">
-        Applies across your dashboard. Saved on this device, not to your account.
-      </p>
+    <div className="flex flex-col gap-3 rounded-lg px-3 py-4 transition-colors hover:bg-surface-container-low/50 sm:flex-row sm:items-center sm:justify-between">
+      <div className="min-w-0">
+        <span className="block text-[14px] font-medium text-foreground">Theme</span>
+        <p className="mt-0.5 text-[14px] text-on-surface-variant">
+          Appearance. Saved on this device, not to your account.
+        </p>
+      </div>
 
-      <div role="radiogroup" aria-label="Theme" className="mt-4 grid gap-3 sm:grid-cols-3">
-        {OPTIONS.map(({ value, label, Icon, note }) => {
-          const selected = mounted && theme === value
-          return (
-            <button
-              key={value}
-              type="button"
-              role="radio"
-              aria-checked={selected}
-              onClick={() => setTheme(value)}
-              className={cn(
-                "flex flex-col items-start gap-2 rounded-xl border p-4 text-left transition-colors",
-                selected
-                  ? "border-primary bg-primary-container"
-                  : "border-border bg-card hover:border-primary/40 hover:bg-surface-container-low/50"
-              )}
-            >
-              <span
-                className={cn(
-                  "grid size-9 place-items-center rounded-lg",
-                  selected ? "bg-primary text-primary-foreground" : "bg-surface-container-high text-on-surface-variant"
-                )}
-              >
-                <Icon className="size-4" />
-              </span>
-              <span className={cn("text-[14px] font-semibold", selected ? "text-on-primary-container" : "text-foreground")}>
-                {label}
-              </span>
-              <span className={cn("text-[12px] leading-4", selected ? "text-on-primary-container/80" : "text-on-surface-variant")}>
-                {note}
-              </span>
-            </button>
-          )
-        })}
+      <div className="relative shrink-0 self-start sm:self-auto">
+        <select
+          value={mounted ? theme : ""}
+          onChange={(e) => setTheme(e.target.value)}
+          aria-label="Theme"
+          className="appearance-none rounded-lg border border-border bg-surface-container-low py-2 pl-3 pr-9 text-[13px] font-medium text-foreground transition-colors hover:bg-surface-container-high focus:border-primary focus:outline-none"
+        >
+          {mounted ? null : <option value="">Theme</option>}
+          {OPTIONS.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+        <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 size-4 -translate-y-1/2 text-on-surface-variant" />
       </div>
     </div>
   )

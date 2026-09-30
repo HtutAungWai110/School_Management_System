@@ -104,8 +104,8 @@ export default function SettingsView({
         </div>
 
         <div className="flex flex-col md:flex-row">
-          {/* Section rail — also carries the sign-out action */}
-          <aside className="flex shrink-0 flex-col justify-between gap-6 border-b border-border bg-surface-container-low/60 p-4 md:w-64 md:border-b-0 md:border-r lg:w-72">
+          {/* Section rail */}
+          <aside className="shrink-0 border-b border-border bg-surface-container-low/60 p-4 md:w-64 md:border-b-0 md:border-r lg:w-72">
             <nav aria-label="Settings sections" className="space-y-1">
               {(
                 [
@@ -123,7 +123,7 @@ export default function SettingsView({
                     className={cn(
                       "flex w-full items-center justify-between gap-2 rounded-lg px-4 py-2.5 text-left text-[14px] font-medium transition-colors",
                       active
-                        ? "bg-primary-container text-on-primary-container"
+                        ? "bg-primary/50 text-on-primary-container"
                         : "text-on-surface-variant hover:bg-surface-container-high hover:text-foreground"
                     )}
                   >
@@ -131,21 +131,11 @@ export default function SettingsView({
                       <Icon className="size-4" />
                       {label}
                     </span>
-                    {active && <span className="size-1.5 rounded-full bg-primary" aria-hidden />}
+
                   </button>
                 )
               })}
             </nav>
-
-            <form action={signOut} className="pt-2">
-              <button
-                type="submit"
-                className="flex w-full items-center gap-2.5 rounded-lg px-4 py-2.5 text-left text-[14px] font-medium text-error transition-colors hover:bg-error/10"
-              >
-                <LogOut className="size-4" />
-                Log out
-              </button>
-            </form>
           </aside>
 
           <section className="flex-1 p-6 md:p-8">
@@ -236,6 +226,19 @@ export default function SettingsView({
                     </div>
                   </dl>
                 </div>
+
+                <form action={signOut}>
+                  <button
+                    type="submit"
+                    className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-[14px] font-medium text-error transition-colors hover:bg-error/10"
+                  >
+                    <LogOut className="size-4" />
+                    Log out
+                  </button>
+                  <p className="mt-1 pl-1 text-[12px] text-on-surface-variant">
+                    Ends this session and returns you to the sign-in page.
+                  </p>
+                </form>
               </div>
             )}
             </div>
