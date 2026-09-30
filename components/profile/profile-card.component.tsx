@@ -2,7 +2,6 @@
 
 import { useProfileStore } from "@/components/profile/profile.state"
 import Image from "next/image"
-import { ChevronDown } from "lucide-react"
 
 export default function ProfileCard() {
   const { profile } = useProfileStore()
@@ -30,7 +29,6 @@ export default function ProfileCard() {
         <span className="font-label-md text-label-md text-on-surface">{profile.full_name}</span>
         <span className="font-label-sm text-label-sm text-on-surface-variant capitalize">{profile.role}</span>
       </div>
-      <ChevronDown className="ml-auto text-on-surface-variant w-[18px] h-[18px]" />
     </div>
   )
 }
