@@ -49,7 +49,16 @@ function formatMemberSince(value: string) {
   return date.toLocaleDateString("en-GB", { month: "long", year: "numeric" })
 }
 
-export default function SettingsView({ profile }: { profile: Profile }) {
+export default function SettingsView({
+  profile,
+  withSidebar = false,
+}: {
+  profile: Profile
+  /** The admin and teacher layouts render a fixed w-64 sidebar and put
+   *  no offset on their children, so those pages have to clear it. The
+   *  student portal has a top header instead and must not be inset. */
+  withSidebar?: boolean
+}) {
   const [tab, setTab] = useState<Tab>("account")
   const router = useRouter()
   const setProfile = useProfileStore((state) => state.setProfile)
@@ -78,6 +87,7 @@ export default function SettingsView({ profile }: { profile: Profile }) {
   }
 
   return (
+    <main className={cn(withSidebar && "lg:ml-64")}>
     <div className="mx-auto w-full max-w-[1440px] px-6 py-8 md:px-12">
       <nav aria-label="Breadcrumb" className="mb-4 flex items-center gap-1.5 text-[13px] text-on-surface-variant">
         <span>Preferences</span>
@@ -233,5 +243,6 @@ export default function SettingsView({ profile }: { profile: Profile }) {
         </div>
       </div>
     </div>
+    </main>
   )
 }

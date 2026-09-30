@@ -7,7 +7,7 @@ import type { Profile } from "@/types/profile.type"
  * settings pages differ only in their URL, so the role is irrelevant
  * here — each account edits its own profile and nothing else.
  */
-export default async function SettingsPage() {
+export default async function SettingsPage({ withSidebar = false }: { withSidebar?: boolean }) {
   const supabase = await createClient()
   const {
     data: { user },
@@ -23,5 +23,5 @@ export default async function SettingsPage() {
 
   if (!profile) return null
 
-  return <SettingsView profile={profile as Profile} />
+  return <SettingsView profile={profile as Profile} withSidebar={withSidebar} />
 }
