@@ -6,7 +6,6 @@ import { BadgeCheck } from "lucide-react"
 import type { Level } from "@/types/module.type"
 
 import { normalizeTitle, parseLevel } from "./level-utils"
-import MetricBadges from "./metric-badges.component"
 import SearchBar from "./search-bar.component"
 import RequirementLegend from "./requirement-legend.component"
 import FilterTabs from "./filter-tabs.component"
@@ -22,36 +21,29 @@ export default function LevelsCatalog({
   moduleBriefs: Record<string, string>
 }) {
   const [query, setQuery] = useState("")
-  const [filter, setFilter] = useState<string>("All")
+  const [filter, setFilter] = useState<string>("all")
 
-  const levelOptions = useMemo(() => {
-    const seen: string[] = []
-    for (const level of initialLevels) {
-      const { number } = parseLevel(level.description)
-      if (number && !seen.includes(number)) seen.push(number)
-    }
-    return seen
-  }, [initialLevels])
-
+  // Keyed by level id, not level number: two qualifications can share a
+  // number ("Level 4 Diploma in Computing" and "... with Business
+  // Management"), so a number-keyed tab silently hides one of them.
   const tabs = useMemo(() => {
     const allCount = initialLevels.reduce((s, l) => s + l.modules_level.length, 0)
     const items: { label: string; key: string }[] = [
-      { label: `All Programs (${allCount})`, key: "All" },
+      { label: `All programmes (${allCount})`, key: "all" },
+      ...initialLevels.map((level) => {
+        const { number, title } = parseLevel(level.description)
+        const short = title.replace(/^diploma in /i, "").replace(/^advanced diploma in /i, "")
+        return {
+          label: `L${number ?? "?"} ${short} (${level.modules_level.length})`,
+          key: level.id,
+        }
+      }),
     ]
-    for (const num of levelOptions) {
-      const level = initialLevels.find((l) => parseLevel(l.description).number === num)
-      const count = level ? level.modules_level.length : 0
-      const { title } = parseLevel(level?.description ?? "")
-      items.push({ label: `Level ${num} ${title} (${count})`, key: `l${num}` })
-    }
     return items
-  }, [initialLevels, levelOptions])
+  }, [initialLevels])
 
   const visibleLevels = useMemo(() => {
-    const levels =
-      filter === "All"
-        ? initialLevels
-        : initialLevels.filter((l) => parseLevel(l.description).number === filter.replace("l", ""))
+    const levels = filter === "all" ? initialLevels : initialLevels.filter((l) => l.id === filter)
     if (!query.trim()) return levels
     const q = query.toLowerCase()
     return levels
@@ -66,39 +58,37 @@ export default function LevelsCatalog({
       .filter((l) => l.modules_level.length > 0)
   }, [initialLevels, filter, query])
 
-  const totalDiplomas = initialLevels.length
-  const totalUnits = initialLevels.reduce((s, l) => s + l.modules_level.length, 0)
-
   return (
-    <div className="flex flex-col w-full gap-5">
-      <section className="relative w-full rounded-xl bg-surface-container-lowest p-6 md:p-10 shadow-sm overflow-hidden">
-        <div className="absolute -right-16 -top-16 w-96 h-96 rounded-full bg-secondary-fixed/40 blur-3xl pointer-events-none" />
-        <div className="absolute -left-12 bottom-0 w-64 h-64 rounded-full bg-surface-container-high/60 blur-2xl pointer-events-none" />
-        <div className="relative z-10 flex flex-col gap-1">
-          <span className="text-[12px] font-[500] leading-[16px] text-on-surface-variant flex items-center gap-1">
-            <BadgeCheck className="w-4 h-4" />
-            Academic Programs &amp; Qualifications Framework
+    <div className="flex w-full flex-col gap-6">
+      <section className="relative overflow-hidden rounded-xl border border-border bg-card p-6 md:p-10">
+        <div aria-hidden className="pointer-events-none absolute -right-24 -top-24 size-80 rounded-full bg-primary/[0.07] blur-3xl" />
+        <div className="relative">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.06em] text-primary">
+            <BadgeCheck className="size-3.5" />
+            Qualifications framework
           </span>
-          <h1 className="text-[32px] font-[700] leading-[40px] tracking-[-0.02em] text-on-surface mt-1">
-            Course Modules &amp; Curriculum
+          <h1 className="mt-4 text-[32px] font-extrabold leading-[1.1] tracking-[-0.03em] text-foreground md:text-[40px]">
+            Course modules
+            <br />
+            and curriculum
           </h1>
-          <p className="text-[16px] leading-[24px] text-on-surface-variant mt-2 max-w-2xl">
-            Explore qualifications, core requirements, electives, and module
-            specifications across all academic levels. Accreditations aligned
-            with UK standard computing frameworks.
+          <p className="mt-4 max-w-2xl text-[15px] leading-6 text-on-surface-variant">
+            Every qualification in the catalogue, the modules it requires, and how many
+            of each type you must take. Levels 3 to 5 stack — each one assumes the last.
           </p>
         </div>
       </section>
 
-      <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
-        <MetricBadges diplomas={totalDiplomas} units={totalUnits} />
+      <div className="flex flex-col items-stretch gap-4 sm:flex-row sm:items-center sm:justify-between">
         <SearchBar query={query} onQueryChange={setQuery} />
       </div>
 
-      <RequirementLegend />
-      <FilterTabs tabs={tabs} filter={filter} onFilterChange={setFilter} />
+      <div className="flex flex-col gap-3">
+        <RequirementLegend />
+        <FilterTabs tabs={tabs} filter={filter} onFilterChange={setFilter} />
+      </div>
 
-      <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-8">
         {visibleLevels.map((level) => {
           const { number } = parseLevel(level.description)
           const num = number ?? "0"
@@ -115,8 +105,11 @@ export default function LevelsCatalog({
       </div>
 
       {visibleLevels.length === 0 && (
-        <div className="rounded-xl bg-surface-container-lowest p-10 text-center shadow-sm">
-          <p className="text-[14px] leading-[20px] text-on-surface-variant">No modules match your filters.</p>
+        <div className="rounded-xl border border-border bg-card p-12 text-center">
+          <p className="text-[15px] font-medium text-foreground">No modules match these filters</p>
+          <p className="mt-1 text-[13px] text-on-surface-variant">
+            Try a different module code or clear the search.
+          </p>
         </div>
       )}
     </div>

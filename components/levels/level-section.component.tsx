@@ -1,6 +1,7 @@
 import { Terminal, Code, GraduationCap } from "lucide-react"
 
 import { LEVEL_LABELS, type ModuleEntry } from "./level-utils"
+import LevelProgress from "./level-progress.component"
 import ModuleCard from "./module-card.component"
 import EnrollCoursePanel from "./enroll-course-panel.component"
 
@@ -28,41 +29,45 @@ export default function LevelSection({
     { label: "Specialist", count: level.modules_level.filter((m) => m.required === "specialist").length },
     { label: "Elective", count: level.modules_level.filter((m) => m.required === "elective").length },
   ].filter((g) => g.count > 0)
-  const breakdown = groups.map((g) => `${g.count} ${g.label}${g.count === 1 ? "" : "s"}`).join(" • ")
+  const breakdown = groups.map((g) => `${g.count} ${g.label}${g.count === 1 ? "" : "s"}`).join(" · ")
 
   return (
-    <section className="diploma-section space-y-4">
-      <div className="p-6 rounded-xl bg-surface-container-lowest shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="space-y-1">
-          <div className="flex items-center gap-2">
-            <span className="inline-flex items-center px-2.5 py-0.5 rounded text-[12px] font-[500] leading-[16px] bg-primary-fixed text-on-primary-fixed">
+    <section className="space-y-4">
+      <div className="rounded-xl border border-border bg-card p-6">
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+          <div className="min-w-0">
+            <LevelProgress current={num} />
+            <h2 className="mt-3 text-[20px] font-bold leading-7 tracking-tight text-foreground">
+              {level.description}
+            </h2>
+            <p className="mt-1 text-[13px] font-medium text-on-surface-variant">
               {LEVEL_LABELS[num] ?? `Level ${num}`}
-            </span>
-            <span className="inline-flex items-center px-2.5 py-0.5 rounded text-[12px] font-[500] leading-[16px] bg-surface-container text-on-surface-variant">
-              RQF Level {num}
-            </span>
-          </div>
-          <h2 className="text-[22px] font-[600] leading-[28px] text-on-surface tracking-tight">
-            {level.description}
-          </h2>
-          {brief && (
-            <p className="max-w-2xl text-[14px] leading-[20px] text-on-surface-variant text-pretty">
-              {brief}
             </p>
-          )}
-        </div>
-        <div className="flex items-center gap-3 self-start md:self-auto">
-          <div className="text-right hidden sm:block">
-            <div className="text-[14px] font-[500] leading-[20px] text-on-surface">{totalModules} Total Modules</div>
-            <div className="text-[12px] font-[500] leading-[16px] text-on-surface-variant">{breakdown}</div>
+            {brief && (
+              <p className="mt-3 max-w-2xl text-[14px] leading-6 text-on-surface-variant text-pretty">
+                {brief}
+              </p>
+            )}
           </div>
-          <div className="w-10 h-10 rounded-lg bg-surface-container-low flex items-center justify-center text-primary-container">
-            <LevelIcon num={num} />
+
+          <div className="flex w-full shrink-0 flex-col gap-4 sm:flex-row sm:items-center sm:justify-between lg:w-auto lg:flex-col lg:items-end lg:gap-3">
+            <div className="flex items-center gap-3">
+              <div className="sm:text-right">
+                <p data-numeric className="text-[14px] font-semibold leading-5 text-foreground">
+                  {totalModules} modules
+                </p>
+                <p className="text-[12px] leading-4 text-on-surface-variant">{breakdown}</p>
+              </div>
+              <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary">
+                <LevelIcon num={num} />
+              </span>
+            </div>
+            <EnrollCoursePanel level={level} />
           </div>
         </div>
       </div>
-      <EnrollCoursePanel level={level} />
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
         {level.modules_level.map((entry) => (
           <ModuleCard
             key={entry.modules.id}

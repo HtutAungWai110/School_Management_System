@@ -95,7 +95,7 @@ export default function EnrollCoursePanel({ level }: Props) {
   }
 
   return (
-    <div className="w-full">
+    <div className="w-full lg:w-fit">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
@@ -118,7 +118,7 @@ export default function EnrollCoursePanel({ level }: Props) {
             transition={{ duration: 0.3, ease: [0.32, 0.72, 0, 1] }}
             className="overflow-hidden"
           >
-            <div className="mt-3 rounded-xl bg-surface-container-lowest shadow-sm ">
+            <div className="mt-3 rounded-xl border border-border bg-card">
               <div className="px-5 pt-5 pb-4">
                 <div className="flex items-baseline gap-2">
                   <h3 className="text-[13px] font-medium text-on-surface">Select modules</h3>
@@ -202,7 +202,7 @@ export default function EnrollCoursePanel({ level }: Props) {
                         transition={{ duration: 0.2 }}
                         className="flex items-center gap-1.5 text-[13px] leading-[18px] text-on-surface"
                       >
-                        <Check className="w-4 h-4 shrink-0 text-emerald-600" />
+                        <Check className="w-4 h-4 shrink-0 text-primary" />
                         {message}
                       </motion.p>
                     )}

@@ -1,8 +1,4 @@
 import { createClient } from "@/lib/supabase/server.client";
-import { m } from "motion/react";
-import { s } from "motion/react-client";
-import { NextRequest } from "next/server";
-import { it } from "node:test";
 
 const PAGE_SIZE = 20;
 
@@ -205,13 +201,23 @@ export class StudentsService {
       throw new Error(moduleLevelsError.message)
     }
 
-    const requiredValidMap = new Map()
+    // PostgREST returns a to-one embed as an object, but the generated
+    // types model `levels` as an array. This is a types-only correction —
+    // indexing here would be a runtime bug.
+    type ModuleLevelRow = {
+      module_id: string
+      level_id: string
+      required: string
+      levels: { description: string }
+    }
 
-    moduleLevelsData.forEach(item => {
+    const requiredValidMap = new Map<string, Record<string, string | number>>()
+
+    ;(moduleLevelsData as unknown as ModuleLevelRow[]).forEach(item => {
       let level = requiredValidMap.get(item.levels.description)
       if (!level) {
-        requiredValidMap.set(item.levels.description, { level: item.levels.description })
         level = { level: item.levels.description }
+        requiredValidMap.set(item.levels.description, level)
       }
 
       const required = item.required
@@ -219,12 +225,15 @@ export class StudentsService {
       if (!level[required]) {
         level[required] = 1
       } else {
-        level[required] = level[required] + 1
+        level[required] = Number(level[required]) + 1
       }
-      requiredValidMap.set(item.levels.description, level)
     })
 
-    const levelModulesCombination = requiredValidMap.values().toArray()[0]
+    const levelModulesCombination = Array.from(requiredValidMap.values())[0]
+
+    if (!levelModulesCombination) {
+      throw new Error("Invalid enrollment!")
+    }
 
     if (levelModulesCombination.level === "Level 3 Diploma in Computing") {
       if (levelModulesCombination.core !== 5) {

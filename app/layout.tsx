@@ -1,12 +1,17 @@
 import type { Metadata } from "next";
-import localFont from "next/font/local";
+import { Plus_Jakarta_Sans, JetBrains_Mono } from "next/font/google";
 import ThemeProvider from "@/components/theme/theme-provider.component";
 import "./globals.css";
 
-const montserrat = localFont({
-  src: "./fonts/montserrat-latin.woff2",
-  variable: "--font-montserrat",
-  weight: "100 900",
+const jakarta = Plus_Jakarta_Sans({
+  subsets: ["latin"],
+  variable: "--font-jakarta",
+  display: "swap",
+});
+
+const jetbrains = JetBrains_Mono({
+  subsets: ["latin"],
+  variable: "--font-jetbrains",
   display: "swap",
 });
 
@@ -21,7 +26,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning className={`${montserrat.variable} h-full antialiased`}>
+    <html
+      lang="en"
+      suppressHydrationWarning
+      className={`${jakarta.variable} ${jetbrains.variable} h-full antialiased`}
+    >
       <body className="min-h-full flex flex-col">
         <ThemeProvider
           attribute="class"

@@ -1,25 +1,31 @@
 import type { Level } from "@/types/module.type"
 
+/**
+ * Module-type encoding. Emerald is deliberately absent — it is the
+ * brand/action colour, so a green pill would read as "primary" rather
+ * than "elective". Core takes slate because it is the most numerous
+ * group and should be the quietest; choice (elective) takes sky.
+ */
 export const TYPE_META = {
   core: {
     label: "Core",
-    pill: "bg-cyan-100",
-    dot: "bg-cyan-500",
+    pill: "bg-slate-100 text-slate-700 dark:bg-slate-800/70 dark:text-slate-200",
+    dot: "bg-slate-400 dark:bg-slate-500",
   },
   mandatory: {
     label: "Mandatory",
-    pill: "bg-amber-100 text-amber-900",
-    dot: "bg-amber-600",
+    pill: "bg-amber-50 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300",
+    dot: "bg-amber-500",
   },
   specialist: {
     label: "Specialist",
-    pill: "bg-purple-100 text-purple-900",
-    dot: "bg-purple-600",
+    pill: "bg-violet-50 text-violet-800 dark:bg-violet-950/60 dark:text-violet-300",
+    dot: "bg-violet-500",
   },
   elective: {
     label: "Elective",
-    pill: "bg-emerald-100 text-emerald-900",
-    dot: "bg-emerald-600",
+    pill: "bg-sky-50 text-sky-800 dark:bg-sky-950/60 dark:text-sky-300",
+    dot: "bg-sky-500",
   },
 } as const
 
