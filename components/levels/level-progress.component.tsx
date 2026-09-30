@@ -34,7 +34,6 @@ export default function LevelProgress({ current }: { current: string }) {
                 state === "unknown" && "bg-surface-container-low text-on-surface-variant"
               )}
             >
-              <span className="font-mono tabular-nums">{step.num}</span>
               <span className={cn(state === "ahead" || state === "unknown" ? "hidden sm:inline" : "inline")}>
                 {step.label}
               </span>

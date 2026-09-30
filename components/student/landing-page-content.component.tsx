@@ -114,7 +114,7 @@ export default function LandingPageContent({ profileFullName }: { profileFullNam
                 </span>
                 <h1 className="text-[32px] font-[700] leading-[40px] tracking-[-0.02em] text-on-surface mt-1">
                   Welcome back,{" "}
-                  <span className="text-primary-container">
+                  <span className="text-primary">
                     {profileFullName ?? "Student"}
                   </span>
                 </h1>

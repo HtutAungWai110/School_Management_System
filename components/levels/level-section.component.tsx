@@ -62,9 +62,13 @@ export default function LevelSection({
                 <LevelIcon num={num} />
               </span>
             </div>
-            <EnrollCoursePanel level={level} />
+
           </div>
         </div>
+        <div className="w-full">
+          <EnrollCoursePanel level={level} />
+        </div>
+
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
