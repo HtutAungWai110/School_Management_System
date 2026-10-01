@@ -4,6 +4,10 @@ import { useState } from "react"
 import { createClient } from "@/lib/supabase/browser.client"
 import studentIdsData from "../../../../../student-ids.json"
 
+// Typed at the import site: student-ids.json is a gitignored local scratch
+// file, and an empty one infers as never[] which breaks the build here.
+const STUDENT_IDS = studentIdsData as { id: string }[]
+
 const ASSIGNMENT_ID = "32a8a8f4-d5f2-4bb1-acbc-122662c468de"
 const BATCH_ID = "ae823c63-d860-47a5-b328-5c7c5c408a40"
 const MODULE_ID = "1d0a6285-36c0-4fd2-92e9-5ad9b819ea78"
@@ -13,7 +17,7 @@ const DOCX_CONTENT_TYPE =
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
 
 function buildStudentIds() {
-  return Array.from(new Set(studentIdsData.map((s) => s.id)))
+  return Array.from(new Set(STUDENT_IDS.map((s) => s.id)))
 }
 
 export default function MockAssignmentsPage() {

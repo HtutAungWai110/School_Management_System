@@ -74,9 +74,9 @@ export class StudentsService {
       throw new Error(courseEnrollmentError.message)
     }
 
-    const { count: assignedBatchesCount, error: batchesError } = await supabase
+    const { data: assignedBatches, error: batchesError } = await supabase
       .from("batches")
-      .select("*", {count: "exact"})
+      .select("*")
 
     if (batchesError) {
       throw new Error(batchesError.message)
@@ -108,7 +108,7 @@ export class StudentsService {
       throw new Error(timetableDataError.message)
     }
 
-    return { coursesEnrolledCount, assignedBatchesCount, timetableData }
+    return { coursesEnrolledCount, assignedBatches, timetableData }
 
   }
 

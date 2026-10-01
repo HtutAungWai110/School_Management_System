@@ -19,8 +19,8 @@ export class StudentController {
 
   static async getOverview() {
     try {
-      const {coursesEnrolledCount, assignedBatchesCount, timetableData} = await StudentsService.getStudentOverview()
-      return NextResponse.json({coursesEnrolledCount, assignedBatchesCount, timetableData})
+      const { coursesEnrolledCount, assignedBatches, timetableData } = await StudentsService.getStudentOverview()
+      return NextResponse.json({ coursesEnrolledCount, assignedBatches, timetableData })
     } catch (error) {
       return handleError(error);
     }
