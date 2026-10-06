@@ -55,7 +55,7 @@ export function ModulesPanelShell({
           className
         )}
       >
-        <header className="relative bg-primary-container px-6 pb-5 pt-5">
+        <header className="relative bg-primary px-6 pb-5 pt-5">
           <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-white/70">CodePoint Academy</p>
           <div className="mt-2 flex items-center justify-between gap-3 pr-10">
             <div className="min-w-0">
