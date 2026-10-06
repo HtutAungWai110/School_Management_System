@@ -18,12 +18,14 @@ export default function OverviewTimetable({
 }) {
   const [view, setView] = useState<"grid" | "list">("list")
 
+
   const uniqueModules = Array.from(
     new Map(sessions.map((s) => [s.module_id, { code: s.modules?.code, title: s.modules?.title }])).values()
   )
 
   const statusEntries = Object.entries(STATUS_CONFIG) as [string, { color: string; label: string }][]
   const hours = totalHours(sessions)
+
 
   return (
     <section className="bg-surface-container-lowest rounded-xl border border-primary/10 overflow-hidden shadow-[0_4px_6px_-1px_rgba(15,23,42,0.05)]">

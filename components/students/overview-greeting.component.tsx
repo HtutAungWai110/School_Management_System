@@ -2,13 +2,7 @@
 
 import { useProfileStore } from "@/components/profile/profile.state"
 
-export default function OverviewGreeting({
-  now,
-  batchName,
-}: {
-  now: Date
-  batchName: string
-}) {
+export default function OverviewGreeting({ now }: { now: Date }) {
   const fullName = useProfileStore((state) => state.profile.full_name)
 
   const hour = now.getHours()
@@ -20,7 +14,6 @@ export default function OverviewGreeting({
         {greeting}
         {fullName ? `, ${fullName}` : ""}
       </h1>
-      <p className="mt-1 text-[14px] text-primary/80">{batchName}</p>
     </header>
   )
 }

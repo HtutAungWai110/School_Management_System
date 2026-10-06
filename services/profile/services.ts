@@ -5,7 +5,7 @@ export class ProfileService {
   static async patch(id: string, data: Record<string, unknown>) {
     const supabase = await createClient();
 
-    const allowed = ["date_of_birth", "phone", "address"];
+    const allowed = ["date_of_birth", "phone", "address", "avatar_url"];
     const payload: Record<string, unknown> = {};
     for (const key of allowed) {
       if (key in data) payload[key] = data[key];

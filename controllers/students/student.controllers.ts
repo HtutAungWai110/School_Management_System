@@ -44,4 +44,13 @@ export class StudentController {
       return handleError(error);
     }
   }
+
+  static async getTimetables() {
+    try {
+      const data = await StudentsService.getTimetables()
+      return NextResponse.json(data)
+    } catch (error) {
+      return handleError(error);
+    }
+  }
 }

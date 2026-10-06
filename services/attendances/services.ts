@@ -63,6 +63,20 @@ export type RawAttendance = {
   student_attendances: RawStudentAttendance[];
 };
 
+/** Formats a Date as a plain local calendar day (YYYY-MM-DD).
+ *
+ *  `toISOString()` must not be used for this: it converts to UTC first, so a
+ *  month boundary built from local midnight becomes the *previous* day anywhere
+ *  east of Greenwich. In BST that turned an October query into Sep 30 – Oct 30,
+ *  pulling the last day of the previous month in and dropping the last day of
+ *  the current one. `attendances.date` is a `date` column, so it only ever needs
+ *  the calendar day anyway. */
+export function toLocalDateString(date: Date): string {
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${date.getFullYear()}-${month}-${day}`;
+}
+
 export function mapAttendance(
   item: Omit<AttendanceSession, "attendances"> & { attendances: RawAttendance[] }
 ): AttendanceSession {
@@ -190,8 +204,8 @@ export class AttendanceService {
     const baseDate = date ? new Date(date) : new Date(maxDateRow?.date);
     const startOfMonth = new Date(baseDate.getFullYear(), baseDate.getMonth(), 1);
     const endOfMonth = new Date(baseDate.getFullYear(), baseDate.getMonth() + 1, 0);
-    const startDateStr = startOfMonth.toISOString().split('T')[0];
-    const endDateStr = endOfMonth.toISOString().split('T')[0];
+    const startDateStr = toLocalDateString(startOfMonth);
+    const endDateStr = toLocalDateString(endOfMonth);
     query
       .gte('attendances.date', startDateStr)
       .lte('attendances.date', endDateStr);

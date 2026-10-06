@@ -28,9 +28,9 @@
      where it reads as "teal" and into a colder blue-green. Primary is
      hue 188 at 7.9:1 on white; hover goes darker (10.6:1) so hover
      raises contrast rather than lowering it. */
-  --c-brand: #0e5a66;
-  --c-brand-hover: #0a4550;
-  --c-brand-soft: #eef6f7;
+--c-brand: #0e5a66;
+--c-brand-hover: #0a4550;
+--c-brand-soft: #eef6f7;
   --c-brand-line: #9ecdd4;
   --c-brand-ink: #0b3d47;
 
@@ -242,6 +242,9 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-jakarta);
   --font-mono: var(--font-jetbrains);
+  --color-brand-soft: var(--c-brand-soft);
+  --color-brand-line: var(--c-brand-line);
+  --color-brand-ink: var(--c-brand-ink);
   --color-surface: var(--surface);
   --color-surface-container-lowest: var(--surface-container-lowest);
   --color-surface-container-low: var(--surface-container-low);
@@ -336,12 +339,31 @@
     color: var(--c-brand-ink);
   }
 
-  /* Tabular figures everywhere numbers are compared vertically —
+/* Tabular figures everywhere numbers are compared vertically —
      credit counts, attendance rates, level numerals. */
   table,
   [data-numeric] {
     font-variant-numeric: tabular-nums;
   }
+}
+
+/* react-image-crop shrinks its child to the cropper box
+   (`.ReactCrop__child-wrapper > img { max-width: 100% }`), which would clip the
+   image as soon as wheel-zoom makes it larger than that box. Zoom is applied
+   as a real layout size rather than a transform so the cropper's coordinate
+   maths stays correct, which makes these caps the thing to undo. */
+.avatar-cropper .ReactCrop {
+  max-width: none;
+}
+
+.avatar-cropper .ReactCrop__child-wrapper {
+  max-height: none;
+  overflow: visible;
+}
+
+.avatar-cropper .ReactCrop__child-wrapper > img {
+  max-width: none;
+  max-height: none;
 }
 
 @media (prefers-reduced-motion: reduce) {

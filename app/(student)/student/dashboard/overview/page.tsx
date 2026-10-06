@@ -1,6 +1,8 @@
 import { serverFetch } from "@/lib/server.service"
-import { GraduationCap, Layers } from "lucide-react"
+import { GraduationCap } from "lucide-react"
 
+import { MetricCard } from "@/components/admin/metric-card.component"
+import OverviewBatches from "@/components/students/overview-batches.component"
 import OverviewGreeting from "@/components/students/overview-greeting.component"
 import OverviewNextSession from "@/components/students/overview-next-session.component"
 import OverviewTimetable from "@/components/students/overview-timetable.component"
@@ -21,23 +23,24 @@ export default async function OverviewPage() {
 
   // Read once here so the server and client cannot disagree about the day.
   const now = new Date()
-  const activeBatch = batches.find((batch) => batch.status === "ongoing")
 
   return (
     <div className="mx-auto w-full max-w-[1440px] px-6 py-8 md:px-10">
-      <OverviewGreeting now={now} batchName={activeBatch?.batch_name ?? "No batch assigned"} />
+      <OverviewGreeting now={now} />
 
-      <div className="mb-6 flex flex-wrap items-center gap-2">
-        <span className="inline-flex items-center gap-1.5 rounded-full bg-primary-container px-2.5 py-1 text-[12px] font-medium text-on-primary-container">
-          <GraduationCap className="size-3.5" />
-          {overview.coursesEnrolledCount ?? 0} modules enrolled
-        </span>
-        {batches.length > 0 && (
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-border px-2.5 py-1 text-[12px] font-medium text-primary">
-            <Layers className="size-3.5" />
-            {batches.length} batch{batches.length === 1 ? "" : "es"}
-          </span>
-        )}
+      <div className="mb-6 grid gap-6 lg:grid-cols-[300px_1fr]">
+        <MetricCard
+          icon={GraduationCap}
+          label="Modules Enrolled"
+          value={overview.coursesEnrolledCount ?? 0}
+          badge="All time"
+          subtitle={
+            batches.length === 0
+              ? "No batch assigned"
+              : `Across ${batches.length} batch${batches.length === 1 ? "" : "es"}`
+          }
+        />
+        <OverviewBatches batches={batches} />
       </div>
 
       <OverviewNextSession sessions={sessions} now={now} />

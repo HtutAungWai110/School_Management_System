@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server.client";
 import { BatchesService } from "../batches/services";
-import { ATTENDANCE_SELECT, buildFinalData, RawAttendance } from "../attendances/services";
+import { ATTENDANCE_SELECT, buildFinalData, RawAttendance, toLocalDateString } from "../attendances/services";
 import type { AttendanceCalendarResponse, AttendanceSession } from "@/types/attendance.type";
 import { TeacherModuleRow, TeacherModuleQueryRow } from "@/types/teacher-module.type";
 
@@ -333,8 +333,8 @@ export class TeachersService {
     const baseDate = date ? new Date(date) : new Date(maxDateRow?.date);
     const startOfMonth = new Date(baseDate.getFullYear(), baseDate.getMonth(), 1);
     const endOfMonth = new Date(baseDate.getFullYear(), baseDate.getMonth() + 1, 0);
-    const startDateStr = startOfMonth.toISOString().split("T")[0];
-    const endDateStr = endOfMonth.toISOString().split("T")[0];
+    const startDateStr = toLocalDateString(startOfMonth);
+    const endDateStr = toLocalDateString(endOfMonth);
     query
       .gte("attendances.date", startDateStr)
       .lte("attendances.date", endDateStr);

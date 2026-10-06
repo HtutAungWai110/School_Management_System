@@ -1,12 +1,12 @@
 "use client"
 
 import { useState } from "react"
-import Image from "next/image"
 import { useRouter } from "next/navigation"
 import { UserRound, Palette, ChevronRight, LogOut, ShieldCheck } from "lucide-react"
 
 import { signOut } from "@/app/auth/auth.action"
 import { useProfileStore } from "@/components/profile/profile.state"
+import ProfileAvatarUpload from "@/components/profile/profile-avatar-upload.component"
 import SettingsFieldRow from "@/components/profile/settings-field-row.component"
 import ThemePreference from "@/components/profile/theme-preference.component"
 import type { Profile } from "@/types/profile.type"
@@ -18,15 +18,6 @@ const ROLE_LABEL: Record<string, string> = {
   admin: "Administrator",
   teacher: "Teacher",
   student: "Student",
-}
-
-function getInitials(name: string) {
-  return name
-    .split(" ")
-    .map((n) => n[0])
-    .join("")
-    .toUpperCase()
-    .slice(0, 2)
 }
 
 /** The column is a date, but it may arrive as a full ISO timestamp. */
@@ -145,26 +136,16 @@ export default function SettingsView({
             ) : (
               <div className="space-y-6">
                 <div className="flex items-center gap-4">
-                  <span className="grid size-16 shrink-0 place-items-center overflow-hidden rounded-full bg-primary-container text-primary">
-                    {profile.avatar_url ? (
-                      <Image
-                        src={profile.avatar_url}
-                        alt=""
-                        width={64}
-                        height={64}
-                        unoptimized
-                        className="size-full object-cover"
-                      />
-                    ) : (
-                      <span className="text-[18px] font-bold">{getInitials(profile.full_name ?? "")}</span>
-                    )}
-                  </span>
+                  <ProfileAvatarUpload profile={profile} />
                   <div className="min-w-0">
                     <h2 className="truncate text-[18px] font-semibold leading-6 text-foreground">
                       {profile.full_name}
                     </h2>
                     <p className="truncate text-[14px] text-on-surface-variant">
                       {ROLE_LABEL[role] ?? role} · CodePoint Academy
+                    </p>
+                    <p className="mt-1 text-[13px] text-on-surface-variant">
+                      Use the camera icon to upload and crop a new picture.
                     </p>
                   </div>
                 </div>

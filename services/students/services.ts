@@ -2,6 +2,25 @@ import { createClient } from "@/lib/supabase/server.client";
 
 const PAGE_SIZE = 20;
 
+const TIMETABLE_SELECT = `
+  *,
+  batches(
+    batch_name
+  ),
+  modules(
+    title,
+    code
+  ),
+  profiles(
+    full_name,
+    email
+  ),
+  classes(
+    class_number,
+    location
+  )
+  `
+
 function normalizeTitle(value: string) {
   return value.trim().replace(/\s+/g, " ").toLowerCase();
 }
@@ -84,24 +103,7 @@ export class StudentsService {
 
     const { data: timetableData, error: timetableDataError } = await supabase
       .from("timetables")
-      .select(`
-        *,
-        batches(
-          batch_name
-        ),
-        modules(
-          title,
-          code
-        ),
-        profiles(
-          full_name,
-          email
-        ),
-        classes(
-          class_number,
-          location
-        )
-        `)
+      .select(TIMETABLE_SELECT)
 
 
     if (timetableDataError) {
@@ -282,5 +284,18 @@ export class StudentsService {
     const enrollmentResults = await Promise.all(enrollmentPromise)
 
     return { enrollmentResults }
+  }
+
+  static async getTimetables() {
+    const supabase = await createClient()
+    const { data, error } = await supabase
+      .from("timetables")
+      .select(TIMETABLE_SELECT)
+
+    if (error) {
+      throw new Error(error.message)
+    }
+
+    return data
   }
 }
