@@ -52,3 +52,5 @@ level-rules.md
 api-module-level-combinations-example.json
 api-student-overview-data-example.json
 api-attendances-[batchid]-data-json
+db_schema.sql
+supabase_rpc_batch_roster.sql
