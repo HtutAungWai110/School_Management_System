@@ -53,4 +53,27 @@ export class StudentController {
       return handleError(error);
     }
   }
+
+  static async getBatches() {
+    try {
+      const data = await StudentsService.getBatches()
+      return NextResponse.json(data)
+    } catch (error) {
+      return handleError(error);
+    }
+  }
+
+  static async getBatchDetail(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+    const { id } = await params
+    if(!id || id === undefined) return handleError("Id required")
+    try {
+      const finalData = await StudentsService.getBatchDetail(id)
+      return NextResponse.json(finalData)
+
+      // const {batchData} = await StudentsService.getBatchDetail(id)
+      // return NextResponse.json({batchData})
+    } catch (error) {
+      return handleError(error);
+    }
+  }
 }

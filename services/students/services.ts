@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server.client";
 
 const PAGE_SIZE = 20;
 
+
 const TIMETABLE_SELECT = `
   *,
   batches(
@@ -297,5 +298,78 @@ export class StudentsService {
     }
 
     return data
+  }
+
+  static async getBatches() {
+    const supabase = await createClient()
+
+    const { data, error } = await supabase
+      .from("batches")
+      .select(`
+        *,
+        batch_level(
+          levels(
+            description
+          )
+        )
+        `)
+
+    if (error) throw new Error(error.message)
+
+    const finalData = data?.map(item => {
+      const { id, batch_name, created_at, status, batch_level } = item
+      const levels = batch_level?.map((bl: {levels: {description: string}}) => {
+        return bl.levels.description
+      })
+
+      return {id, batch_name, created_at, status, levels}
+    })
+
+    return finalData
+  }
+
+  static async getBatchDetail(id: string) {
+    const supabase = await createClient()
+
+    const { data: batchData, error: batchError } = await supabase
+      .from("batches")
+      .select(`
+        *,
+        batch_level(
+          levels(
+            description
+          )
+        )
+        `)
+      .eq("id", id)
+      .maybeSingle()
+
+    if (batchError) throw new Error(batchError.message)
+
+    const { data: batchAssignmentsData, error: batchAssignmentsError } = await supabase
+      .rpc("get_batch_students", { p_batch_id: id })
+
+    if (batchAssignmentsError) throw new Error(batchAssignmentsError.message)
+
+    const { id: batchId, batch_name, created_at, status, batch_level } = batchData
+
+    const formattedBatchData = {
+      id: batchId,
+      batch_name,
+      created_at,
+      status,
+      levels: batch_level.map((bl: { levels: { description: string } }) => {
+        return bl.levels.description
+      })
+    }
+
+    const finalData = {
+      ...formattedBatchData,
+      students: batchAssignmentsData
+    }
+
+
+    return finalData
+
   }
 }
