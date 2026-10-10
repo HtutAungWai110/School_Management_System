@@ -57,6 +57,15 @@ export class TeacherController {
     }
   }
 
+  static async getAssignments() {
+    try {
+      const data = await TeachersService.getOwnAssignments()
+      return NextResponse.json(data)
+    } catch (error) {
+      return handleError(error);
+    }
+  }
+
   static async getTodayAttendance(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
     const { id } = await params;
     try {

@@ -3,7 +3,9 @@
 import { useCallback, useEffect, useState } from "react"
 import type { Assignment } from "@/types/batch.type"
 
-export function useAssignmentsData(batchId: string) {
+/** Takes the endpoint rather than a batch id, so the same hook serves the
+ *  admin batch panel and the teacher's own assignments page. */
+export function useAssignmentsData(url: string) {
   const [data, setData] = useState<Assignment[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [reloadKey, setReloadKey] = useState(0)
@@ -17,7 +19,7 @@ export function useAssignmentsData(batchId: string) {
   useEffect(() => {
     let cancelled = false
 
-    fetch(`/api/batches/${batchId}/assignments`, { credentials: "include" })
+    fetch(url, { credentials: "include" })
       .then((res) => {
         if (!res.ok) {
           return res
@@ -44,7 +46,7 @@ export function useAssignmentsData(batchId: string) {
     return () => {
       cancelled = true
     }
-  }, [batchId, reloadKey])
+  }, [url, reloadKey])
 
   return { data, loading, error, refresh }
 }

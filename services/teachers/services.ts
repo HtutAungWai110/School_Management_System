@@ -1,6 +1,9 @@
 import { createClient } from "@/lib/supabase/server.client";
 import { BatchesService } from "../batches/services";
 import { ATTENDANCE_SELECT, buildFinalData, RawAttendance, toLocalDateString } from "../attendances/services";
+import { ASSIGNMENT_SUBMISSIONS_SELECT } from "../assignments/services";
+import { HttpError } from "@/lib/errors/http.error";
+import type { Assignment } from "@/types/batch.type";
 import type { AttendanceCalendarResponse, AttendanceSession } from "@/types/attendance.type";
 import { TeacherModuleRow, TeacherModuleQueryRow } from "@/types/teacher-module.type";
 
@@ -353,5 +356,31 @@ export class TeachersService {
       minDate: minDateRow?.date ?? null,
       maxDate: maxDateRow?.date ?? null,
     };
+  }
+
+  /** Everything this teacher has set, across every batch they teach, with the
+   *  submissions attached. Scoped on teacher_id rather than batch_id, so one
+   *  query covers all of their batches instead of one per batch. */
+  static async getOwnAssignments(): Promise<Assignment[]> {
+    const supabase = await createClient();
+
+    const { data: userData, error: userError } = await supabase.auth.getUser();
+
+    if (userError) {
+      throw new Error(userError.message);
+    }
+
+    const { user } = userData;
+
+    if (!user) throw new HttpError(401, "Authentication required.");
+
+    const { data, error } = await supabase
+      .from("assignments")
+      .select(ASSIGNMENT_SUBMISSIONS_SELECT)
+      .eq("teacher_id", user.id);
+
+    if (error) throw new Error(error.message);
+
+    return data as unknown as Assignment[];
   }
 }

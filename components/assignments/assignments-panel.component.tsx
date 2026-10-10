@@ -17,8 +17,21 @@ function formatDue(value: string | null): string {
   })
 }
 
-export function AssignmentsPanel({ batchId }: { batchId: string }) {
-  const { data, loading, error } = useAssignmentsData(batchId)
+type AssignmentsPanelProps = {
+  subtitle?: string
+} & (
+  | { batchId: string; endpoint?: never }
+  | { endpoint: string; batchId?: never }
+);
+
+export function AssignmentsPanel({
+  batchId,
+  endpoint,
+  subtitle = "Turned-in work across all assignments for this batch.",
+}: AssignmentsPanelProps) {
+  const { data, loading, error } = useAssignmentsData(
+    endpoint ?? `/api/batches/${batchId}/assignments`
+  )
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
 
   const assignments = useMemo(() => data ?? [], [data])
@@ -49,7 +62,7 @@ export function AssignmentsPanel({ batchId }: { batchId: string }) {
               </h3>
             </div>
             <p className="mt-0.5 text-[12px] leading-[16px] text-on-surface-variant">
-              Turned-in work across all assignments for this batch.
+              {subtitle}
             </p>
           </div>
           {assignments.length > 0 && (
@@ -121,19 +134,23 @@ export function AssignmentsPanel({ batchId }: { batchId: string }) {
                       {assignment.modules?.title}
                     </span>
                     {assignment.profiles && (
-                      <span className="inline-flex items-center text-[12px] font-[500] leading-[16px] text-on-surface-variant shrink-0">
-                        {assignment.profiles.full_name}
+                      /* Each contact detail is its own group: the row's gap-3
+                         separates the fields, gap-1.5 separates each icon from
+                         its own value. Previously ml-1 left the name touching
+                         the mail icon and the email touching the phone icon. */
+                      <span className="inline-flex items-center gap-3 text-[12px] font-[500] leading-[16px] text-on-surface-variant shrink-0">
+                        <span>{assignment.profiles.full_name}</span>
                         {assignment.profiles.email && (
-                          <>
-                            <Mail className="ml-1 size-3.5 text-on-surface-variant/80" />
+                          <span className="inline-flex items-center gap-1.5">
+                            <Mail className="size-3.5 text-on-surface-variant/80" />
                             {assignment.profiles.email}
-                          </>
+                          </span>
                         )}
                         {assignment.profiles.phone && (
-                          <>
-                            <Phone className="ml-1 size-3.5 text-on-surface-variant/80" />
+                          <span className="inline-flex items-center gap-1.5">
+                            <Phone className="size-3.5 text-on-surface-variant/80" />
                             {assignment.profiles.phone}
-                          </>
+                          </span>
                         )}
                       </span>
                     )}
