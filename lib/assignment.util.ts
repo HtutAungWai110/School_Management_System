@@ -122,10 +122,10 @@ export function buildSubmissionPath(
 
 const PUBLIC_PREFIX = "/storage/v1/object/public/";
 
-/** `file_path` holds a public URL, but Storage operations need the bare key back.
- *  Returns null for anything that is not an `assignments` bucket public URL —
- *  rows written before this changed store a relative key, and those must still
- *  be deletable, so the caller skips the bucket step rather than failing. */
+/** `file_path` holds the relative storage key, but older rows hold a public
+ *  URL from when the bucket was public. Returns null for anything that is not an
+ *  `assignments` bucket public URL — callers use `toStorageKey`, which passes a
+ *  bare key straight through. */
 export function storageKeyFromPublicUrl(url: string | null | undefined) {
   if (!url) return null;
 
@@ -134,4 +134,15 @@ export function storageKeyFromPublicUrl(url: string | null | undefined) {
   if (index === -1) return null;
 
   return url.slice(index + marker.length);
+}
+
+/**
+ * Normalises a stored `file_path` into the bare key Storage expects.
+ *
+ * New rows store the relative key directly. Rows written while the bucket was
+ * public store a full public URL, so they are unwrapped here rather than being
+ * left unopenable.
+ */
+export function toStorageKey(filePath: string) {
+  return storageKeyFromPublicUrl(filePath) ?? filePath;
 }

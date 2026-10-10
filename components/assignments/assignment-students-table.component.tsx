@@ -1,13 +1,14 @@
 "use client"
 
-import { FileText } from "lucide-react"
+import { Download, FileText, Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils.util"
+import { useSubmissionDownload } from "@/hooks/use-submission-download.hook"
 import type { AssignmentStudent } from "@/types/batch.type"
 
 const nameW = "w-[24%]"
-const emailW = "w-[26%]"
+const emailW = "w-[24%]"
 const phoneW = "w-[18%]"
-const fileW = "w-[14%]"
+const fileW = "w-[16%]"
 const turnedInW = "w-[18%]"
 
 function formatTurnedIn(value: string): string {
@@ -25,6 +26,8 @@ export function AssignmentStudentsTable({
 }: {
   students: AssignmentStudent[]
 }) {
+  const { download, pendingId, error: downloadError } = useSubmissionDownload()
+
   const sorted = [...students].sort((a, b) =>
     (a.profiles?.full_name ?? "").localeCompare(b.profiles?.full_name ?? "")
   )
@@ -74,6 +77,22 @@ export function AssignmentStudentsTable({
                   <span className="inline-flex max-w-full items-center gap-1.5 text-[13px] leading-[18px] text-on-surface">
                     <FileText className="size-3.5 shrink-0 text-on-surface-variant" />
                     <span className="truncate">{student.file_name || "—"}</span>
+                    {student.file_name && student.file_path && (
+                      <button
+                        type="button"
+                        onClick={() => download(student.id)}
+                        disabled={pendingId === student.id}
+                        aria-label={`Download ${student.file_name}`}
+                        title={`Download ${student.file_name}`}
+                        className="shrink-0 rounded p-0.5 text-on-surface-variant transition-colors hover:bg-surface-container hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 disabled:opacity-60"
+                      >
+                        {pendingId === student.id ? (
+                          <Loader2 className="size-3.5 animate-spin" />
+                        ) : (
+                          <Download className="size-3.5" />
+                        )}
+                      </button>
+                    )}
                   </span>
                 </td>
                 <td className="px-4 py-2 text-[13px] leading-[18px] text-on-surface-variant truncate">
@@ -93,6 +112,12 @@ export function AssignmentStudentsTable({
             )}
           </tbody>
         </table>
+
+        {downloadError && (
+          <p role="alert" className="mt-2 text-[12px] leading-[16px] text-destructive">
+            {downloadError}
+          </p>
+        )}
       </div>
     </div>
   )

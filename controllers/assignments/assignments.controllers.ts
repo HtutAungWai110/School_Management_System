@@ -57,4 +57,15 @@ export class AssignmentController {
       return handleError(error);
     }
   }
+
+  static async getSubmissionDownload(request: NextRequest, { params }: { params: Promise<{ submissionId: string }> }) {
+    const { submissionId } = await params;
+
+    try {
+      const data = await AssignmentsService.getSubmissionDownloadUrl(submissionId);
+      return NextResponse.json(data);
+    } catch (error) {
+      return handleError(error);
+    }
+  }
 }

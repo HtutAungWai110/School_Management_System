@@ -1,10 +1,11 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { CheckCircle2, Loader2, Upload } from "lucide-react"
+import { CheckCircle2, Download, Loader2, Upload } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog.component"
+import { useSubmissionDownload } from "@/hooks/use-submission-download.hook"
 import { useProfileStore } from "@/components/profile/profile.state"
 import { createClient } from "@/lib/supabase/browser.client"
 import {
@@ -49,6 +50,7 @@ export default function AssignmentSubmissionSection({
   const [confirming, setConfirming] = useState(false)
   const [withdrawing, setWithdrawing] = useState(false)
   const [withdrawError, setWithdrawError] = useState<string | null>(null)
+  const { download, pendingId, error: downloadError } = useSubmissionDownload()
 
   useEffect(() => {
     let cancelled = false
@@ -112,17 +114,14 @@ export default function AssignmentSubmissionSection({
 
       if (uploadError) throw new Error(uploadError.message)
 
-      /* The storage key is only meaningful inside the bucket, so the row gets
-         the public URL — that is what a teacher or a report can actually open. */
-      const {
-        data: { publicUrl },
-      } = supabase.storage.from(ASSIGNMENT_BUCKET).getPublicUrl(filePath)
-
+      /* Only the relative key is stored. The bucket is private, so a stored URL
+         would either be dead or leak the object; reads go through a signed URL
+         minted by the API after it authorises the caller. */
       const res = await fetch(`/api/assignments/student_assignments/${assignmentId}`, {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ file_path: publicUrl, file_name: file.name }),
+        body: JSON.stringify({ file_path: filePath, file_name: file.name }),
       })
 
       if (!res.ok) {
@@ -199,15 +198,37 @@ export default function AssignmentSubmissionSection({
           <span className="font-mono text-[11px] leading-5 text-on-surface-variant">
             {formatTurnedIn(submission.turned_in_at)}
           </span>
-          <Button
-            type="button"
-            size="sm"
-            className="ml-auto bg-red-900"
-            onClick={() => setConfirming(true)}
-          >
-            Withdraw submission
-          </Button>
+          <div className="ml-auto flex items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={pendingId === submission.id}
+              onClick={() => download(submission.id)}
+            >
+              {pendingId === submission.id ? (
+                <Loader2 className="animate-spin" />
+              ) : (
+                <Download />
+              )}
+              Download
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              className="bg-red-900"
+              onClick={() => setConfirming(true)}
+            >
+              Withdraw submission
+            </Button>
+          </div>
         </div>
+
+        {downloadError && (
+          <p role="alert" className="mt-2 text-[13px] leading-5 text-destructive">
+            {downloadError}
+          </p>
+        )}
 
         {withdrawError && (
           <p role="alert" className="mt-2 text-[13px] leading-5 text-destructive">
