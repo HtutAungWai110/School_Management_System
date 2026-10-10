@@ -47,7 +47,10 @@ const RANGE_KEYS = Object.keys(RANGE_ITEMS) as RangeKey[]
 
 const SERIES = {
   present: { label: "Present", color: "#22c55e" },
-  late: { label: "Late", color: "#9ca3af" },
+  /* Was #9ca3af, which sits at roughly 2.3:1 on the card surface — too close to
+     the background to read as a segment at all. #64748b is the palette's own
+     --c-ink-subtle and lifts that to ~4.7:1 while still reading as neutral. */
+  late: { label: "Late", color: "#64748b" },
   absent: { label: "Absent", color: "#ef4444" },
   average: { label: "Average", color: "#3b82f6" },
 } as const
@@ -263,7 +266,7 @@ export function MonthlyAttendanceChart({
                                 }}
                               />
                               <div
-                                className="w-full rounded-t-2xl transition-all duration-300 group-hover:brightness-110"
+                                className="w-full transition-all duration-300 group-hover:brightness-110"
                                 style={{
                                   height: `${absentPct}%`,
                                   backgroundColor: SERIES.absent.color,
@@ -321,7 +324,7 @@ export function MonthlyAttendanceChart({
                             aria-label={`${monthTitle(entry.month)} average attendance`}
                           >
                             <motion.div
-                              className="w-full rounded-t-2xl transition-all duration-300 group-hover:brightness-110"
+                              className="w-full transition-all duration-300 group-hover:brightness-110"
                               style={{
                                 height: `${entry.averageAttendancePercentage}%`,
                                 transformOrigin: "bottom",
