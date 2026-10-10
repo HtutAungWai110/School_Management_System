@@ -36,19 +36,29 @@ export async function proxy(request: NextRequest) {
 
   const publicRoutes = ['/login', '/'];
 
+  /** Section prefixes used to detect which role area the path belongs to. */
   const roleRoutes: Record<string, string> = {
     admin: '/admin',
     teacher: '/teacher',
     student: '/student',
   };
 
+  /**
+   * Where each role lands. Admin and teacher have no index route at their
+   * section root, so they must be sent to their dashboard; only the student
+   * area has a landing page at `/student`.
+   */
+  const roleHomes: Record<string, string> = {
+    admin: '/admin/dashboard/overview',
+    teacher: '/teacher/dashboard/overview',
+    student: '/student/',
+  };
+
   const currentRolePrefix = Object.values(roleRoutes).find(
     (prefix) => path === prefix || path.startsWith(`${prefix}/`)
   );
 
-  const home = profile?.role
-    ? `/${profile.role}`
-    : '/admin/dashboard/overview';
+  const home = (profile?.role && roleHomes[profile.role]) || roleHomes.admin;
 
   // 2. Unauthenticated Redirects
   if (!user && currentRolePrefix) {
@@ -61,9 +71,9 @@ export async function proxy(request: NextRequest) {
   }
 
 // 4. Role-based Access Control - redirect to own home on role mismatch
-    if (user && currentRolePrefix && profile?.role && currentRolePrefix !== `/${profile.role}`) {
-      return NextResponse.redirect(new URL(home, request.url));
-    }
+  if (user && currentRolePrefix && profile?.role && currentRolePrefix !== `/${profile.role}`) {
+    return NextResponse.redirect(new URL(home, request.url));
+  }
 
   return supabaseResponse;
 }
