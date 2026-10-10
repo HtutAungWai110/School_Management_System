@@ -7,6 +7,7 @@ import type { Class } from "@/types/class.type"
 import { BatchAttendancePanel } from "@/components/attendances/attendance-panel.component"
 import { BatchStatusBadge } from "@/components/batches/batch-status-badge.component"
 import { BatchStudentsPanel } from "@/components/batches/batch-students-panel.component"
+import BatchModuleCoverage from "@/components/batches/batch-module-coverage.component"
 import { BatchTimetable } from "@/components/batches/batch-timetable.component"
 import { AssignmentsPanel } from "@/components/assignments/assignments-panel.component"
 
@@ -34,6 +35,14 @@ export default async function BatchDetailPage({ params }: { params: Promise<{ id
     (batch?.timetables ?? []).map((session) => session.modules?.id).filter(Boolean) as string[]
   );
   const unscheduledModules = batchModules.filter((module) => !scheduledModuleIds.has(module.id));
+
+  /* A student can hold enrolments at several levels at once, and the rest of
+     them belong to other batches. Coverage is level-scoped so it matches what
+     the get_batch_students RPC returns on the student side. */
+  const batchLevelIds = new Set(levels.map((bl) => bl.level_id).filter(Boolean) as string[]);
+  const rosterEnrolments = students
+    .flatMap((assignment) => assignment.profiles?.student_enrollments ?? [])
+    .filter((enrolment) => batchLevelIds.has(enrolment.level_id));
 
   return (
     <div className="min-h-screen bg-background flex">
@@ -84,7 +93,9 @@ export default async function BatchDetailPage({ params }: { params: Promise<{ id
                 <AssignmentsPanel batchId={id} />
               </div>
 
-
+              <div className="lg:col-span-3">
+                <BatchAttendancePanel batchId={id} />
+              </div>
 
               <div className="lg:col-span-1 space-y-6">
                 <div className="bg-surface-container-lowest rounded-xl border border-primary/10 overflow-hidden shadow-[0_4px_6px_-1px_rgba(15,23,42,0.05)]">
@@ -167,12 +178,11 @@ export default async function BatchDetailPage({ params }: { params: Promise<{ id
                     )}
                   </div>
                 </div>
+
+                <BatchModuleCoverage enrolments={rosterEnrolments} cohortSize={students.length} />
               </div>
 
               <BatchStudentsPanel batchId={id} students={students} />
-              </div>
-              <div className="mt-6">
-                <BatchAttendancePanel batchId={id} />
               </div>
 
             </>

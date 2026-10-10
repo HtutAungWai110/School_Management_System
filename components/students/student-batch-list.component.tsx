@@ -2,7 +2,7 @@ import Link from "next/link"
 
 import { BatchStatusBadge } from "@/components/batches/batch-status-badge.component"
 import type { StudentBatch } from "@/types/student-batch.type"
-import {Layers} from "lucide-react"
+import { ChevronRight, Layers } from "lucide-react"
 
 function formatDate(value: string) {
   if (!value) return "—"
@@ -35,9 +35,13 @@ export default function StudentBatchList({ batches }: { batches: StudentBatch[] 
           <div className="min-w-0">
             <Link
               href={`/student/dashboard/batches/${batch.id}`}
-              className="text-[17px] font-semibold leading-6 text-primary transition-colors hover:text-primary/80"
+              className="group inline-flex items-center gap-1.5 text-[17px] font-semibold leading-6 text-primary transition-colors hover:text-primary/80"
             >
-              {batch.batch_name}
+              <span className="truncate">{batch.batch_name}</span>
+              <ChevronRight
+                aria-hidden="true"
+                className="size-4 shrink-0 text-primary/50 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:text-primary"
+              />
             </Link>
 
             {batch.levels.length > 0 && (

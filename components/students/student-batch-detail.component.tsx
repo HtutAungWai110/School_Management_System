@@ -2,8 +2,9 @@ import Link from "next/link"
 import { ArrowLeft, Users } from "lucide-react"
 
 import { BatchStatusBadge } from "@/components/batches/batch-status-badge.component"
+import BatchModuleCoverage from "@/components/batches/batch-module-coverage.component"
 import BatchRosterList from "@/components/students/batch-roster-list.component"
-import type { BatchRosterStudent, StudentBatchDetail } from "@/types/student-batch-detail.type"
+import type { StudentBatchDetail } from "@/types/student-batch-detail.type"
 
 function formatDate(value: string) {
   if (!value) return "—"
@@ -12,31 +13,9 @@ function formatDate(value: string) {
   return date.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })
 }
 
-/**
- * How many of the cohort are on each module. Every bar is scaled to the same
- * denominator, the roster size, so a short bar is visibly a gap rather than a
- * different scale.
- */
-function buildCoverage(students: BatchRosterStudent[]) {
-  const modules = new Map<string, { code: string; title: string; count: number }>()
-
-  for (const student of students) {
-    for (const enrollment of student.student_enrollments ?? []) {
-      const code = enrollment.modules?.code
-      if (!code) continue
-
-      const existing = modules.get(code)
-      if (existing) existing.count += 1
-      else modules.set(code, { code, title: enrollment.modules?.title ?? "", count: 1 })
-    }
-  }
-
-  return [...modules.values()].sort((a, b) => a.code.localeCompare(b.code))
-}
-
 export default function StudentBatchDetail({ batch }: { batch: StudentBatchDetail }) {
   const students = batch.students ?? []
-  const coverage = buildCoverage(students)
+  const rosterEnrolments = students.flatMap((student) => student.student_enrollments ?? [])
 
   return (
     <div>
@@ -73,46 +52,7 @@ export default function StudentBatchDetail({ batch }: { batch: StudentBatchDetai
       </div>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[320px_1fr]">
-        <section className="rounded-xl border border-outline-variant/20 bg-surface-container-lowest/70 p-5">
-          <h2 className="font-mono text-[10px] font-medium uppercase tracking-[0.18em] text-primary">
-            Module coverage
-          </h2>
-          <p className="mt-1 text-[13px] leading-5 text-on-surface-variant">
-            How many of the batch are on each module.
-          </p>
-
-          {coverage.length === 0 ? (
-            <p className="mt-4 text-[13px] leading-5 text-on-surface-variant">
-              No enrolments recorded for this batch yet.
-            </p>
-          ) : (
-            <ul className="mt-4 space-y-3">
-              {coverage.map((module) => (
-                <li key={module.code}>
-                  <div className="flex items-baseline justify-between gap-3">
-                    <span className="font-mono text-[12px] font-medium leading-4 text-on-surface">
-                      {module.code}
-                    </span>
-                    <span className="font-mono text-[11px] leading-4 tabular-nums text-on-surface-variant">
-                      {module.count} of {students.length}
-                    </span>
-                  </div>
-                  <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-surface-container-high">
-                    <div
-                      className="h-full rounded-full bg-primary"
-                      style={{ width: `${(module.count / students.length) * 100}%` }}
-                    />
-                  </div>
-                  {module.title && (
-                    <p className="mt-1 truncate text-[12px] leading-4 text-on-surface-variant">
-                      {module.title}
-                    </p>
-                  )}
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
+        <BatchModuleCoverage enrolments={rosterEnrolments} cohortSize={students.length} />
 
         <BatchRosterList students={students} />
       </div>

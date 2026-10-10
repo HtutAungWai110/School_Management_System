@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Users, MoreVertical, Pencil, Trash2, CheckCircle2, RotateCcw } from "lucide-react"
+import { Users, MoreVertical, Pencil, Trash2, CheckCircle2, RotateCcw, ChevronRight } from "lucide-react"
 
 import type { Batch, BatchStatus } from "@/types/batch.type";
 import { cn } from "@/lib/utils.util"
@@ -82,9 +82,16 @@ export function BatchesRow({ batch }: { batch: Batch }) {
             <span className="text-[16px] leading-[24px] font-bold text-on-surface">
               <Link
                 href={`/admin/dashboard/batches/${batch.id}`}
-                className="hover:text-cyan-500 transition-colors hover:underline"
+                className="group inline-flex items-center gap-1.5 transition-colors hover:text-cyan-500 hover:underline"
               >
-                {batch.batch_name}
+                <span className="truncate">{batch.batch_name}</span>
+                {/* Persistent affordance, as on the student batch list. It takes
+                    the link's hover colour rather than the student page's
+                    text-primary, so it stays in step with the cyan hover here. */}
+                <ChevronRight
+                  aria-hidden="true"
+                  className="size-4 shrink-0 text-current opacity-50 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:opacity-100"
+                />
               </Link>
             </span>
           </div>
