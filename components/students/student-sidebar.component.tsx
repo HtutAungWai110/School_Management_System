@@ -7,6 +7,7 @@ import { usePathname } from "next/navigation"
 import {
   LayoutDashboard,
   CalendarDays,
+  GraduationCap,
   Layers,
   ClipboardList,
   CheckSquare,
@@ -21,6 +22,7 @@ import { cn } from "@/lib/utils.util"
 const NAV_LINKS = [
   { href: "/student/dashboard/overview", label: "Overview", icon: LayoutDashboard },
   { href: "/student/dashboard/timetable", label: "Timetable", icon: CalendarDays },
+  { href: "/student/dashboard/enrollments", label: "Enrollments", icon: GraduationCap },
   { href: "/student/dashboard/batches", label: "Batches", icon: Layers },
   { href: "/student/dashboard/assignments", label: "Assignments", icon: ClipboardList },
   { href: "/student/dashboard/attendance", label: "Attendance", icon: CheckSquare },

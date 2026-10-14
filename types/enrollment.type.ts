@@ -11,7 +11,10 @@ export type EnrollmentModule = {
   title: string;
 };
 
-export type EnrollmentStatus = "unassigned" | "enrolled" | "completed";
+/** `unassigned` is the default and means an enrolment awaiting admin approval;
+ *  `assigned` is set once approved (EnrollmentsService), and is what
+ *  BatchesService filters on to find a batch's members. */
+export type EnrollmentStatus = "unassigned" | "assigned" | "completed";
 
 export type StudentEnrollment = {
   id: string;
