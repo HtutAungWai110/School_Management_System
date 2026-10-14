@@ -1,7 +1,7 @@
 "use client"
 
 import { useRef, useState, useEffect } from "react"
-import { ArrowLeftRight, MoreVertical, Pencil } from "lucide-react"
+import { ArrowLeftRight, ChevronRight, MoreVertical, Pencil } from "lucide-react"
 import Link from "next/link"
 import type { Class } from "@/types/class.type"
 import { TimetableEditPanel } from "./timetable-edit-panel.component"
@@ -85,19 +85,29 @@ function SessionRow({
       <>
         <tr className="border-b border-primary/10 hover:bg-surface-container-low transition-colors">
           <td className="px-6 py-4">
-            <div>
-              <Link href={`/teacher/dashboard/timetable/${session.id}`}>
+            {/* One link covering the code and the title, rather than two
+                adjacent links to the same session. The chevron is the same
+                affordance the batch lists use. */}
+            <Link
+              href={`/teacher/dashboard/timetable/${session.id}`}
+              className="group inline-flex max-w-full items-center gap-1.5"
+            >
+              <span className="min-w-0">
                 <span
                   className="inline-block text-[14px] font-[300] leading-[20px] px-2 py-0.5 rounded"
                   style={{ backgroundColor: moduleColor}}
                 >
                   {session.modules.code}
                 </span>
-              </Link>
-              <Link href={`/teacher/dashboard/timetable/${session.id}`}>
-                <p className="text-[12px] leading-[16px] text-on-surface-variant mt-0.5">{session.modules.title}</p>
-              </Link>
-            </div>
+                <span className="mt-0.5 block truncate text-[12px] leading-[16px] text-on-surface-variant transition-colors group-hover:text-primary">
+                  {session.modules.title}
+                </span>
+              </span>
+              <ChevronRight
+                aria-hidden="true"
+                className="size-4 shrink-0 text-primary/50 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:text-primary"
+              />
+            </Link>
           </td>
           <td className="px-6 py-4">
             <span className="text-[14px] font-[500] leading-[20px] text-on-surface">{session.batches.batch_name}</span>

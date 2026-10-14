@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { usePathname, useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Spinner } from "../ui/spinner"
 import type { AttendanceStudent } from "@/types/attendance.type"
@@ -21,6 +22,8 @@ interface TimetableCheckInButtonProps {
 }
 
 export function TimetableCheckInButton({ sessionId, dayOfWeek, moduleId, batchId, isFetchAllowed = false,  setData = null, setAttendanceId = null}: TimetableCheckInButtonProps) {
+  const router = useRouter();
+  const pathname = usePathname();
   const [loading, setLoading] = useState(true)
   const [checkedIn, setCheckedIn] = useState(false)
   const [checkingIn, setCheckingIn] = useState(false)
@@ -68,6 +71,15 @@ export function TimetableCheckInButton({ sessionId, dayOfWeek, moduleId, batchId
 
       }
       setCheckedIn(true)
+
+      /* Check-in only registers that the session happened; marking who turned
+         up happens on the session detail page. Push rather than replace so
+         Back returns the teacher to the timetable they came from. The detail
+         page renders this same button, so skip when we are already there. */
+      const target = `/teacher/dashboard/timetable/${sessionId}`;
+      if (pathname !== target) {
+        router.push(target);
+      }
     } catch (error) {
       console.error(error)
     } finally {
