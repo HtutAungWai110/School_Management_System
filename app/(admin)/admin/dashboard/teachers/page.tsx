@@ -1,7 +1,8 @@
 import { MetricCard } from "@/components/admin/metric-card.component"
 import { PaginationNav } from "@/components/navigation/pagination-nav.component"
 import { TeacherRow } from "@/components/teachers/teacher-row.component"
-import { CircleHelp, Bell, Users, UserPlus, ClipboardCheck, Plus } from "lucide-react"
+import { CircleHelp, Users, UserPlus, ClipboardCheck, Plus } from "lucide-react"
+import { NotificationBell } from "@/components/notifications/notification-bell.component"
 import SearchBar from "@/components/search/searchbar.component"
 import FilterButton from "@/components/search/filter-dropdown.component"
 
@@ -9,7 +10,7 @@ import { serverFetch } from "@/lib/server.service"
 import type { Teacher } from "@/types/teacher.type"
 
 interface PageProps {
-  searchParams: Promise<{page?: string, search?: string, filter?: string}>
+  searchParams: Promise<{page?: string, search?: string, filter?: string, id?: string}>
 }
 
 interface TeachersData {
@@ -21,11 +22,11 @@ interface TeachersData {
 
 export default async function TeachersPage({ searchParams }: PageProps) {
 
-  const { page, search, filter } = await searchParams;
+  const { page, search, filter, id } = await searchParams;
 
   const currentPage = page || 1;
 
-  const data = await serverFetch(`http://localhost:3000/api/teachers?page=${currentPage}${search ? `&search=${encodeURIComponent(search)}` : ""}${filter ? `&filter=${encodeURIComponent(filter)}` : ""}`, {next: {revalidate: 120}}).then(res => res.json()) as TeachersData
+  const data = await serverFetch(`http://localhost:3000/api/teachers?page=${currentPage}${search ? `&search=${encodeURIComponent(search)}` : ""}${filter ? `&filter=${encodeURIComponent(filter)}` : ""}${id ? `&id=${encodeURIComponent(id)}` : ""}`, {next: {revalidate: 120}}).then(res => res.json()) as TeachersData
 
 
   const teachers = data?.teachers ?? []
@@ -47,10 +48,7 @@ export default async function TeachersPage({ searchParams }: PageProps) {
                 <CircleHelp className="w-5 h-5" />
                 <span className="text-[14px] font-[600] leading-[16px] tracking-[0.05em]">Help</span>
               </button>
-              <div className="relative">
-                <Bell className="w-5 h-5 text-on-surface-variant cursor-pointer" />
-                <span className="absolute -top-1 -right-1 w-2 h-2 bg-error rounded-full" />
-              </div>
+              <NotificationBell />
             </div>
           </div>
         </header>

@@ -3,9 +3,13 @@ import { AssignmentsService } from "@/services/assignments/services";
 import { handleError } from "@/lib/errors/error.handler";
 
 export class AssignmentController {
-  static async list() {
+  static async list(request: NextRequest) {
+    const params = request.nextUrl.searchParams;
+    const page = Math.max(parseInt(params.get("page") ?? "1", 10) || 1, 1);
+    const limit = Math.min(Math.max(parseInt(params.get("limit") ?? "10", 10) || 10, 10), 50);
+
     try {
-      const data = await AssignmentsService.list();
+      const data = await AssignmentsService.list(page, limit);
       return NextResponse.json(data);
     } catch (error) {
       return handleError(error);

@@ -1,16 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { StudentsService } from "@/services/students/services";
 import { handleError } from "@/lib/errors/error.handler";
+import { readIdParam } from "@/lib/api.util";
 
 export class StudentController {
   static async list(request: NextRequest) {
+    const { id, error } = readIdParam(request);
+    if (error) return error;
+
     const params = request.nextUrl.searchParams;
     const page = Math.max(parseInt(params.get("page") ?? "1", 10) || 1, 1);
     const search = params.get("search") ?? "";
     const filter = params.get("filter") ?? "";
 
     try {
-      const result = await StudentsService.list(search, filter, page);
+      const result = await StudentsService.list(search, filter, page, id);
       return NextResponse.json(result);
     } catch (error) {
       return handleError(error);

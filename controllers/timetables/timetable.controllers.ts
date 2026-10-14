@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { TimetablesService } from "@/services/timetables/services";
 import { handleError } from "@/lib/errors/error.handler";
+import { readIdParam } from "@/lib/api.util";
 import { TIMETABLE_STATUS_OPTIONS, type TimetableStatus } from "@/types/timetable.type";
 
 const VALID_TIMETABLE_STATUSES = new Set(TIMETABLE_STATUS_OPTIONS.map((option) => option.value));
@@ -14,13 +15,16 @@ function parseTimetableStatus(value: unknown): TimetableStatus | null {
 
 export class TimetableController {
   static async list(request: NextRequest) {
+    const { id, error } = readIdParam(request);
+    if (error) return error;
+
     const params = request.nextUrl.searchParams;
     const page = Math.max(parseInt(params.get("page") ?? "1", 10) || 1, 1);
     const limit = Math.min(Math.max(parseInt(params.get("limit") ?? "10", 10) || 10, 10), 50);
     const batchId = params.get("batch") ?? undefined;
 
     try {
-      const data = await TimetablesService.list(page, limit, batchId);
+      const data = await TimetablesService.list(page, limit, batchId, id);
       return NextResponse.json(data);
     } catch (error) {
       return handleError(error);

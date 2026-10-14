@@ -44,7 +44,7 @@ export interface CreateTimetablePayload {
 }
 
 export class TimetablesService {
-  static async list(page: number, limit: number, batchId?: string) {
+  static async list(page: number, limit: number, batchId?: string, id?: string) {
     const supabase = await createClient();
 
     const from = (page - 1) * limit;
@@ -55,6 +55,10 @@ export class TimetablesService {
       .select(TIMETABLE_SELECT, { count: "exact" })
       .order("day_of_week", { ascending: true })
       .order("start_time", { ascending: true });
+
+    if (id) {
+      query = query.eq("id", id);
+    }
 
     if (batchId) {
       query = query.eq("batch_id", batchId);

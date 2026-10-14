@@ -1,20 +1,34 @@
 "use client"
 
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import type { Assignment } from "@/types/batch.type"
 
-/** Takes the endpoint rather than a batch id, so the same hook serves the
- *  admin batch panel and the teacher's own assignments page. */
-export function useAssignmentsData(url: string) {
-  const [data, setData] = useState<Assignment[] | null>(null)
-  const [error, setError] = useState<string | null>(null)
-  const [reloadKey, setReloadKey] = useState(0)
+type Result = {
+  /** The url + reload counter this result belongs to. */
+  key: string
+  rows: Assignment[]
+  totalCount: number
+  totalPages: number
+  error: string | null
+}
 
-  const loading = data === null && error === null
+/** Takes the endpoint rather than a batch id, so the same hook serves the
+ *  admin batch panel, the teacher's own assignments page, and the paginated
+ *  admin assignments list. */
+export function useAssignmentsData(url: string) {
+  const [reloadKey, setReloadKey] = useState(0)
+  const [result, setResult] = useState<Result | null>(null)
 
   const refresh = useCallback(() => {
     setReloadKey((k) => k + 1)
   }, [])
+
+  /* Request identity drives the loading state instead of a `setLoading(true)`
+     inside the effect, which the react-hooks lint rules reject and which
+     would also cause a cascading render on every page change. Anything already
+     fetched under a different key is stale and must not be shown. */
+  const key = useMemo(() => `${url}::${reloadKey}`, [url, reloadKey])
+  const settled = result !== null && result.key === key
 
   useEffect(() => {
     let cancelled = false
@@ -32,21 +46,46 @@ export function useAssignmentsData(url: string) {
         return res.json()
       })
       .then((json) => {
-        if (!cancelled) {
-          setData(Array.isArray(json) ? json : (json?.data ?? []))
-          setError(null)
+        if (cancelled) return
+
+        /* Two live shapes: /api/assignments paginates into an envelope, while
+           /api/batches/[id]/assignments and /api/teacher/assignments still
+           return a bare array. Normalise both into one shape. */
+        if (Array.isArray(json)) {
+          setResult({ key, rows: json, totalCount: json.length, totalPages: 1, error: null })
+        } else {
+          const rows = (json?.assignments ?? json?.data ?? []) as Assignment[]
+          setResult({
+            key,
+            rows,
+            totalCount: json?.totalCount ?? rows.length,
+            totalPages: json?.totalPages ?? 1,
+            error: null,
+          })
         }
       })
       .catch((err) => {
-        if (!cancelled) {
-          setError(err instanceof Error ? err.message : "Failed to load assignments")
-        }
+        if (cancelled) return
+        setResult({
+          key,
+          rows: [],
+          totalCount: 0,
+          totalPages: 1,
+          error: err instanceof Error ? err.message : "Failed to load assignments",
+        })
       })
 
     return () => {
       cancelled = true
     }
-  }, [url, reloadKey])
+  }, [url, key])
 
-  return { data, loading, error, refresh }
+  return {
+    assignments: settled ? result.rows : null,
+    totalCount: settled ? result.totalCount : 0,
+    totalPages: settled ? result.totalPages : 1,
+    loading: !settled,
+    error: settled ? result.error : null,
+    refresh,
+  }
 }

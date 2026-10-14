@@ -2,14 +2,21 @@ import { serverFetch } from "@/lib/server.service"
 
 import StudentAssignmentList from "@/components/students/student-assignment-list.component"
 import { sortByUrgency } from "@/lib/assignment.util"
+import type { PaginatedAssignments } from "@/types/assignment.type"
 import type { StudentAssignment } from "@/types/student-assignment.type"
 
 export default async function StudentAssignmentsPage() {
-  const assignments = ((await serverFetch(
-    `http://localhost:3000/api/assignments`,
+  /* The list endpoint now paginates into an envelope. This page still wants
+     every row — a student's own workload is small and the urgency sort has to
+     see all of it to order across pages — so it asks for a large ceiling rather
+     than pretending to paginate. The API clamps `limit` to 50. */
+  const body = (await serverFetch(
+    `http://localhost:3000/api/assignments?page=1&limit=50`,
     // Cookie-scoped per student, so it must never be cached across users.
     { cache: "no-store" }
-  ).then((res) => res.json())) ?? []) as StudentAssignment[]
+  ).then((res) => res.json())) as PaginatedAssignments<StudentAssignment>
+
+  const assignments = body?.assignments ?? []
 
   // Read once here so the countdown cannot drift between render and display.
   const now = new Date()

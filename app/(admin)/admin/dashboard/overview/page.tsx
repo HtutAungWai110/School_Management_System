@@ -6,7 +6,8 @@ import {
   MonthlyAttendanceChart,
   type MonthlyAttendance,
 } from "@/components/admin/monthly-attendance-chart.component"
-import { Search, CircleHelp, Bell, GraduationCap, User, Users, ClipboardList, AlertTriangle, Mail } from "lucide-react"
+import { CircleHelp, GraduationCap, User, Users, ClipboardList, AlertTriangle, Mail } from "lucide-react"
+import { NotificationBell } from "@/components/notifications/notification-bell.component"
 
 import { serverFetch } from "@/lib/server.service"
 
@@ -23,22 +24,11 @@ export default async function AdminPage() {
           <div className="flex justify-between items-center px-12 py-4 max-w-[1440px] mx-5">
             <h1 className="text-[24px] font-[600] leading-[32px] text-primary">Overview</h1>
             <div className="flex items-center gap-6">
-              <div className="flex items-center bg-surface-container-low px-4 py-2 rounded-lg border border-outline-variant/10">
-                <Search className="w-5 h-5 text-on-surface-variant mr-2" />
-                <input
-                  className="bg-transparent border-none focus:outline-none text-[14px] leading-[20px] text-on-surface placeholder:text-on-surface-variant w-48"
-                  placeholder="Search data..."
-                  type="text"
-                />
-              </div>
               <button className="text-on-surface-variant hover:text-primary transition-colors duration-200 flex items-center gap-1">
                 <CircleHelp className="w-5 h-5" />
                 <span className="font-label-md text-label-md">Help</span>
               </button>
-              <div className="relative">
-                <Bell className="w-5 h-5 text-on-surface-variant cursor-pointer" />
-                <span className="absolute -top-1 -right-1 w-2 h-2 bg-error rounded-full" />
-              </div>
+              <NotificationBell />
             </div>
           </div>
         </header>

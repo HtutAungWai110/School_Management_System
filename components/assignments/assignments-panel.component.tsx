@@ -5,6 +5,7 @@ import { ChevronDown, Mail, Phone, FileText, CalendarClock } from "lucide-react"
 import { cn } from "@/lib/utils.util"
 import { useAssignmentsData } from "./use-assignments-data.hook"
 import { AssignmentStudentsTable } from "./assignment-students-table.component"
+import { PaginationNav } from "@/components/navigation/pagination-nav.component"
 
 function formatDue(value: string | null): string {
   if (!value) return "No deadline"
@@ -19,6 +20,9 @@ function formatDue(value: string | null): string {
 
 type AssignmentsPanelProps = {
   subtitle?: string
+  /** Current page, supplied by the owning server page from its searchParams.
+   *  Ignored by the array-shaped endpoints, which report a single page. */
+  page?: number
 } & (
   | { batchId: string; endpoint?: never }
   | { endpoint: string; batchId?: never }
@@ -28,13 +32,27 @@ export function AssignmentsPanel({
   batchId,
   endpoint,
   subtitle = "Turned-in work across all assignments for this batch.",
+  page = 1,
 }: AssignmentsPanelProps) {
-  const { data, loading, error } = useAssignmentsData(
-    endpoint ?? `/api/batches/${batchId}/assignments`
-  )
+  /* `page` is always sent. The batch and teacher endpoints ignore unknown
+     query params, and sending it unconditionally keeps this panel from having
+     to know which of its endpoints actually paginate. */
+  const url = useMemo(() => {
+    const base = endpoint ?? `/api/batches/${batchId}/assignments`
+    const separator = base.includes("?") ? "&" : "?"
+    return `${base}${separator}page=${page}`
+  }, [endpoint, batchId, page])
+
+  const { assignments: rows, totalCount, totalPages, loading, error } = useAssignmentsData(url)
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
 
-  const assignments = useMemo(() => data ?? [], [data])
+  const assignments = useMemo(() => rows ?? [], [rows])
+  /* Pagination is self-detecting: only the paginated endpoints report more
+     than one page, so no endpoint-specific flag is needed. */
+  const isPaginated = totalPages > 1
+  /* Only a single-page response can honestly total submissions across the whole
+     set; summing a visible page of a paginated list would understate it, so the
+     count is dropped there rather than shown as a misleading total. */
   const totalSubmissions = useMemo(
     () => assignments.reduce((sum, a) => sum + (a.student_assignments?.length ?? 0), 0),
     [assignments]
@@ -67,8 +85,9 @@ export function AssignmentsPanel({
           </div>
           {assignments.length > 0 && (
             <span className="text-on-background/10 bg-primary-fixed/50 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-[600] leading-[12px] border border-secondary-container/60 shrink-0">
-              {assignments.length} assignment{assignments.length !== 1 ? "s" : ""} · {totalSubmissions} submission
-              {totalSubmissions !== 1 ? "s" : ""}
+              {totalCount} assignment{totalCount !== 1 ? "s" : ""}
+              {!isPaginated &&
+                ` · ${totalSubmissions} submission${totalSubmissions !== 1 ? "s" : ""}`}
             </span>
           )}
         </div>
@@ -170,6 +189,19 @@ export function AssignmentsPanel({
           </div>
         )}
       </div>
+
+      {/* PaginationNav is URL-driven, matching every other admin list page: it
+          rewrites ?page= and the owning server page re-renders with the new
+          page prop, which changes this panel's fetch URL. A client-side pager
+          here would have needed a second, divergent pagination component. */}
+      {isPaginated && !loading && !error && (
+        <div className="flex items-center justify-between gap-4 border-t border-outline-variant/10 px-5 py-3">
+          <p className="text-[12px] leading-[16px] text-on-surface-variant">
+            Page {page} of {totalPages}
+          </p>
+          <PaginationNav page={page} totalPages={totalPages} />
+        </div>
+      )}
     </div>
   )
 }

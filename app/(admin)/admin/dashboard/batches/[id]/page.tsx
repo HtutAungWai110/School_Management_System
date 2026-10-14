@@ -1,5 +1,6 @@
 import Link from "next/link"
-import { ArrowLeft, Bell, BookX, Calendar, CircleHelp, Users } from "lucide-react"
+import { ArrowLeft, BookX, Calendar, CircleHelp, Users } from "lucide-react"
+import { NotificationBell } from "@/components/notifications/notification-bell.component"
 
 import { serverFetch } from "@/lib/server.service"
 import type { Batch, BatchModule } from "@/types/batch.type"
@@ -55,10 +56,7 @@ export default async function BatchDetailPage({ params }: { params: Promise<{ id
                 <CircleHelp className="w-5 h-5" />
                 <span className="text-[14px] font-[600] leading-[16px] tracking-[0.05em]">Help</span>
               </button>
-              <div className="relative">
-                <Bell className="w-5 h-5 text-on-surface-variant cursor-pointer" />
-                <span className="absolute -top-1 -right-1 w-2 h-2 bg-error rounded-full" />
-              </div>
+              <NotificationBell />
             </div>
           </div>
         </header>

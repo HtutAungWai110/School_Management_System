@@ -27,7 +27,7 @@ function normalizeTitle(value: string) {
 }
 
 export class StudentsService {
-  static async list(search: string, filter: string, page: number) {
+  static async list(search: string, filter: string, page: number, id?: string) {
     const supabase = await createClient();
 
     const recentSince = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
@@ -40,6 +40,10 @@ export class StudentsService {
       .select("*", { count: "exact" })
       .eq("role", "student")
       .range(from, to);
+
+    if (id) {
+      query = query.eq("id", id);
+    }
 
     if (search) {
       query = query.ilike("full_name", `%${search}%`);
@@ -57,6 +61,10 @@ export class StudentsService {
       .from("profiles")
       .select("*", { count: "exact", head: true })
       .eq("role", "student");
+
+    if (id) {
+      countQuery = countQuery.eq("id", id);
+    }
 
     if (search) {
       countQuery = countQuery.ilike("full_name", `%${search}%`);

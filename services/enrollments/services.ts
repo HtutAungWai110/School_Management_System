@@ -24,7 +24,7 @@ const ENROLLMENT_SELECT = `
 `;
 
 export class EnrollmentsService {
-  static async list(search: string, filter: string, page: number) {
+  static async list(search: string, filter: string, page: number, id?: string) {
     const supabase = await createClient();
 
     const levelId = filter;
@@ -35,6 +35,13 @@ export class EnrollmentsService {
       .eq("role", "student")
       .eq("student_enrollments.status", "unassigned")
       .order("created_at", { ascending: false });
+
+    if (id) {
+      /* This list is keyed on students, but every flattened row also carries a
+         student_enrollments id, so accept either — an admin working from a
+         pending-enrolment email holds that id, not the student's. */
+      query = query.or(`id.eq.${id},student_enrollments.id.eq.${id}`);
+    }
 
     if (search) {
       query = query.ilike("full_name", `%${search}%`);

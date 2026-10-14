@@ -57,16 +57,29 @@ export const ASSIGNMENT_SUBMISSIONS_SELECT = `
   `;
 
 export class AssignmentsService {
-  static async list() {
+  static async list(page: number, limit: number) {
     const supabase = await createClient();
 
-    const { data, error } = await supabase
+    const from = (page - 1) * limit;
+    const to = from + limit - 1;
+
+    const { data, error, count } = await supabase
       .from("assignments")
-      .select(ASSIGNMENT_SELECT);
+      .select(ASSIGNMENT_SELECT, { count: "exact" })
+      /* Every page query needs a total order or rows can repeat or vanish
+         across page boundaries when two share a deadline. Null deadlines sort
+         last, and id breaks remaining ties. */
+      .order("deadline_at", { ascending: true, nullsFirst: false })
+      .order("id", { ascending: true })
+      .range(from, to);
 
     if (error) throw new Error(error.message);
 
-    return data;
+    return {
+      assignments: data ?? [],
+      totalCount: count ?? 0,
+      totalPages: Math.ceil((count ?? 0) / limit),
+    };
   }
 
   static async getTurnedInAssignments(id: string) {
