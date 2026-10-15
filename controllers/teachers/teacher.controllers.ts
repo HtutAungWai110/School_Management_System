@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { TeachersService } from "@/services/teachers/services";
 import { handleError } from "@/lib/errors/error.handler";
-import { readIdParam } from "@/lib/api.util";
+// `readIdParam` for the teacher directory (a single profile lookup);
+// `readIdParams` for the timetable, where a swap links to two sessions.
+import { readIdParam, readIdParams } from "@/lib/api.util";
 
 export class TeacherController {
   static async list(request: NextRequest) {
@@ -43,9 +45,15 @@ export class TeacherController {
     }
   }
 
-  static async getTimetableSessions() {
+  static async getTimetableSessions(request: NextRequest) {
+    /* Accepts `?id=` repeated so a swap notification can point at both
+       sessions it moved. RLS still confines the result to this teacher's own
+       rows, so a foreign id matches nothing rather than leaking. */
+    const { ids, error } = readIdParams(request);
+    if (error) return error;
+
     try {
-      const timetableSessions = await TeachersService.getTimetableSessions();
+      const timetableSessions = await TeachersService.getTimetableSessions(ids);
       return NextResponse.json(timetableSessions);
     } catch (error) {
       return handleError(error);

@@ -1,8 +1,45 @@
 import { NextRequest, NextResponse } from "next/server";
 import { TimetablesService } from "@/services/timetables/services";
+import { NotificationsService } from "@/services/notifications/services";
+import { createClient } from "@/lib/supabase/server.client";
 import { handleError } from "@/lib/errors/error.handler";
-import { readIdParam } from "@/lib/api.util";
+import { readIdParams } from "@/lib/api.util";
+import type { TimetableSessionRef } from "@/lib/notification.util";
 import { TIMETABLE_STATUS_OPTIONS, type TimetableStatus } from "@/types/timetable.type";
+
+type Actor = { id: string; role: string; name: string };
+
+/** Rows as returned by the timetable service, narrowed to what a notification
+ *  needs. Kept loose because the embedded relations arrive untyped. */
+type Embedded<T> = T | T[] | null;
+
+type SessionRow = {
+  id: string;
+  teacher_id?: string | null;
+  modules?: Embedded<{ code?: string | null }>;
+  batches?: Embedded<{ batch_name?: string | null }>;
+};
+
+/** The untyped client reports to-one relations as arrays even though they
+ *  arrive as objects, so both shapes are flattened here instead of cast past. */
+function first<T>(value: Embedded<T> | undefined): T | null {
+  if (!value) return null;
+  return Array.isArray(value) ? value[0] ?? null : value;
+}
+
+/** Projects one or many timetable rows onto the notification shape. */
+function toSessionRefs(payload: SessionRow | SessionRow[] | null | undefined): TimetableSessionRef[] {
+  const rows = Array.isArray(payload) ? payload : payload ? [payload] : [];
+
+  return rows
+    .filter((row): row is SessionRow => Boolean(row?.id))
+    .map((row) => ({
+      id: row.id,
+      teacherId: row.teacher_id ?? null,
+      moduleCode: first(row.modules)?.code ?? null,
+      batchName: first(row.batches)?.batch_name ?? null,
+    }));
+}
 
 const VALID_TIMETABLE_STATUSES = new Set(TIMETABLE_STATUS_OPTIONS.map((option) => option.value));
 
@@ -14,8 +51,50 @@ function parseTimetableStatus(value: unknown): TimetableStatus | null {
 }
 
 export class TimetableController {
+  /** Who is performing the change. Notification routing depends on the role,
+   *  and the role lives in profiles rather than the auth token. */
+  private static async resolveActor(): Promise<Actor | null> {
+    const supabase = await createClient();
+
+    const { data: { user }, error } = await supabase.auth.getUser();
+    if (error || !user) return null;
+
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("id, role, full_name")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    if (!profile) return null;
+
+    return { id: profile.id, role: profile.role, name: profile.full_name };
+  }
+
+  /** Announces the change to the other side. Failures are swallowed inside the
+   *  service: the timetable write has already landed by this point. */
+  private static async announce(
+    action: "scheduled" | "updated" | "swapped",
+    payload: SessionRow | SessionRow[] | null | undefined
+  ) {
+    const sessions = toSessionRefs(payload);
+    if (sessions.length === 0) return;
+
+    const actor = await TimetableController.resolveActor();
+    if (!actor) return;
+
+    await NotificationsService.notifyTimetableChange({
+      action,
+      actorId: actor.id,
+      actorRole: actor.role,
+      actorName: actor.name,
+      sessions,
+    });
+  }
+
   static async list(request: NextRequest) {
-    const { id, error } = readIdParam(request);
+    /* Accepts `?id=` repeated, so a swap notification can point at both of the
+       sessions it moved. */
+    const { ids, error } = readIdParams(request);
     if (error) return error;
 
     const params = request.nextUrl.searchParams;
@@ -24,7 +103,7 @@ export class TimetableController {
     const batchId = params.get("batch") ?? undefined;
 
     try {
-      const data = await TimetablesService.list(page, limit, batchId, id);
+      const data = await TimetablesService.list(page, limit, batchId, ids);
       return NextResponse.json(data);
     } catch (error) {
       return handleError(error);
@@ -138,6 +217,7 @@ export class TimetableController {
         end_time,
         status: status !== undefined ? (status as TimetableStatus) : undefined,
       });
+      await TimetableController.announce("updated", data);
       return NextResponse.json({ data });
     } catch (error) {
       return handleError(error);
@@ -162,6 +242,7 @@ export class TimetableController {
 
     try {
       const data = await TimetablesService.swap(id, other_id);
+      await TimetableController.announce("swapped", data.sessions);
       return NextResponse.json({ data });
     } catch (error) {
       return handleError(error);
@@ -226,6 +307,7 @@ export class TimetableController {
         end_time,
         status: status !== undefined ? (status as TimetableStatus) : "ongoing",
       });
+      await TimetableController.announce("scheduled", data);
       return NextResponse.json({ data }, { status: 201 });
     } catch (error) {
       return handleError(error);

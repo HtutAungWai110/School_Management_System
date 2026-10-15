@@ -13,16 +13,41 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
  * unfiltered list back and could mistake it for a match.
  */
 export function readIdParam(request: NextRequest): { id: string | undefined; error: NextResponse | null } {
-  const raw = request.nextUrl.searchParams.get("id")?.trim();
+  const [raw] = request.nextUrl.searchParams.getAll("id");
 
-  if (!raw) return { id: undefined, error: null };
+  const { values, error } = validateIds(
+    raw === undefined ? [] : [raw],
+    "The id parameter must be a valid uuid"
+  );
 
-  if (!UUID.test(raw)) {
-    return {
-      id: undefined,
-      error: NextResponse.json({ error: "The id parameter must be a valid uuid" }, { status: 400 }),
-    };
+  return { id: values?.[0], error };
+}
+
+/**
+ * Same lookup, but accepting the parameter repeated — `?id=a&id=b`.
+ *
+ * Needed wherever a single action spans several rows: a timetable swap moves
+ * two sessions, and the notification has to point at both of them.
+ *
+ * Every value is validated; one bad id rejects the whole request rather than
+ * being silently dropped, since a partial filter would quietly show the wrong
+ * subset.
+ */
+export function readIdParams(request: NextRequest): { ids: string[] | undefined; error: NextResponse | null } {
+  const raw = request.nextUrl.searchParams.getAll("id");
+
+  const { values, error } = validateIds(raw, "Every id parameter must be a valid uuid");
+  return { ids: values, error };
+}
+
+function validateIds(raw: string[], message: string): { values: string[] | undefined; error: NextResponse | null } {
+  const trimmed = raw.map((value) => value.trim()).filter(Boolean);
+
+  if (trimmed.length === 0) return { values: undefined, error: null };
+
+  if (!trimmed.every((value) => UUID.test(value))) {
+    return { values: undefined, error: NextResponse.json({ error: message }, { status: 400 }) };
   }
 
-  return { id: raw, error: null };
+  return { values: trimmed, error: null };
 }

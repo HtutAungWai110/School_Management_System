@@ -44,7 +44,7 @@ export interface CreateTimetablePayload {
 }
 
 export class TimetablesService {
-  static async list(page: number, limit: number, batchId?: string, id?: string) {
+  static async list(page: number, limit: number, batchId?: string, ids?: string[]) {
     const supabase = await createClient();
 
     const from = (page - 1) * limit;
@@ -56,8 +56,8 @@ export class TimetablesService {
       .order("day_of_week", { ascending: true })
       .order("start_time", { ascending: true });
 
-    if (id) {
-      query = query.eq("id", id);
+    if (ids && ids.length > 0) {
+      query = query.in("id", ids);
     }
 
     if (batchId) {
@@ -178,7 +178,7 @@ export class TimetablesService {
     const { data, error } = await supabase
       .from("timetables")
       .insert(payload)
-      .select()
+      .select("id, teacher_id, modules(code), batches(batch_name)")
       .single();
 
     if (error) {
@@ -325,7 +325,7 @@ export class TimetablesService {
       .from("timetables")
       .update(updatePayload)
       .eq("id", id)
-      .select()
+      .select("id, teacher_id, modules(code), batches(batch_name)")
       .single();
 
     if (error) {
@@ -453,7 +453,7 @@ export class TimetablesService {
 
     const { data: current, error: currentError } = await supabase
       .from("timetables")
-      .select("id, day_of_week, start_time, end_time, status")
+      .select("id, teacher_id, day_of_week, start_time, end_time, status, modules(code), batches(batch_name)")
       .eq("id", id)
       .maybeSingle();
 
@@ -471,7 +471,7 @@ export class TimetablesService {
 
     const { data: other, error: otherError } = await supabase
       .from("timetables")
-      .select("id, day_of_week, start_time, end_time, status")
+      .select("id, teacher_id, day_of_week, start_time, end_time, status, modules(code), batches(batch_name)")
       .eq("id", otherId)
       .maybeSingle();
 
@@ -522,6 +522,8 @@ export class TimetablesService {
       throw new Error(updateOtherError.message);
     }
 
-    return { success: true };
+    /* Both rows are returned so the caller can tell everyone involved: a swap
+       moves two sessions, and often two different teachers. */
+    return { success: true, sessions: [current, other] };
   }
 }

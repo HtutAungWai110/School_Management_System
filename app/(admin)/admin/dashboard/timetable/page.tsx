@@ -18,7 +18,7 @@ interface TimetablesData {
 }
 
 interface PageProps {
-  searchParams: Promise<{ page?: string; limit?: string; batch?: string; id?: string }>
+searchParams: Promise<{ page?: string; limit?: string; batch?: string; id?: string | string[] }>
 }
 
 export default async function TimetablePage({ searchParams }: PageProps) {
@@ -30,8 +30,9 @@ export default async function TimetablePage({ searchParams }: PageProps) {
   if (batch) {
     timetablesUrl += `&batch=${encodeURIComponent(batch)}`;
   }
-  if (id) {
-    timetablesUrl += `&id=${encodeURIComponent(id)}`;
+  // A swap moves two sessions, so the id may arrive repeated.
+  for (const value of Array.isArray(id) ? id : id ? [id] : []) {
+    timetablesUrl += `&id=${encodeURIComponent(value)}`;
   }
 
   const [timetablesData, batches, classes] = await Promise.all([

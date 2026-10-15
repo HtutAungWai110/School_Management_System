@@ -127,9 +127,10 @@ export class TeachersService {
     return { addResults, deleteResults };
   }
 
-  static async getOverview() {
+  static async getOverview(ids?: string[]) {
     const supabase = await createClient();
-    const { data: timetableData, error: timetableError } = await supabase
+
+    let timetableQuery = supabase
       .from("timetables")
       .select(`
         id,
@@ -153,6 +154,15 @@ export class TeachersService {
         end_time,
         status
         `)
+
+    /* Narrowed in the query rather than after the fact: the student-count
+       fan-out below runs per session, so filtering late would pay for the
+       whole teacher's timetable to display two rows. */
+    if (ids && ids.length > 0) {
+      timetableQuery = timetableQuery.in("id", ids)
+    }
+
+    const { data: timetableData, error: timetableError } = await timetableQuery
 
     if (timetableError) throw new Error(timetableError.message)
 
@@ -191,9 +201,9 @@ export class TeachersService {
     return { totalSessions, timetableSessions, totalUniqueStudents };
   }
 
-  static async getTimetableSessions() {
+  static async getTimetableSessions(ids?: string[]) {
     try {
-      const {timetableSessions} = await this.getOverview()
+      const {timetableSessions} = await this.getOverview(ids)
       return timetableSessions
     } catch{
       throw new Error('Failed to get timetable sessions')
