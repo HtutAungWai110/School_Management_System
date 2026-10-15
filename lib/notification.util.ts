@@ -1,4 +1,5 @@
 import type { NotificationData } from "@/types/notification.type";
+import { DAY_OF_WEEK_LABELS } from "@/types/timetable.type";
 
 /** Only what a profile edit can actually change. `id` is excluded. */
 const FIELDS = [
@@ -73,11 +74,131 @@ export function buildProfileUpdatedNotification(
   const link = profileLink(normalise(after.role), after.id);
   if (!link) return null;
 
-  const fullName = normalise(after.full_name) || "A user";
+  /* Admins are referred to by role, never by name. */
+  const subject =
+    normalise(after.role) === "admin" ? "Admin" : normalise(after.full_name) || "Someone";
   const summary = changes.join("; ");
 
   return {
-    message: `user ${fullName} updated their info: ${summary}`,
+    message: `${subject} updated their info: ${summary}`,
     link,
   };
+}
+
+/* ------------------------------------------------------------------ */
+/* Timetable changes                                                    */
+/* ------------------------------------------------------------------ */
+
+export type TimetableAction = "scheduled" | "updated" | "swapped";
+
+export type TimetableSessionRef = {
+  id: string;
+  teacherId: string | null;
+  moduleCode?: string | null;
+  batchName?: string | null;
+};
+
+/** Bare noun phrase: "NCC2015 for Batch A". Reads correctly after a verb. */
+function sessionPhrase(session: TimetableSessionRef): string {
+  // Not named `module`: Next.js reserves that identifier.
+  const code = session.moduleCode?.trim() || "a session";
+  const batch = session.batchName?.trim();
+  return batch ? `${code} for ${batch}` : code;
+}
+
+/** Full noun phrase: "the NCC2015 session for Batch A". Needed where the
+ *  sentence has an article, so the batch is not stranded inside it — that is
+ *  what produced "updated the NCC2015 for Batch A session". */
+function sessionNoun(session: TimetableSessionRef): string {
+  const code = session.moduleCode?.trim() || "a session";
+  const batch = session.batchName?.trim();
+  return batch ? `the ${code} session for ${batch}` : `the ${code} session`;
+}
+
+/**
+ * One message per recipient covering every session the action touched. A swap
+ * moves two sessions at once and should read as one event, not two.
+ *
+ * An admin is referred to by role rather than name: a teacher is told the
+ * schedule changed, not which admin changed it. Teachers are named in full,
+ * since the whole point of the notification is that their own session moved.
+ */
+export function buildTimetableNotificationMessage(
+  action: TimetableAction,
+  actor: { role: string; name: string },
+  sessions: TimetableSessionRef[]
+): string {
+  /* The subject is the bare name, with admins reduced to their role: "Ana
+     scheduled ...", "Admin scheduled ...". No "user" prefix anywhere. */
+  const who = actor.role === "admin" ? "Admin" : actor.name?.trim() || "Someone";
+
+  if (action === "scheduled") {
+    return `${who} scheduled ${sessionPhrase(sessions[0])}`;
+  }
+
+  if (action === "updated") {
+    return `${who} updated ${sessionNoun(sessions[0])}`;
+  }
+
+  if (sessions.length < 2) {
+    return `${who} swapped ${sessionPhrase(sessions[0])}`;
+  }
+
+  return `${who} swapped ${sessionPhrase(sessions[0])} with ${sessionPhrase(sessions[1])}`;
+}
+
+/**
+ * Recipient-aware destination. A swap touches two sessions, so the id is
+ * repeated — `?id=a&id=b` — rather than only the first, which would send a
+ * reader to half of what happened.
+ *
+ * The admin timetable list understands the `?id=` lookup; so does the teacher
+ * one. Both roles get the same filter, but each stays on its own side of the
+ * proxy, which would otherwise bounce them to their dashboard on role mismatch.
+ */
+export function timetableNotificationLink(recipientRole: string, sessionIds: string[]): string {
+  const query = sessionIds
+    .filter(Boolean)
+    .map((id) => `id=${encodeURIComponent(id)}`)
+    .join("&");
+
+  const base = recipientRole === "teacher" ? "/teacher/dashboard/timetable" : "/admin/dashboard/timetable";
+
+  return query ? `${base}?${query}` : base;
+}
+
+/* ------------------------------------------------------------------ */
+/* Teacher check-in                                                     */
+/* ------------------------------------------------------------------ */
+
+export type CheckInSession = {
+  moduleCode?: string | null;
+  batchName?: string | null;
+  dayOfWeek?: number | null;
+  startTime?: string | null;
+  endTime?: string | null;
+};
+
+/** "NCC2015 for Batch A, Monday 09:00–10:00" — enough for an admin to recognise
+ *  the session at a glance without opening it. */
+function describeCheckInSession(session: CheckInSession): string {
+  const code = session.moduleCode?.trim() || "a session";
+  const batch = session.batchName?.trim();
+  const what = batch ? `${code} for ${batch}` : code;
+
+  const day =
+    session.dayOfWeek !== null && session.dayOfWeek !== undefined
+      ? DAY_OF_WEEK_LABELS[session.dayOfWeek]
+      : undefined;
+
+  const start = session.startTime?.slice(0, 5);
+  const end = session.endTime?.slice(0, 5);
+  const time = start && end ? `${start}–${end}` : start ?? undefined;
+  const when = [day, time].filter(Boolean).join(" ");
+
+  return when ? `${what}, ${when}` : what;
+}
+
+export function buildTeacherCheckInMessage(teacherName: string, session: CheckInSession): string {
+  return `Teacher ${teacherName.trim() || "A teacher"} checked into ${describeCheckInSession(session)}`;
 }

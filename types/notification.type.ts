@@ -1,5 +1,10 @@
 /** Mirrors `notifications.type` (a plain text column, not an enum). */
-export type NotificationType = "profile_updated";
+export type NotificationType =
+  | "profile_updated"
+  | "timetable_scheduled"
+  | "timetable_updated"
+  | "timetable_swapped"
+  | "attendance_checked_in";
 
 /** Shape of `notifications.data`. Deliberately display-only: the row itself
  *  already carries recipient/sender/type, so anything needed to render a link

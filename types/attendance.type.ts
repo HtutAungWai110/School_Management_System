@@ -7,6 +7,11 @@ export type AttendanceClass = {
   class_number: string | null;
 };
 
+export type AttendanceBatch = {
+  id: string;
+  batch_name: string | null;
+};
+
 export type AttendanceStudent = {
   id: string;
   attendance_id: string;
@@ -27,6 +32,7 @@ export type AttendanceSession = {
   modules: TimetableModule | null;
   profiles: TimetableTeacher | null;
   classes: AttendanceClass | null;
+  batches: AttendanceBatch | null;
   attendances: Record<string, AttendanceStudent[]>;
 };
 

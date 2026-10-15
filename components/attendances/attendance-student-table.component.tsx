@@ -14,7 +14,9 @@ const STATUS_BADGE: Record<string, { text: string; bg: string }> = {
   late: { text: "text-yellow-700", bg: "bg-yellow-50 border-yellow-200" },
 }
 
-function StatusBadge({ status }: { status: string }) {
+/** Exported so read-only views of the same record — the admin attendance page —
+ *  render identical status pills instead of restating the colour mapping. */
+export function StatusBadge({ status }: { status: string }) {
   const style = STATUS_BADGE[status] ?? {
     text: "text-gray-700",
     bg: "bg-gray-50 border-gray-200",

@@ -1,6 +1,14 @@
 import { createClient } from "@/lib/supabase/server.client";
 import { BatchesService } from "@/services/batches/services";
+import { NotificationsService } from "@/services/notifications/services";
 import type { AttendanceCalendarResponse, AttendanceSession } from "@/types/attendance.type";
+
+/** The untyped client reports to-one relations as arrays even though they arrive
+ *  as objects, so both shapes are flattened rather than cast past. */
+function first<T>(value: T | T[] | null | undefined): T | null {
+  if (!value) return null;
+  return Array.isArray(value) ? value[0] ?? null : value;
+}
 
 export const ATTENDANCE_SELECT = `
   id,
@@ -18,6 +26,10 @@ export const ATTENDANCE_SELECT = `
   classes(
     id,
     class_number
+  ),
+  batches(
+    id,
+    batch_name
   ),
   day_of_week,
   start_time,
@@ -112,9 +124,11 @@ export class AttendanceService {
   static async create({ timetable_id, module_id, batch_id, date = null }: AttendanceData) {
     const supabase = await createClient();
 
+    /* Carries the session's own details so the check-in notification can name
+       the session without a second round trip. */
     const { data: timetableData, error: timetableDataError } = await supabase
       .from("timetables")
-      .select("id")
+      .select("id, day_of_week, start_time, end_time, modules(code), batches(batch_name)")
       .eq("id", timetable_id)
       .eq("module_id", module_id)
       .eq("batch_id", batch_id)
@@ -156,10 +170,61 @@ export class AttendanceService {
       if (studentAttendanceError) throw studentAttendanceError;
     }
 
+    /* Admins need to know a session opened: the rows above all say "absent"
+       until someone marks them, so the notification is the prompt to act. Runs
+       only for a teacher — an admin marking their own session is not news to
+       the other admins, and the message is phrased around the teacher. */
+    await this.notifyAdminsOfCheckIn(attendance.id, timetableData);
+
     return {
       attendance_id: attendance.id,
       enrolled_students: studentFlatIds.length,
     };
+  }
+
+  private static async notifyAdminsOfCheckIn(
+    attendanceId: string,
+    timetableData: {
+      day_of_week?: number | null;
+      start_time?: string | null;
+      end_time?: string | null;
+      modules?: { code?: string | null } | { code?: string | null }[] | null;
+      batches?: { batch_name?: string | null } | { batch_name?: string | null }[] | null;
+    } | null
+  ) {
+    try {
+      const supabase = await createClient();
+
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError || !user) return;
+
+      const { data: actor, error: actorError } = await supabase
+        .from("profiles")
+        .select("id, role, full_name")
+        .eq("id", user.id)
+        .maybeSingle();
+
+      if (actorError || !actor || actor.role !== "teacher") return;
+
+      const session = first<{ code?: string | null }>(timetableData?.modules);
+      const batch = first<{ batch_name?: string | null }>(timetableData?.batches);
+
+      await NotificationsService.notifyTeacherCheckIn({
+        teacherId: actor.id,
+        teacherName: actor.full_name,
+        attendanceId,
+        session: {
+          moduleCode: session?.code ?? null,
+          batchName: batch?.batch_name ?? null,
+          dayOfWeek: timetableData?.day_of_week ?? null,
+          startTime: timetableData?.start_time ?? null,
+          endTime: timetableData?.end_time ?? null,
+        },
+      });
+    } catch (error) {
+      // Never fail a successful check-in because the announcement did not send.
+      console.error("[notifications] check-in failed:", error);
+    }
   }
 
   static async getAttendances(batchId: string, date: string | null): Promise<AttendanceCalendarResponse> {
