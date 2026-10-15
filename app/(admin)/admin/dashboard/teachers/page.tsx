@@ -93,7 +93,7 @@ export default async function TeachersPage({ searchParams }: PageProps) {
               <table className="w-full text-left border-collapse">
                 <thead className="bg-surface-container-low">
                   <tr>
-                    {["Teacher", "Email", "Modules", "Role", "Joined Date", ""].map((h) => (
+                    {["Teacher", "Email", "Role", "Joined Date", ""].map((h) => (
                       <th key={h} className={`px-6 py-3 text-[12px] font-[500] leading-[16px] text-on-surface-variant uppercase tracking-wider ${h === "" ? "text-right" : ""}`}>
                         {h}
                       </th>

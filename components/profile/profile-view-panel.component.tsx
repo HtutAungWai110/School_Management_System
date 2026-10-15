@@ -5,6 +5,7 @@ import Image from "next/image"
 import { X, Fingerprint } from "lucide-react"
 import { cn } from "@/lib/utils.util"
 import type { Profile } from "@/types/profile.type"
+import type { TeacherModule } from "@/types/teacher.type"
 
 function getInitials(name: string) {
   return name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)
@@ -64,10 +65,14 @@ function Field({
 
 interface ProfileViewPanelProps {
   profile: Profile
+  /** Teacher-only. Passed rather than read off `profile` because `teacher_modules`
+   *  is not part of the base Profile type. Omitting it hides the section
+   *  entirely, so students never see an empty heading. */
+  modules?: TeacherModule[]
   onClose: () => void
 }
 
-export function ProfileViewPanel({ profile, onClose }: ProfileViewPanelProps) {
+export function ProfileViewPanel({ profile, modules, onClose }: ProfileViewPanelProps) {
   const closeRef = useRef<HTMLButtonElement>(null)
 
   useEffect(() => {
@@ -94,7 +99,7 @@ export function ProfileViewPanel({ profile, onClose }: ProfileViewPanelProps) {
         className="absolute inset-0 h-full w-full cursor-default bg-black/40 animate-in fade-in duration-300 motion-reduce:animate-none"
       />
       <aside className="absolute inset-y-0 right-0 flex w-full max-w-[440px] flex-col bg-surface-container-lowest shadow-2xl animate-in slide-in-from-right duration-300 ease-out motion-reduce:animate-none">
-        <header className="relative bg-primary-container px-8 pb-7 pt-6">
+        <header className="relative bg-primary px-8 pb-7 pt-6">
           <button
             ref={closeRef}
             type="button"
@@ -159,6 +164,50 @@ export function ProfileViewPanel({ profile, onClose }: ProfileViewPanelProps) {
             <Field label="Role" value={roleLabel} />
             <Field label="Address" value={profile.address} full />
           </div>
+
+          {/* Rendered as a section rather than another field: modules carry a
+              count and an assigned date, so they need a list, not a value. */}
+          {modules && (
+            <>
+              <div className="mt-8 flex items-baseline justify-between gap-3">
+                <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-on-surface-variant">Modules</p>
+                {modules.length > 0 && (
+                  <p className="font-mono text-[10px] font-medium uppercase leading-[14px] tracking-[0.18em] text-primary">
+                    {modules.length} assigned
+                  </p>
+                )}
+              </div>
+
+              {modules.length === 0 ? (
+                <p className="mt-4 rounded-xl border border-outline-variant/30 bg-surface-container-low/40 px-4 py-5 text-center text-[13px] leading-[20px] text-on-surface-variant/70">
+                  No modules assigned
+                </p>
+              ) : (
+                <ul className="mt-4 space-y-2">
+                  {modules.map((teacherModule) => (
+                    <li
+                      key={teacherModule.id}
+                      className="rounded-xl border border-outline-variant/30 bg-surface-container-low/40 p-4"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <span className="shrink-0 rounded bg-brand-soft px-1.5 py-0.5 font-mono text-[11px] font-medium leading-4 text-primary">
+                          {teacherModule.modules?.code ?? "—"}
+                        </span>
+                        {teacherModule.assigned_at && (
+                          <span className="shrink-0 font-mono text-[10px] leading-4 text-on-surface-variant">
+                            {formatDate(teacherModule.assigned_at)}
+                          </span>
+                        )}
+                      </div>
+                      <p className="mt-2 text-[13px] font-[600] leading-[20px] text-on-surface">
+                        {teacherModule.modules?.title ?? "Unknown module"}
+                      </p>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </>
+          )}
 
           <p className="mt-8 text-[10px] font-bold uppercase tracking-[0.24em] text-on-surface-variant">Identifier</p>
           <div className="mt-4 rounded-xl border border-outline-variant/30 bg-surface-container-low/40 p-4">

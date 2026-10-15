@@ -71,27 +71,6 @@ export function TeacherRow({ teacher }: { teacher: Teacher }) {
       </td>
       <td className="px-6 py-4 text-[14px] leading-[20px] text-on-surface-variant">{teacher.email}</td>
       <td className="px-6 py-4">
-        {teacherModules.length === 0 ? (
-          <span className="inline-flex items-center gap-1.5 text-[14px] leading-[20px] text-on-surface-variant">
-            <BookOpen className="w-4 h-4" />
-            No modules
-          </span>
-        ) : (
-          <div className="flex flex-wrap gap-2">
-            {teacherModules.map((tm) => (
-              <span
-                key={tm.id}
-                title={tm.modules?.title}
-                className="text-on-background/10 bg-primary-fixed/50 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-secondary-container/60 text-[12px] font-[600] leading-[16px]"
-              >
-                <span className="font-bold text-on-primary-fixed-variant">{tm.modules?.code ?? "—"}</span>
-                <span className="text-on-surface-variant">{tm.modules?.title}</span>
-              </span>
-            ))}
-          </div>
-        )}
-      </td>
-      <td className="px-6 py-4">
         <span className="px-2.5 py-0.5 rounded-full text-on-background/10 bg-primary-fixed/50 border border-secondary-container text-[12px] font-[500] leading-[16px] capitalize">
           {teacher.role}
         </span>
@@ -147,7 +126,7 @@ export function TeacherRow({ teacher }: { teacher: Teacher }) {
         </div>
       </td>
       </tr>
-      {viewOpen && <ProfileViewPanel profile={teacher} onClose={closeView} />}
+      {viewOpen && <ProfileViewPanel profile={teacher} modules={teacherModules} onClose={closeView} />}
       {editOpen && <EditProfilePanel profile={teacher} onClose={() => setEditOpen(false)} />}
       {deleteOpen && <ProfileDeletePanel profile={teacher} onClose={() => setDeleteOpen(false)} />}
       {modulesOpen && <TeacherModulesPanel teacher={teacher} onClose={() => setModulesOpen(false)} />}
