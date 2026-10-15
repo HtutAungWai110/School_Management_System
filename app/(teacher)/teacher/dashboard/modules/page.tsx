@@ -1,3 +1,4 @@
+import { NotificationBell } from "@/components/notifications/notification-bell.component"
 import { serverFetch } from "@/lib/server.service"
 import { TeacherModuleRow } from "@/types/teacher-module.type"
 import { TeacherModuleRowComponent } from "@/components/teachers/teacher-module-row.component"
@@ -16,9 +17,7 @@ export default async function ModulesPage() {
               <button className="text-on-surface-variant hover:text-primary transition-colors duration-200 flex items-center gap-1">
                 <span className="font-label-md text-label-md">Help</span>
               </button>
-              <button className="text-on-surface-variant hover:text-primary transition-colors duration-200 relative">
-                <span className="absolute -top-1 -right-1 w-2 h-2 bg-error rounded-full" />
-              </button>
+              <NotificationBell />
             </div>
           </div>
         </header>

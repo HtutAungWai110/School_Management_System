@@ -9,6 +9,7 @@ import { useProfileStore } from "@/components/profile/profile.state"
 import ProfileAvatarUpload from "@/components/profile/profile-avatar-upload.component"
 import SettingsFieldRow from "@/components/profile/settings-field-row.component"
 import ThemePreference from "@/components/profile/theme-preference.component"
+import { NotificationBell } from "@/components/notifications/notification-bell.component"
 import type { Profile } from "@/types/profile.type"
 import { cn } from "@/lib/utils.util"
 
@@ -80,11 +81,16 @@ export default function SettingsView({
   return (
     <main className={cn(withSidebar && "lg:ml-64")}>
     <div className="mx-auto w-full max-w-[1440px] px-6 py-8 md:px-12">
-      <nav aria-label="Breadcrumb" className="mb-4 flex items-center gap-1.5 text-[13px] text-on-surface-variant">
-        <span>Preferences</span>
-        <ChevronRight className="size-3.5" />
-        <span className="font-medium text-foreground">Settings</span>
-      </nav>
+      <div className="mb-4 flex items-center justify-between gap-4">
+        <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 text-[13px] text-on-surface-variant">
+          <span>Preferences</span>
+          <ChevronRight className="size-3.5" />
+          <span className="font-medium text-foreground">Settings</span>
+        </nav>
+        {/* This view is shared by the admin and teacher settings routes, so the
+            bell appears on both rather than only where the gap was noticed. */}
+        <NotificationBell />
+      </div>
 
       <div className="overflow-hidden rounded-xl border border-border bg-card">
         <div className="border-b border-border px-6 py-5 md:px-8">

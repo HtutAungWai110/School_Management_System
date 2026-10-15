@@ -1,3 +1,4 @@
+import { NotificationBell } from "@/components/notifications/notification-bell.component"
 import { TimetableSessionWrapper } from "@/components/teachers/timetable-session-wrapper.component"
 import type { TimetableSession } from "@/components/teachers/timetable-session-table.component"
 import { serverFetch } from "@/lib/server.service"
@@ -8,10 +9,22 @@ function getTodayDayOfWeek() {
   return jsDay === 0 ? 7 : jsDay
 }
 
-export default async function TimetablePage() {
+interface PageProps {
+  /** `id` arrives as a string, or as an array when a swap links to two
+   *  sessions at once (`?id=a&id=b`). */
+  searchParams: Promise<{ id?: string | string[] }>
+}
+
+export default async function TimetablePage({ searchParams }: PageProps) {
+  const { id } = await searchParams
+  const ids = Array.isArray(id) ? id : id ? [id] : []
+
+  const query = ids.map((value) => `id=${encodeURIComponent(value)}`).join("&")
+
   const [sessions, classes] = await Promise.all([
-    serverFetch("http://localhost:3000/api/teacher/timetable", { next: { revalidate: 120 } })
-      .then((res) => res.json()) as Promise<TimetableSession[]>,
+    serverFetch(`http://localhost:3000/api/teacher/timetable${query ? `?${query}` : ""}`, {
+      next: { revalidate: 120 },
+    }).then((res) => res.json()) as Promise<TimetableSession[]>,
     serverFetch("http://localhost:3000/api/classes", { next: { revalidate: 120 } })
       .then((res) => res.json()) as Promise<Class[]>,
   ])
@@ -38,9 +51,7 @@ export default async function TimetablePage() {
               <button className="text-on-surface-variant hover:text-primary transition-colors duration-200 flex items-center gap-1">
                 <span className="font-label-md text-label-md">Help</span>
               </button>
-              <button className="text-on-surface-variant hover:text-primary transition-colors duration-200 relative">
-                <span className="absolute -top-1 -right-1 w-2 h-2 bg-error rounded-full" />
-              </button>
+              <NotificationBell />
             </div>
           </div>
         </header>

@@ -1,3 +1,4 @@
+import { NotificationBell } from "@/components/notifications/notification-bell.component"
 import { MetricCard } from "@/components/admin/metric-card.component"
 import { TimetableSessionWrapper } from "@/components/teachers/timetable-session-wrapper.component"
 import type { TimetableSession } from "@/components/teachers/timetable-session-table.component"
@@ -48,18 +49,11 @@ export default async function TeacherOverviewPage() {
         <header className="bg-background sticky top-0 z-10 w-full border-b border-outline-variant/10">
           <div className="flex justify-between items-center px-12 py-4 max-w-[1440px] mx-5">
             <h1 className="text-[24px] font-[600] leading-[32px] text-primary">Overview</h1>
-            <div className="flex items-center gap-6">
-              <div className="flex items-center bg-surface-container-low px-4 py-2 rounded-lg border border-outline-variant/10">
-                <span className="bg-transparent border-none focus:outline-none text-[14px] leading-[20px] text-on-surface placeholder:text-on-surface-variant w-48">
-                  Search data...
-                </span>
-              </div>
+<div className="flex items-center gap-6">
               <button className="text-on-surface-variant hover:text-primary transition-colors duration-200 flex items-center gap-1">
                 <span className="font-label-md text-label-md">Help</span>
               </button>
-              <button className="text-on-surface-variant hover:text-primary transition-colors duration-200 relative">
-                <span className="absolute -top-1 -right-1 w-2 h-2 bg-error rounded-full" />
-              </button>
+              <NotificationBell />
             </div>
           </div>
         </header>
