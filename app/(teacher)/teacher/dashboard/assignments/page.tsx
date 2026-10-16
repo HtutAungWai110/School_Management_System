@@ -1,7 +1,24 @@
 import { AssignmentsPanel } from "@/components/assignments/assignments-panel.component"
 import { NotificationBell } from "@/components/notifications/notification-bell.component"
 
-export default async function TeacherAssignmentsPage() {
+interface PageProps {
+  /** `id` is the assignment and `submissionId` a student_assignments row; a
+   *  submission notification links to both at once. */
+  searchParams: Promise<{ id?: string; submissionId?: string }>
+}
+
+export default async function TeacherAssignmentsPage({ searchParams }: PageProps) {
+  const { id, submissionId } = await searchParams
+
+  let endpoint = "/api/teacher/assignments"
+  const query = [
+    id ? `id=${encodeURIComponent(id)}` : null,
+    submissionId ? `submissionId=${encodeURIComponent(submissionId)}` : null,
+  ].filter(Boolean)
+
+  if (query.length > 0) {
+    endpoint += `?${query.join("&")}`
+  }
   return (
     <div className="min-h-screen bg-background flex">
       <main className="flex-1 lg:ml-64">
@@ -19,7 +36,7 @@ export default async function TeacherAssignmentsPage() {
 
         <div className="px-12 py-10 max-w-[1440px] mx-auto">
           <AssignmentsPanel
-            endpoint="/api/teacher/assignments"
+            endpoint={endpoint}
             subtitle="Work your students have turned in, across every batch you teach."
           />
         </div>

@@ -4,7 +4,10 @@ export type NotificationType =
   | "timetable_scheduled"
   | "timetable_updated"
   | "timetable_swapped"
-  | "attendance_checked_in";
+  | "attendance_checked_in"
+  | "enrollment_requested"
+  | "batch_assigned"
+  | "assignment_submitted";
 
 /** Shape of `notifications.data`. Deliberately display-only: the row itself
  *  already carries recipient/sender/type, so anything needed to render a link

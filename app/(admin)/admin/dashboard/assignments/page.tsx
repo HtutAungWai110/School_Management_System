@@ -3,15 +3,26 @@ import { CircleHelp } from "lucide-react"
 import { NotificationBell } from "@/components/notifications/notification-bell.component"
 
 interface PageProps {
-  searchParams: Promise<{ page?: string }>
+  /** `id` is the assignment and `submissionId` a student_assignments row; a
+   *  submission notification links to both at once. */
+  searchParams: Promise<{ page?: string; id?: string; submissionId?: string }>
 }
 
 export default async function AdminAssignmentsPage({ searchParams }: PageProps) {
-  /* Only `page` is forwarded. The panel owns fetching, so the page's job here
-     is to hand it the current page and let PaginationNav drive navigation by
-     rewriting this same URL. */
-  const { page } = await searchParams
+  /* The panel owns fetching, so the page's job here is to hand it the current
+     page and let PaginationNav drive navigation by rewriting this same URL.
+     `id` and `submissionId` are forwarded verbatim so a notification link
+     survives a page change. */
+  const { page, id, submissionId } = await searchParams
   const currentPage = Math.max(parseInt(page ?? "1", 10) || 1, 1)
+
+  let endpoint = `/api/assignments?page=${currentPage}`
+  if (id) {
+    endpoint += `&id=${encodeURIComponent(id)}`
+  }
+  if (submissionId) {
+    endpoint += `&submissionId=${encodeURIComponent(submissionId)}`
+  }
 
   return (
     /* `lg:ml-64` is load-bearing: the admin layout renders the sidebar as a
@@ -33,8 +44,8 @@ export default async function AdminAssignmentsPage({ searchParams }: PageProps) 
         </header>
 
         <div className="px-12 py-10 max-w-[1440px] mx-auto">
-          <AssignmentsPanel
-            endpoint="/api/assignments"
+<AssignmentsPanel
+            endpoint={endpoint}
             page={currentPage}
             subtitle="Turned-in work across every assignment, soonest deadline first."
           />

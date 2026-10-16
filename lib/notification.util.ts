@@ -94,6 +94,8 @@ export type TimetableAction = "scheduled" | "updated" | "swapped";
 export type TimetableSessionRef = {
   id: string;
   teacherId: string | null;
+  /** Used to find the batch's students, who also need to hear about this. */
+  batchId?: string | null;
   moduleCode?: string | null;
   batchName?: string | null;
 };
@@ -152,9 +154,9 @@ export function buildTimetableNotificationMessage(
  * repeated — `?id=a&id=b` — rather than only the first, which would send a
  * reader to half of what happened.
  *
- * The admin timetable list understands the `?id=` lookup; so does the teacher
- * one. Both roles get the same filter, but each stays on its own side of the
- * proxy, which would otherwise bounce them to their dashboard on role mismatch.
+ * All three timetables (admin, teacher and student) understand the `?id=`
+ * lookup. Each recipient stays on their own side of the proxy, which would
+ * otherwise bounce them to their dashboard on role mismatch.
  */
 export function timetableNotificationLink(recipientRole: string, sessionIds: string[]): string {
   const query = sessionIds
@@ -162,7 +164,12 @@ export function timetableNotificationLink(recipientRole: string, sessionIds: str
     .map((id) => `id=${encodeURIComponent(id)}`)
     .join("&");
 
-  const base = recipientRole === "teacher" ? "/teacher/dashboard/timetable" : "/admin/dashboard/timetable";
+  const base =
+    recipientRole === "student"
+      ? "/student/dashboard/timetable"
+      : recipientRole === "teacher"
+        ? "/teacher/dashboard/timetable"
+        : "/admin/dashboard/timetable";
 
   return query ? `${base}?${query}` : base;
 }
@@ -201,4 +208,92 @@ function describeCheckInSession(session: CheckInSession): string {
 
 export function buildTeacherCheckInMessage(teacherName: string, session: CheckInSession): string {
   return `Teacher ${teacherName.trim() || "A teacher"} checked into ${describeCheckInSession(session)}`;
+}
+
+/* ------------------------------------------------------------------ */
+/* Enrollment requests                                                  */
+/* ------------------------------------------------------------------ */
+
+function joinList(values: string[]): string {
+  if (values.length === 0) return "";
+  if (values.length === 1) return values[0];
+  /* Oxford-comma only from three up: "A and B" reads better than "A, and B". */
+  if (values.length === 2) return `${values[0]} and ${values[1]}`;
+  return `${values.slice(0, -1).join(", ")}, and ${values[values.length - 1]}`;
+}
+
+/**
+ * "Ana requested enrollment in NCC2015 and NCC2016 for LEVEL 4 Diploma in
+ * Computing" — the level is what an admin is actually approving, so it earns
+ * its place even though the module codes are what the student picked.
+ */
+export function buildEnrollmentRequestMessage(
+  studentName: string,
+  moduleCodes: string[],
+  level?: string | null
+): string {
+  const subject = studentName.trim() || "A student";
+  const codes = joinList(moduleCodes);
+
+  const what = codes ? `enrollment in ${codes}` : "an enrollment";
+  const where = level?.trim() ? ` for ${level.trim()}` : "";
+
+  return `${subject} requested ${what}${where}`;
+}
+
+/* ------------------------------------------------------------------ */
+/* Batch assignment                                                     */
+/* ------------------------------------------------------------------ */
+
+/**
+ * "Admin assigned you to Level 4, Batch 3" — second person, so no name
+ * prefix, and the actor stays "Admin" for the same reason as everywhere else.
+ */
+export function buildBatchAssignedMessage(batchName: string): string {
+  return `Admin assigned you to ${batchName.trim() || "a batch"}`;
+}
+
+/* ------------------------------------------------------------------ */
+/* Assignment submissions                                               */
+/* ------------------------------------------------------------------ */
+
+/**
+ * "Ana Kim turned in an assignment for NCC2004 in Level 4, Batch 2" — module
+ * and batch are optional because a notification still has to read sensibly if
+ * RLS hides the assignment row from the student submitting it.
+ */
+export function buildAssignmentSubmittedMessage(
+  studentName: string,
+  moduleCode?: string | null,
+  batchName?: string | null
+): string {
+  const subject = studentName.trim() || "A student";
+  const code = moduleCode?.trim();
+  const batch = batchName?.trim();
+
+  const what = code ? `an assignment for ${code}` : "an assignment";
+  const where = batch ? ` in ${batch}` : "";
+
+  return `${subject} turned in ${what}${where}`;
+}
+
+/** Both ids are carried so the reader lands on the exact submission rather than
+ *  the whole list: `id` is the assignment, `submissionId` the student's row
+ *  inside it. */
+export function assignmentNotificationLink(
+  recipientRole: string,
+  assignmentId: string,
+  submissionId?: string | null
+): string {
+  const base =
+    recipientRole === "teacher"
+      ? "/teacher/dashboard/assignments"
+      : "/admin/dashboard/assignments";
+
+  const query = [
+    assignmentId ? `id=${encodeURIComponent(assignmentId)}` : null,
+    submissionId ? `submissionId=${encodeURIComponent(submissionId)}` : null,
+  ].filter(Boolean);
+
+  return query.length > 0 ? `${base}?${query.join("&")}` : base;
 }

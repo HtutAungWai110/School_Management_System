@@ -1,6 +1,18 @@
 import { createClient } from "@/lib/supabase/server.client";
+import { NotificationsService } from "@/services/notifications/services";
+import { first } from "@/lib/supabase.util";
 
 const PAGE_SIZE = 20;
+
+/** A row from `modules_level`. Both embeds are unions because the untyped
+ *  client models to-one relations as arrays; read them through `first()`. */
+type ModuleLevelRow = {
+  module_id: string
+  level_id: string
+  required: string
+  levels: { description: string } | { description: string }[] | null
+  modules: { code: string } | { code: string }[] | null
+}
 
 
 const TIMETABLE_SELECT = `
@@ -207,6 +219,9 @@ export class StudentsService {
         required,
         levels(
           description
+        ),
+        modules(
+          code
         )
         `)
       .in("module_id", modulesFlatIds)
@@ -216,34 +231,30 @@ export class StudentsService {
       throw new Error(moduleLevelsError.message)
     }
 
-    // PostgREST returns a to-one embed as an object, but the generated
-    // types model `levels` as an array. This is a types-only correction —
-    // indexing here would be a runtime bug.
-    type ModuleLevelRow = {
-      module_id: string
-      level_id: string
-      required: string
-      levels: { description: string }
-    }
+    // See `first()`: the untyped client models these embeds as arrays.
+    const typedModuleLevels = moduleLevelsData as unknown as ModuleLevelRow[]
 
     // `level` is the qualification title; the rest are per-type tallies.
     type LevelCombination = { level: string } & Record<string, string | number>
 
     const requiredValidMap = new Map<string, LevelCombination>()
 
-    ;(moduleLevelsData as unknown as ModuleLevelRow[]).forEach(item => {
-      let level = requiredValidMap.get(item.levels.description)
-      if (!level) {
-        level = { level: item.levels.description }
-        requiredValidMap.set(item.levels.description, level)
+    typedModuleLevels.forEach(item => {
+      const levelDescription = first<{ description: string }>(item.levels)?.description
+      if (!levelDescription) return
+
+      let entry = requiredValidMap.get(levelDescription)
+      if (!entry) {
+        entry = { level: levelDescription }
+        requiredValidMap.set(levelDescription, entry)
       }
 
       const required = item.required
 
-      if (!level[required]) {
-        level[required] = 1
+      if (!entry[required]) {
+        entry[required] = 1
       } else {
-        level[required] = Number(level[required]) + 1
+        entry[required] = Number(entry[required]) + 1
       }
     })
 
@@ -292,14 +303,62 @@ export class StudentsService {
 
     const enrollmentResults = await Promise.all(enrollmentPromise)
 
+    /* Every row is created as `unassigned`, so nothing moves until an admin
+       approves it. This is the prompt, and it lands them on the enrollments
+       queue filtered to this student. */
+    const failed = enrollmentResults.filter((result) => result.error)
+    if (failed.length === 0) {
+      await this.notifyAdminsOfEnrollment(user.id, moduleLevelsData as unknown as ModuleLevelRow[])
+    }
+
     return { enrollmentResults }
   }
 
-  static async getTimetables() {
+  private static async notifyAdminsOfEnrollment(studentId: string, moduleLevels: ModuleLevelRow[]) {
+    try {
+      const supabase = await createClient()
+
+      const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select("full_name")
+        .eq("id", studentId)
+        .maybeSingle()
+
+      if (profileError || !profile) return
+
+      const moduleCodes: string[] = []
+      for (const row of moduleLevels) {
+        const code = first<{ code?: string | null }>(row.modules)?.code
+        if (code && !moduleCodes.includes(code)) moduleCodes.push(code)
+      }
+
+      await NotificationsService.notifyAdminsOfEnrollmentRequest({
+        studentId,
+        studentName: profile.full_name,
+        moduleCodes: moduleCodes.sort(),
+        level: first<{ description?: string | null }>(moduleLevels[0]?.levels)?.description ?? null,
+      })
+    } catch (error) {
+      // Never fail a successful enrolment because the announcement did not send.
+      console.error("[notifications] enrollment request failed:", error)
+    }
+  }
+
+  static async getTimetables(ids?: string[]) {
     const supabase = await createClient()
-    const { data, error } = await supabase
+
+    let query = supabase
       .from("timetables")
       .select(TIMETABLE_SELECT)
+
+    /* Accepts the parameter repeated, matching the admin and teacher timetable
+       lists: a swap links to two sessions at once. RLS already confines a
+       student to their own batches, so a foreign id simply matches nothing. */
+    if (ids && ids.length > 0) {
+      query = query.in("id", ids)
+    }
+
+    const { data, error } = await query
 
     if (error) {
       throw new Error(error.message)

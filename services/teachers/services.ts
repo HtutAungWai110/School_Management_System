@@ -379,7 +379,7 @@ export class TeachersService {
   /** Everything this teacher has set, across every batch they teach, with the
    *  submissions attached. Scoped on teacher_id rather than batch_id, so one
    *  query covers all of their batches instead of one per batch. */
-  static async getOwnAssignments(): Promise<Assignment[]> {
+  static async getOwnAssignments(assignmentId?: string, submissionId?: string): Promise<Assignment[]> {
     const supabase = await createClient();
 
     const { data: userData, error: userError } = await supabase.auth.getUser();
@@ -392,10 +392,23 @@ export class TeachersService {
 
     if (!user) throw new HttpError(401, "Authentication required.");
 
-    const { data, error } = await supabase
+    let query = supabase
       .from("assignments")
       .select(ASSIGNMENT_SUBMISSIONS_SELECT)
       .eq("teacher_id", user.id);
+
+    /* Same two deep-link filters as the admin list, so a submission
+       notification resolves on either side. Plain `.eq()` because PostgREST
+       accepts an embedded column that way but rejects one inside `or()`. */
+    if (assignmentId) {
+      query = query.eq("id", assignmentId);
+    }
+
+    if (submissionId) {
+      query = query.eq("student_assignments.id", submissionId);
+    }
+
+    const { data, error } = await query;
 
     if (error) throw new Error(error.message);
 

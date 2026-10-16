@@ -3,7 +3,7 @@ import { TeachersService } from "@/services/teachers/services";
 import { handleError } from "@/lib/errors/error.handler";
 // `readIdParam` for the teacher directory (a single profile lookup);
 // `readIdParams` for the timetable, where a swap links to two sessions.
-import { readIdParam, readIdParams } from "@/lib/api.util";
+import { readIdParam, readIdParams, readUuidParam } from "@/lib/api.util";
 
 export class TeacherController {
   static async list(request: NextRequest) {
@@ -69,9 +69,17 @@ export class TeacherController {
     }
   }
 
-  static async getAssignments() {
+static async getAssignments(request: NextRequest) {
+    /* A submission notification links to one assignment and one of its
+       submissions, so both deep-link filters are honoured here. */
+    const { id, error: idError } = readIdParam(request);
+    if (idError) return idError;
+
+    const { value: submissionId, error: submissionError } = readUuidParam(request, "submissionId");
+    if (submissionError) return submissionError;
+
     try {
-      const data = await TeachersService.getOwnAssignments()
+      const data = await TeachersService.getOwnAssignments(id, submissionId);
       return NextResponse.json(data)
     } catch (error) {
       return handleError(error);

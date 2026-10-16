@@ -178,7 +178,7 @@ export class TimetablesService {
     const { data, error } = await supabase
       .from("timetables")
       .insert(payload)
-      .select("id, teacher_id, modules(code), batches(batch_name)")
+      .select("id, teacher_id, batch_id, modules(code), batches(batch_name)")
       .single();
 
     if (error) {
@@ -325,7 +325,7 @@ export class TimetablesService {
       .from("timetables")
       .update(updatePayload)
       .eq("id", id)
-      .select("id, teacher_id, modules(code), batches(batch_name)")
+      .select("id, teacher_id, batch_id, modules(code), batches(batch_name)")
       .single();
 
     if (error) {
@@ -453,7 +453,7 @@ export class TimetablesService {
 
     const { data: current, error: currentError } = await supabase
       .from("timetables")
-      .select("id, teacher_id, day_of_week, start_time, end_time, status, modules(code), batches(batch_name)")
+      .select("id, teacher_id, batch_id, day_of_week, start_time, end_time, status, modules(code), batches(batch_name)")
       .eq("id", id)
       .maybeSingle();
 
@@ -471,7 +471,7 @@ export class TimetablesService {
 
     const { data: other, error: otherError } = await supabase
       .from("timetables")
-      .select("id, teacher_id, day_of_week, start_time, end_time, status, modules(code), batches(batch_name)")
+      .select("id, teacher_id, batch_id, day_of_week, start_time, end_time, status, modules(code), batches(batch_name)")
       .eq("id", otherId)
       .maybeSingle();
 

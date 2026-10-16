@@ -1,14 +1,8 @@
 import { createClient } from "@/lib/supabase/server.client";
 import { BatchesService } from "@/services/batches/services";
 import { NotificationsService } from "@/services/notifications/services";
+import { first } from "@/lib/supabase.util";
 import type { AttendanceCalendarResponse, AttendanceSession } from "@/types/attendance.type";
-
-/** The untyped client reports to-one relations as arrays even though they arrive
- *  as objects, so both shapes are flattened rather than cast past. */
-function first<T>(value: T | T[] | null | undefined): T | null {
-  if (!value) return null;
-  return Array.isArray(value) ? value[0] ?? null : value;
-}
 
 export const ATTENDANCE_SELECT = `
   id,

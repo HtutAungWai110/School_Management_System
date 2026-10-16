@@ -4,6 +4,7 @@ import { NotificationsService } from "@/services/notifications/services";
 import { createClient } from "@/lib/supabase/server.client";
 import { handleError } from "@/lib/errors/error.handler";
 import { readIdParams } from "@/lib/api.util";
+import { first } from "@/lib/supabase.util";
 import type { TimetableSessionRef } from "@/lib/notification.util";
 import { TIMETABLE_STATUS_OPTIONS, type TimetableStatus } from "@/types/timetable.type";
 
@@ -16,16 +17,10 @@ type Embedded<T> = T | T[] | null;
 type SessionRow = {
   id: string;
   teacher_id?: string | null;
+  batch_id?: string | null;
   modules?: Embedded<{ code?: string | null }>;
   batches?: Embedded<{ batch_name?: string | null }>;
 };
-
-/** The untyped client reports to-one relations as arrays even though they
- *  arrive as objects, so both shapes are flattened here instead of cast past. */
-function first<T>(value: Embedded<T> | undefined): T | null {
-  if (!value) return null;
-  return Array.isArray(value) ? value[0] ?? null : value;
-}
 
 /** Projects one or many timetable rows onto the notification shape. */
 function toSessionRefs(payload: SessionRow | SessionRow[] | null | undefined): TimetableSessionRef[] {
@@ -36,6 +31,8 @@ function toSessionRefs(payload: SessionRow | SessionRow[] | null | undefined): T
     .map((row) => ({
       id: row.id,
       teacherId: row.teacher_id ?? null,
+      /* Carried so the students of the affected batch can be notified too. */
+      batchId: row.batch_id ?? null,
       moduleCode: first(row.modules)?.code ?? null,
       batchName: first(row.batches)?.batch_name ?? null,
     }));

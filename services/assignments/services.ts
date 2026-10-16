@@ -1,27 +1,17 @@
 import { createClient } from "@/lib/supabase/server.client";
 import { HttpError } from "@/lib/errors/http.error";
 import { ASSIGNMENT_BUCKET, toStorageKey } from "@/lib/assignment.util";
-
-const ASSIGNMENT_SELECT = `
-  *,
-  batches(
-    batch_name,
-    status
-  ),
-  modules(
-    code,
-    title
-  ),
-  profiles(
-    full_name,
-    phone,
-    email
-  )
-  `;
+import { NotificationsService } from "@/services/notifications/services";
+import { first } from "@/lib/supabase.util";
 
 /** Includes student_assignments, so a panel can list who has turned work in.
- *  Shared with TeachersService.getOwnAssignments, which returns the same shape
- *  scoped to one teacher rather than one batch. */
+ *  Shared by the admin list, the batch panel and
+ *  TeachersService.getOwnAssignments, all of which need the submissions.
+ *
+ *  This deliberately replaced a second, narrower select that the admin list
+ *  used: it omitted student_assignments, so every row expanded to an empty
+ *  table and reported "0 submitted". One shape for all three callers means a
+ *  field cannot be added to two of them and forgotten in the third. */
 export const ASSIGNMENT_SUBMISSIONS_SELECT = `
   id,
   batch_id,
@@ -57,20 +47,41 @@ export const ASSIGNMENT_SUBMISSIONS_SELECT = `
   `;
 
 export class AssignmentsService {
-  static async list(page: number, limit: number) {
+static async list(
+    page: number,
+    limit: number,
+    assignmentId?: string,
+    submissionId?: string
+  ) {
     const supabase = await createClient();
 
     const from = (page - 1) * limit;
     const to = from + limit - 1;
 
-    const { data, error, count } = await supabase
+    let query = supabase
       .from("assignments")
-      .select(ASSIGNMENT_SELECT, { count: "exact" })
-      /* Every page query needs a total order or rows can repeat or vanish
-         across page boundaries when two share a deadline. Null deadlines sort
-         last, and id breaks remaining ties. */
-      .order("deadline_at", { ascending: true, nullsFirst: false })
-      .order("id", { ascending: true })
+      .select(ASSIGNMENT_SUBMISSIONS_SELECT, { count: "exact" })
+
+    /* Both filters are plain `.eq()` on purpose. PostgREST accepts an embedded
+       column this way — `student_enrollments.status=eq.…` is how the batch
+       panel has always worked — but it cannot reference one inside an `or()`,
+       which rejects it with PGRST100. */
+    if (assignmentId) {
+      query = query.eq("id", assignmentId);
+    }
+
+    if (submissionId) {
+      query = query.eq("student_assignments.id", submissionId);
+    }
+
+    /* Every page query needs a total order or rows can repeat or vanish
+       across page boundaries when two share a deadline. Null deadlines sort
+       last, and id breaks remaining ties. */
+    const { data, error, count } = await query
+      .order("deadline_at",
+        { ascending: true, nullsFirst: false }
+    )
+    .order("id", { ascending: true })
       .range(from, to);
 
     if (error) throw new Error(error.message);
@@ -144,7 +155,52 @@ export class AssignmentsService {
 
     if (error) throw new Error(error.message);
 
+    /* Announced only once the submission exists. Wrapped so a notification
+       problem can never turn a successful upload into a failed request. */
+    try {
+      /* `data` is the freshly inserted student_assignments row, so its id is
+         the submission the notification should deep-link to. */
+      await this.announceSubmission(assignmentId, user.id, data?.id ?? null);
+    } catch (notifyError) {
+      console.error("[notifications] submission announcement failed:", notifyError);
+    }
+
     return data;
+  }
+
+  /**
+   * Resolves the assignment and the student in one pass each, then hands them
+   * to the notifications service.
+   *
+   * Best-effort: RLS may hide the assignment row from the student submitting
+   * it. The admins are still notified via get_admin_ids, which is a definer
+   * function, and the message drops the module rather than failing.
+   */
+  private static async announceSubmission(assignmentId: string, studentId: string, submissionId: string | null) {
+    const supabase = await createClient();
+
+    const [{ data: assignment }, { data: student }] = await Promise.all([
+      supabase
+        .from("assignments")
+        .select("id, teacher_id, modules(code), batches(batch_name)")
+        .eq("id", assignmentId)
+        .maybeSingle(),
+      supabase
+        .from("profiles")
+        .select("full_name")
+        .eq("id", studentId)
+        .maybeSingle(),
+    ]);
+
+    await NotificationsService.notifyTeacherAndAdminsOfSubmission({
+      studentId,
+      studentName: student?.full_name ?? "",
+      assignmentId,
+      submissionId,
+      teacherId: assignment?.teacher_id ?? null,
+      moduleCode: first<{ code?: string | null }>(assignment?.modules)?.code ?? null,
+      batchName: first<{ batch_name?: string | null }>(assignment?.batches)?.batch_name ?? null,
+    });
   }
 
   static async remove(assignmentId: string) {

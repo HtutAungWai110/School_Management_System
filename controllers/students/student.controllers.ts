@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { StudentsService } from "@/services/students/services";
 import { handleError } from "@/lib/errors/error.handler";
-import { readIdParam } from "@/lib/api.util";
+import { readIdParam, readIdParams } from "@/lib/api.util";
 
 export class StudentController {
   static async list(request: NextRequest) {
@@ -49,9 +49,12 @@ export class StudentController {
     }
   }
 
-  static async getTimetables() {
+  static async getTimetables(request: NextRequest) {
+    const { ids, error } = readIdParams(request);
+    if (error) return error;
+
     try {
-      const data = await StudentsService.getTimetables()
+      const data = await StudentsService.getTimetables(ids)
       return NextResponse.json(data)
     } catch (error) {
       return handleError(error);

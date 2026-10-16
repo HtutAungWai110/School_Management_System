@@ -4,9 +4,19 @@ import OverviewTimetable from "@/components/students/overview-timetable.componen
 import type { OverviewSession } from "@/types/student-overview.type"
 import OverviewNextSession from "@/components/students/overview-next-session.component"
 
-export default async function StudentTimetablePage() {
+interface PageProps {
+  /** `id` arrives as a string, or an array when a swap links to two sessions. */
+  searchParams: Promise<{ id?: string | string[] }>
+}
+
+export default async function StudentTimetablePage({ searchParams }: PageProps) {
+  const { id } = await searchParams
+  const query = (Array.isArray(id) ? id : id ? [id] : [])
+    .map((value) => `id=${encodeURIComponent(value)}`)
+    .join("&")
+
   const rows = (await serverFetch(
-    `http://localhost:3000/api/student/timetables`,
+    `http://localhost:3000/api/student/timetables${query ? `?${query}` : ""}`,
     // Cookie-scoped per student, so it must never be cached across users.
     { cache: "no-store" }
   ).then((res) => res.json())) as OverviewSession[]
