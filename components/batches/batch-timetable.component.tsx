@@ -94,10 +94,16 @@ export function BatchTimetable({ batch, timetables, classes }: BatchTimetablePro
         </div>
       ) : (
         <div className="overflow-x-auto">
+          {/* The Day column is sticky so it stays put while the time slots scroll
+              sideways. Its z-index sits at 1 rather than 10 deliberately: the
+              page header above this table is also `sticky z-10`, and at equal
+              z-index this later element paints over it. 1 keeps the column
+              above the static cells it has to cover without competing with the
+              header. */}
           <table className="w-full table-fixed border-collapse min-w-[560px]">
             <thead>
               <tr className="bg-surface-container-low">
-                <th className="sticky left-0 z-10 bg-surface-container-low px-4 py-3 text-[12px] font-[500] leading-[16px] text-on-surface-variant uppercase tracking-wider text-left border-b border-r border-outline-variant/10 w-[120px]">
+                <th className="sticky left-0 z-[1] bg-surface-container-low px-4 py-3 text-[12px] font-[500] leading-[16px] text-on-surface-variant uppercase tracking-wider text-left border-b border-r border-outline-variant/10 w-[120px]">
                   Day
                 </th>
                 {timeSlots.map((ts) => (
@@ -115,7 +121,7 @@ export function BatchTimetable({ batch, timetables, classes }: BatchTimetablePro
             <tbody>
               {activeDays.map((day) => (
                 <tr key={day}>
-                  <td className="sticky left-0 z-10 bg-surface-container-low px-4 py-3 text-[13px] font-[600] leading-[18px] text-on-surface whitespace-nowrap border-r border-b border-outline-variant/10">
+                  <td className="sticky left-0 z-[1] bg-surface-container-low px-4 py-3 text-[13px] font-[600] leading-[18px] text-on-surface whitespace-nowrap border-r border-b border-outline-variant/10">
                     {DAY_OF_WEEK_LABELS[day]}
                   </td>
                   {timeSlots.map((ts) => {
