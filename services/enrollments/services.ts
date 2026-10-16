@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server.client";
 import { HttpError } from "@/lib/errors/http.error";
+import { NotificationsService } from "@/services/notifications/services";
 import type { EnrolledStudent } from "@/types/enrollment.type";
 
 const PAGE_SIZE = 10;
@@ -37,10 +38,14 @@ export class EnrollmentsService {
       .order("created_at", { ascending: false });
 
     if (id) {
-      /* This list is keyed on students, but every flattened row also carries a
-         student_enrollments id, so accept either — an admin working from a
-         pending-enrolment email holds that id, not the student's. */
-      query = query.or(`id.eq.${id},student_enrollments.id.eq.${id}`);
+      /* Matches the student id only. This previously also accepted a
+         student_enrollments id via
+         `.or(\`id.eq.X,student_enrollments.id.eq.X\`)`, but PostgREST rejects
+         that outright — `or` cannot reference an embedded table's column:
+         "unexpected \"i\" expecting \"not\" or operator" (PGRST100). Every
+         request carrying ?id= came back 400, which the page rendered as an
+         empty list because it never checked the status. */
+      query = query.eq("id", id);
     }
 
     if (search) {
@@ -220,6 +225,19 @@ export class EnrollmentsService {
 
     if (error) {
       throw new Error(error.message);
+    }
+
+    /* Announced only once this student's own row exists. assignBatch runs the
+       students in parallel, so an earlier failure elsewhere in the batch must
+       not stop the ones that did land from being told. */
+    try {
+      await NotificationsService.notifyStudentOfBatchAssignment({
+        studentId,
+        batchId,
+        batchName: batchData.batch_name ?? "",
+      });
+    } catch (notifyError) {
+      console.error("[notifications] batch assignment failed:", notifyError);
     }
 
     if (moduleIds.length > 0) {

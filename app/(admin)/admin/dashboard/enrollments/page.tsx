@@ -28,11 +28,35 @@ export default async function EnrollmentsPage({ searchParams }: PageProps) {
     url += `&id=${encodeURIComponent(id)}`
   }
 
-  const [data, levels] = await Promise.all([
-    serverFetch(url, { next: { revalidate: 120 } }).then(res => res.json()) as Promise<EnrollmentsResponse>,
+  const [response, levels] = await Promise.all([
+    serverFetch(url, { next: { revalidate: 120 } }),
     serverFetch(`http://localhost:3000/api/levels`, { next: { revalidate: 120 } }).then(res => res.json()) as Promise<Level[]>,
   ])
 
+  /* Checked rather than assumed: a failed request used to fall through to
+     `data?.enrollments ?? []` and render as an empty queue, which reads as
+     "this student has nothing pending" when it actually means the lookup
+     failed. */
+  if (!response.ok) {
+    const error = (await response.json().catch(() => null)) as { error?: string } | null
+
+    return (
+      <div className="min-h-screen bg-background flex">
+        <main className="flex-1 lg:ml-64">
+          <div className="px-12 py-10 max-w-[1440px] mx-auto">
+            <h1 className="text-[24px] font-[600] leading-[32px] text-primary">Enrollments</h1>
+            <div className="mt-6 rounded-xl border border-destructive/25 bg-destructive/10 px-6 py-12 text-center">
+              <p className="text-[14px] leading-5 text-destructive">
+                {error?.error ?? "We couldn't load these enrolments."}
+              </p>
+            </div>
+          </div>
+        </main>
+      </div>
+    )
+  }
+
+  const data = (await response.json()) as EnrollmentsResponse
   const enrollments = data?.enrollments ?? []
   const totalCount = data?.totalCount ?? 0
   const totalEnrollments = data?.totalEnrollments ?? 0
