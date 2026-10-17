@@ -52,64 +52,6 @@ export class NotificationsService {
   }
 
   /**
-   * Reads the viewer's unread notifications, newest first.
-   *
-   * Only unread rows: once a notification has been seen it is cached client
-   * side and no longer needs to cross the wire on every page load.
-   *
-   * Ownership is not filtered here on purpose — the SELECT policy
-   * (`auth.uid() = recipient_id`) already scopes every row, so a redundant
-   * `.eq("recipient_id", ...)` could only mask a policy regression.
-   */
-  static async list(limit: number) {
-    const supabase = await createClient();
-
-    const { data, error, count } = await supabase
-      .from("notifications")
-      .select("*", { count: "exact" })
-      .eq("is_read", false)
-      .order("created_at", { ascending: false })
-      .order("id", { ascending: false })
-      .limit(limit);
-
-    if (error) {
-      throw new Error(error.message);
-    }
-
-    /* Every row here is unread, so `count` is the unread total — no second
-       count query is needed. */
-    return {
-      notifications: (data as NotificationRow[] | null) ?? [],
-      totalCount: count ?? 0,
-    };
-  }
-
-  /**
-   * Marks the given notifications read. Batched because an IntersectionObserver
-   * can report several rows entering the viewport in a single callback, and one
-   * request per row would be wasteful.
-   *
-   * RLS restricts the update to the caller's own rows, so ids belonging to
-   * someone else simply match nothing rather than being written.
-   */
-  static async markRead(ids: string[]) {
-    if (ids.length === 0) return { success: true };
-
-    const supabase = await createClient();
-
-    const { error } = await supabase
-      .from("notifications")
-      .update({ is_read: true, read_at: new Date().toISOString() })
-      .in("id", ids);
-
-    if (error) {
-      throw new Error(error.message);
-    }
-
-    return { success: true };
-  }
-
-  /**
    * Announces a timetable change to whoever is not responsible for it.
    *
    * An admin scheduling, editing or swapping is news for the teacher involved;
@@ -224,7 +166,7 @@ export class NotificationsService {
   }
 
   /**
-   * Students in the affected batch(es) hear about a timetable change too — a
+   * Students in the affected batch(es) hear about a timetable change too â€” a
    * swap moves their lesson whether or not they were told by a teacher.
    *
    * De-duplicated across sessions, because a swap spanning two batches in the
@@ -269,7 +211,7 @@ export class NotificationsService {
 
   /**
    * Tells the admins that a teacher opened a session. Check-in only registers
-   * that the session is happening — an admin still has to mark who turned up —
+   * that the session is happening â€” an admin still has to mark who turned up â€”
    * so this is the prompt to go and do it.
    *
    * Never throws: the attendance rows are already written by this point.
@@ -325,7 +267,7 @@ export class NotificationsService {
 
   /**
    * Tells the admins a student is waiting on them. A new enrolment is created
-   * as `unassigned`, so nothing else happens until someone approves it — this
+   * as `unassigned`, so nothing else happens until someone approves it â€” this
    * notification is that prompt, and the link lands on the queue filtered to
    * this one student.
    *
@@ -424,7 +366,7 @@ export class NotificationsService {
       .maybeSingle();
 
     /* Only an admin can place a student in a batch, and the message names
-       "Admin" — so anything else must not be announced as one. */
+       "Admin" â€” so anything else must not be announced as one. */
     if (actorError || !actor || actor.role !== "admin") return;
 
     if (studentId === actor.id) return;

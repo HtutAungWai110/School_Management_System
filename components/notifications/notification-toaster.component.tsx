@@ -4,7 +4,7 @@ import Link from "next/link"
 import { motion, AnimatePresence, useReducedMotion } from "motion/react"
 import { X } from "lucide-react"
 
-import type { StoredNotification } from "@/types/notification.type"
+import type { NotificationToast } from "@/types/notification.type"
 
 function eyebrowFor(value: string): string {
   const seconds = Math.round((Date.now() - new Date(value).getTime()) / 1000)
@@ -21,11 +21,11 @@ function eyebrowFor(value: string): string {
 }
 
 type NotificationToasterProps = {
-  toasts: StoredNotification[]
+  toasts: NotificationToast[]
   onDismiss: (id: string) => void
   /** Clicking the message is an act of reading it, so it takes a different
    *  path than the close button or auto-expiry. */
-  onRead: (toast: StoredNotification) => void
+  onRead: (toast: NotificationToast) => void
   onPause: (id: string) => void
   onResume: (id: string) => void
 }

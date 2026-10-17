@@ -1,68 +1,50 @@
 import Link from "next/link"
-import { ArrowLeft } from "lucide-react"
+import { ArrowLeft, CircleHelp } from "lucide-react"
 
-import { serverFetch } from "@/lib/server.service"
-import { createClient } from "@/lib/supabase/server.client"
-import NotificationList from "@/components/notifications/notification-list.component"
-import type { NotificationRow } from "@/types/notification.type"
+import NotificationFeed from "@/components/notifications/notification-feed.component"
 
-interface NotificationsResponse {
-  notifications: NotificationRow[];
-  totalCount: number;
-}
+/**
+ * Sits outside the role route groups so it has no sidebar; "/" is redirected by
+ * the proxy to whichever dashboard the viewer belongs to, which makes it the
+ * natural way back.
+ *
+ * The shell stays a server component; only the feed is client-side, because it
+ * reads Supabase directly and subscribes to inserts rather than waiting on an
+ * API route.
+ *
+ * No bell here: the trigger links here, so on this page it would only ever
+ * point at itself.
+ */
+export default function NotificationsPage() {
+  return (
+    /* No `flex` here: the admin pages use it to sit a single <main> beside a fixed
+       sidebar rail, and there is no sidebar on this route. Adding it with a
+       header and a main as children puts them side by side instead of stacked,
+       which pushed the list off centre. */
+    <div className="min-h-screen bg-background">
+      <header className="bg-background sticky top-0 z-10 w-full border-b border-outline-variant/10">
+        <div className="flex justify-between items-center px-6 py-4 max-w-[900px] mx-auto md:px-10">
+          <Link
+            href="/"
+            className="inline-flex items-center gap-1.5 text-[13px] font-medium leading-5 text-on-surface-variant transition-colors hover:text-primary"
+          >
+            <ArrowLeft className="size-3.5" />
+            Back to dashboard
+          </Link>
 
-export default async function NotificationsPage() {
-  /* no-store: per-user, and changes whenever anything notifies them. */
-  const response = await serverFetch(
-    `http://localhost:3000/api/notifications?limit=100`,
-    { cache: "no-store" }
-  )
+          <button className="text-on-surface-variant hover:text-primary transition-colors duration-200 flex items-center gap-1">
+            <CircleHelp className="w-5 h-5" />
+            <span className="text-[14px] font-[600] leading-[16px] tracking-[0.05em]">Help</span>
+          </button>
+        </div>
+      </header>
 
-  /* Checked rather than assumed, so a failed request does not render as
-     "you're all caught up" — which would be the opposite of the truth. */
-  if (!response.ok) {
-    return (
-      <div className="mx-auto w-full max-w-[900px] px-6 py-16 md:px-10">
-        <h1 className="text-[24px] font-bold leading-8 tracking-tight text-primary">
+      <main className="w-full max-w-[900px] mx-auto px-6 py-8 md:px-10">
+        <h1 className="mb-6 text-[24px] font-bold leading-8 tracking-tight text-primary">
           Notifications
         </h1>
-        <div className="mt-6 rounded-xl border border-destructive/25 bg-destructive/10 px-6 py-12 text-center">
-          <p className="text-[14px] leading-5 text-destructive">
-            We couldn&apos;t load your notifications. Reload the page to try again.
-          </p>
-        </div>
-      </div>
-    )
-  }
-
-  const data = (await response.json()) as NotificationsResponse
-
-  /* Passed down rather than read from the profile store: this page sits outside
-     the role route groups, so ProfileStoreSync is not mounted here and the
-     store would be empty. The list needs the id to namespace its localStorage
-     cache, which is what keeps one user's read notifications out of another
-     user's list on a shared browser. */
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-
-  return (
-    <div className="mx-auto w-full max-w-[900px] px-6 py-8 md:px-10">
-      {/* Sits outside the role route groups so it has no sidebar; "/" is
-          redirected by the proxy to whichever dashboard the viewer belongs to,
-          which makes it the natural way back. */}
-      <Link
-        href="/"
-        className="inline-flex items-center gap-1.5 text-[13px] font-medium leading-5 text-on-surface-variant transition-colors hover:text-primary"
-      >
-        <ArrowLeft className="size-3.5" />
-        Back to dashboard
-      </Link>
-
-      <h1 className="mt-4 mb-6 text-[24px] font-bold leading-8 tracking-tight text-primary">
-        Notifications
-      </h1>
-
-      <NotificationList notifications={data?.notifications ?? []} userId={user?.id ?? ""} />
+        <NotificationFeed />
+      </main>
     </div>
   )
 }

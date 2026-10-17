@@ -37,19 +37,10 @@ export type CreateNotificationPayload = {
   type: NotificationType;
 };
 
-/** Trimmed shape cached in localStorage for notifications that have already
- *  been viewed. The API only ever returns unread rows, so a read notification
- *  is otherwise gone from the server response and would vanish on reload —
- *  this is what keeps it visible. */
-export type StoredNotification = {
+/** Display-only projection of a row, used by the toast. */
+export type NotificationToast = {
   id: string;
   message: string;
   link: string;
   created_at: string;
-};
-
-/** One row for rendering, after unread-from-API and read-from-localStorage have
- *  been merged into a single ordering. */
-export type NotificationViewItem = StoredNotification & {
-  isRead: boolean;
 };
