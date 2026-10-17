@@ -33,6 +33,10 @@ yarn-error.log*
 # env files (can opt-in for committing if needed)
 .env*
 
+# local database dumps - contains auth.users rows with encrypted_password
+# hashes, so it must never reach the remote
+supabase/seed.sql
+
 # vercel
 .vercel
 
@@ -54,3 +58,5 @@ api-student-overview-data-example.json
 api-attendances-[batchid]-data-json
 db_schema.sql
 supabase_rpc_batch_roster.sql
+supabase/migrations/20261017163204_remote_schema.sql
+supabase/seed.sql
