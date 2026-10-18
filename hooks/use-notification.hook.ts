@@ -60,8 +60,12 @@ export function toToast(row: NotificationRow): NotificationToast | null {
  * ------------------------------------------------------------------ */
 
 type InsertListener = (row: NotificationRow) => void;
+type CatchUp = () => void;
 
 const listeners = new Set<InsertListener>();
+/* Consumers wanting the unread set refetched once the channel is live. */
+const catchUps = new Set<CatchUp>();
+
 let activeChannel: RealtimeChannel | null = null;
 let activeUserId: string | null = null;
 
@@ -74,17 +78,42 @@ let activeUserId: string | null = null;
  *  A generation suffix makes a rebuild always start from a clean topic. */
 let generation = 0;
 
-function listenForInserts(userId: string, listener: InsertListener) {
+/** Delay before rebuilding a channel that failed to join. */
+const REBUILD_DELAY_MS = 800;
+
+function listenForInserts(userId: string, listener: InsertListener, onCatchUp?: CatchUp) {
   const client = createClient();
   listeners.add(listener);
+  if (onCatchUp) catchUps.add(onCatchUp);
 
-  // Rebuild when there is no channel yet, or the signed-in user changed and
-  // the filter on the existing one is now wrong.
-  if (!activeChannel || activeUserId !== userId) {
-    if (activeChannel) client.removeChannel(activeChannel);
+  let disposed = false;
+  let rebuildTimer: number | null = null;
+
+  const teardown = () => {
+    if (rebuildTimer !== null) {
+      window.clearTimeout(rebuildTimer);
+      rebuildTimer = null;
+    }
+    if (activeChannel && activeUserId === userId) {
+      client.removeChannel(activeChannel);
+      activeChannel = null;
+      activeUserId = null;
+    }
+  };
+
+  const build = () => {
+    if (disposed) return;
+    /* Already live for this user. */
+    if (activeChannel && activeUserId === userId) return;
+    if (activeChannel) {
+      client.removeChannel(activeChannel);
+      activeChannel = null;
+    }
+
+    const gen = ++generation;
 
     const next = client
-      .channel(`notifications:${userId}#${++generation}`)
+      .channel(`notifications:${userId}#${gen}`)
       .on(
         "postgres_changes",
         {
@@ -98,21 +127,52 @@ function listenForInserts(userId: string, listener: InsertListener) {
           listeners.forEach((fn) => fn(row));
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        if (disposed) return;
+
+        if (status === "SUBSCRIBED") {
+          /* Anything inserted between the unread read and this join never
+           * reached this client — realtime resumes the stream where it left off
+           * and does not replay the gap. Refetching closes that window, and is
+           * also what heals a channel that was rebuilt after a failure. */
+          catchUps.forEach((fn) => fn());
+          return;
+        }
+
+        /* A channel we already tore down emits CLOSED as it unsubscribes.
+         * Acting on that would rebuild forever, so only the live generation
+         * may retry. */
+        if (gen !== generation) return;
+
+        console.warn(`[notifications] channel ${status}, rebuilding`);
+        teardown();
+        rebuildTimer = window.setTimeout(build, REBUILD_DELAY_MS);
+      });
 
     activeChannel = next;
     activeUserId = userId;
-  }
+  };
+
+  /* The first join must carry the access token: postgres_changes is authorised
+   * server-side against it, and createBrowserClient only resolves the session
+   * asynchronously. Subscribing before that lands yields a channel that is
+   * rejected for want of a token, with no visible symptom — it simply never
+   * delivers an insert, and nothing ever recovers it. */
+  void client.auth.getSession().then(({ data }) => {
+    if (disposed) return;
+    if (data.session) client.realtime.setAuth(data.session.access_token);
+    build();
+  });
 
   return () => {
+    disposed = true;
     listeners.delete(listener);
+    if (onCatchUp) catchUps.delete(onCatchUp);
 
     // Nothing left watching: drop the socket rather than leaving a subscribed
     // channel open with no consumer.
-    if (listeners.size === 0 && activeChannel) {
-      client.removeChannel(activeChannel);
-      activeChannel = null;
-      activeUserId = null;
+    if (listeners.size === 0) {
+      teardown();
     }
   };
 }
@@ -157,6 +217,12 @@ const getSnapshot = useCallback(() => getStoredSnapshot(userId ?? ""), [userId])
   const loading = !hydrated || (Boolean(userId) && loadedUserId !== userId);
 
   const [reloadKey, setReloadKey] = useState(0);
+
+  /* Defined before the subscription effect so it can be handed to the channel as
+   * its catch-up. Bumping the key re-runs the unread read. */
+  const refresh = useCallback(() => {
+    setReloadKey((key) => key + 1);
+  }, []);
 
   const seenRef = useRef(new Set<string>());
 
@@ -222,8 +288,8 @@ const getSnapshot = useCallback(() => getStoredSnapshot(userId ?? ""), [userId])
 
   useEffect(() => {
     if (!userId) return;
-    return listenForInserts(userId, handleInsert);
-  }, [userId, handleInsert]);
+    return listenForInserts(userId, handleInsert, refresh);
+  }, [userId, handleInsert, refresh]);
 
   /* Read and unread in one ordering. An id in both means a previous mark
      never reached the database; unread wins, so it shows as unread again rather
@@ -236,11 +302,22 @@ const getSnapshot = useCallback(() => getStoredSnapshot(userId ?? ""), [userId])
       .filter((row): row is StoredRow => row !== null)
       .map((row) => toView(row, false));
 
-    const readItems = read
-      .filter((row) => !unreadIds.has(row.id))
-      .map((row) => toView(row, true));
+const readItems = read
+    .filter((row) => !unreadIds.has(row.id))
+    .map((row) => toView(row, true));
 
-    return [...unreadItems, ...readItems].sort(byCreatedDesc);
+    /* Unread wins over the read cache, which already makes ids unique between
+     * the two halves — but either half can still carry the same id twice, and a
+     * duplicate key breaks React's reconciliation. First occurrence wins. */
+    const seen = new Set<string>();
+
+    return [...unreadItems, ...readItems]
+      .filter((item) => {
+        if (seen.has(item.id)) return false;
+        seen.add(item.id);
+        return true;
+      })
+      .sort(byCreatedDesc);
   }, [unread, read]);
 
   /** Optimistic: the row leaves the unread set and joins the local read history
@@ -248,19 +325,23 @@ const getSnapshot = useCallback(() => getStoredSnapshot(userId ?? ""), [userId])
    *  surfaces the error, so the badge cannot silently disagree with the db. */
   const markRead = useCallback(
     async (ids: string[]) => {
-      if (ids.length === 0) return;
+      /* Callers derive this list from a rendered list, which can hand back the
+       * same id twice. Dedupe here so the optimistic write and the `in` filter
+       * are both driven by distinct rows. */
+      const unique = Array.from(new Set(ids));
+      if (unique.length === 0) return;
 
       const previousUnread = unread;
       const previousCount = unreadCount;
       const previousStored = read;
       const now = new Date().toISOString();
 
-      const moving = unread.filter((row) => ids.includes(row.id));
+      const moving = unread.filter((row) => unique.includes(row.id));
       const movedStored = moving
         .map((row) => toStored(row))
         .filter((row): row is StoredRow => row !== null);
 
-      setUnread((prev) => prev.filter((row) => !ids.includes(row.id)));
+      setUnread((prev) => prev.filter((row) => !unique.includes(row.id)));
       setUnreadCount((count) => Math.max(count - movedStored.length, 0));
       if (userId) {
         persistStored(userId, pruneStored([...movedStored, ...read]));
@@ -270,7 +351,7 @@ const getSnapshot = useCallback(() => getStoredSnapshot(userId ?? ""), [userId])
       const { error: writeError } = await supabase
         .from("notifications")
         .update({ is_read: true, read_at: now })
-        .in("id", ids);
+        .in("id", unique);
 
       if (writeError) {
         setUnread(previousUnread);
@@ -285,10 +366,6 @@ const getSnapshot = useCallback(() => getStoredSnapshot(userId ?? ""), [userId])
   const markAllRead = useCallback(async () => {
     await markRead(unread.map((row) => row.id));
   }, [unread, markRead]);
-
-  const refresh = useCallback(() => {
-    setReloadKey((key) => key + 1);
-  }, []);
 
   return {
     notifications,

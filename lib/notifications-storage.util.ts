@@ -55,10 +55,24 @@ function isStoredRow(value: unknown): value is StoredRow {
 export function pruneStored(rows: StoredRow[]): StoredRow[] {
   const cutoff = Date.now() - MAX_STORED_AGE_MS;
 
+  /* Dedupe by id, newest wins.
+   *
+   *  The cache is written as `incoming merged with existing`, so a row that is
+   *  already stored and arrives again would otherwise be persisted twice. That
+   *  duplicate is self-perpetuating: it renders as a duplicate React key, and
+   *  reading it back keeps writing it back. Pruning here heals a cache that has
+   *  already been corrupted. */
+  const seen = new Set<string>();
+
   return rows
     .filter(isStoredRow)
     .filter((row) => new Date(row.created_at).getTime() >= cutoff)
     .sort(byCreatedDesc)
+    .filter((row) => {
+      if (seen.has(row.id)) return false;
+      seen.add(row.id);
+      return true;
+    })
     .slice(0, MAX_STORED);
 }
 
