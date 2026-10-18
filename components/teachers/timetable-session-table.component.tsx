@@ -90,16 +90,20 @@ function SessionRow({
                 affordance the batch lists use. */}
             <Link
               href={`/teacher/dashboard/timetable/${session.id}`}
-              className="group inline-flex max-w-full items-center gap-1.5"
+              /* A definite width, not a max-width: this table is auto-layout, so
+                 without one the Module column is sized by its longest title and
+                 squeezes Batch/Students/Classroom out of the row. The code is
+                 clipped on one line; the title wraps to a second. */
+              className="group inline-flex w-[190px] max-w-full items-center gap-1.5 sm:w-[260px]"
             >
-              <span className="min-w-0">
+              <span className="min-w-0 flex-1">
                 <span
-                  className="inline-block text-[14px] font-[300] leading-[20px] px-2 py-0.5 rounded"
+                  className="block w-fit max-w-full truncate rounded px-2 py-0.5 text-[14px] font-[300] leading-[20px]"
                   style={{ backgroundColor: moduleColor}}
                 >
                   {session.modules.code}
                 </span>
-                <span className="mt-0.5 block truncate text-[12px] leading-[16px] text-on-surface-variant transition-colors group-hover:text-primary">
+                <span className="mt-0.5 line-clamp-2 block text-[12px] leading-[16px] text-on-surface-variant transition-colors group-hover:text-primary">
                   {session.modules.title}
                 </span>
               </span>
@@ -250,7 +254,7 @@ export function TimetableSessionTable({ title, subtitle, sessions, showDay = fal
 
   return (
     <div className="bg-surface-container-lowest rounded-xl border border-primary/10 overflow-hidden shadow-[0_4px_6px_-1px_rgba(15,23,42,0.05)]">
-      <div className="p-6 border-b border-outline-variant/10 flex justify-between items-center">
+      <div className="p-6 border-b border-outline-variant/10 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h2 className="text-[20px] font-[600] leading-[28px] text-primary">{title}</h2>
         <span className="text-[12px] font-[500] leading-[16px] text-on-surface-variant">{subtitle}</span>
       </div>
