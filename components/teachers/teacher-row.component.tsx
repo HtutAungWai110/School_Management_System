@@ -2,12 +2,13 @@
 
 import { useEffect, useRef, useState } from "react"
 import Image from "next/image"
-import { MoreVertical, Eye, Pencil, Trash2, BookOpen } from "lucide-react"
+import { MoreVertical, Eye, Pencil, Trash2, BookOpen, CalendarDays } from "lucide-react"
 import type { Teacher } from "@/types/teacher.type"
 import { ProfileViewPanel } from "@/components/profile/profile-view-panel.component"
 import { EditProfilePanel } from "@/components/profile/edit-profile-panel.component"
 import { ProfileDeletePanel } from "@/components/profile/profile-delete-panel.component"
 import { TeacherModulesPanel } from "./teacher-modules-panel.component"
+import { TeacherClassHistoryPanel } from "./teacher-class-history-panel.component"
 
 function getInitials(name: string) {
   return name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)
@@ -25,6 +26,7 @@ export function TeacherRow({ teacher }: { teacher: Teacher }) {
   const [editOpen, setEditOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [modulesOpen, setModulesOpen] = useState(false)
+  const [historyOpen, setHistoryOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
   const triggerRef = useRef<HTMLButtonElement>(null)
 
@@ -109,6 +111,14 @@ export function TeacherRow({ teacher }: { teacher: Teacher }) {
                     setModulesOpen(true)
                   },
                 },
+                {
+                  label: "View class history",
+                  icon: CalendarDays,
+                  onClick: () => {
+                    setMenuOpen(false)
+                    setHistoryOpen(true)
+                  },
+                },
                 { label: "Delete", icon: Trash2, onClick: () => { setMenuOpen(false); setDeleteOpen(true) } },
               ].map(({ label, icon: Icon, onClick }) => (
                 <button
@@ -130,6 +140,7 @@ export function TeacherRow({ teacher }: { teacher: Teacher }) {
       {editOpen && <EditProfilePanel profile={teacher} onClose={() => setEditOpen(false)} />}
       {deleteOpen && <ProfileDeletePanel profile={teacher} onClose={() => setDeleteOpen(false)} />}
       {modulesOpen && <TeacherModulesPanel teacher={teacher} onClose={() => setModulesOpen(false)} />}
+      {historyOpen && <TeacherClassHistoryPanel teacher={teacher} onClose={() => setHistoryOpen(false)} />}
     </>
   )
 }

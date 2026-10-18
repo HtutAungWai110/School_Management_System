@@ -4,7 +4,7 @@ import { ATTENDANCE_SELECT, buildFinalData, RawAttendance, toLocalDateString } f
 import { ASSIGNMENT_SUBMISSIONS_SELECT } from "../assignments/services";
 import { HttpError } from "@/lib/errors/http.error";
 import type { Assignment } from "@/types/batch.type";
-import type { AttendanceCalendarResponse, AttendanceSession } from "@/types/attendance.type";
+import type { AttendanceCalendarResponse, AttendanceSession, ClassHistoryEntry, ClassHistoryResponse } from "@/types/attendance.type";
 import { TeacherModuleRow, TeacherModuleQueryRow } from "@/types/teacher-module.type";
 
 const PAGE_SIZE = 20;
@@ -373,6 +373,142 @@ export class TeachersService {
       finalData,
       minDate: minDateRow?.date ?? null,
       maxDate: maxDateRow?.date ?? null,
+    };
+  }
+
+  /** Every class session a given teacher has actually taught, for one month.
+   *
+   *  The teacher is a parameter rather than derived from the caller's session,
+   *  so the same report serves a teacher reading their own record and an admin
+   *  reading anyone's. Callers decide *which* id they may pass — the teacher
+   *  endpoint resolves its own session id and ignores anything in the query
+   *  string; an admin endpoint resolves the target from a validated uuid.
+   *  RLS remains the backstop either way.
+   *
+   *  `attendances` drives the read and `timetables` is populated underneath it,
+   *  rather than the other way round. Embedding attendance under each timetable
+   *  costs a lookup per timetable — including for every session that was never
+   *  taught — and drags the whole student roster along with it, none of which
+   *  this report uses. Driving from attendance means a session appears exactly
+   *  when it was actually run, and the row count is the teaching history.
+   *
+   *  The month defaults to the current one when the latest attendance falls in
+   *  it, and otherwise to that latest attendance's own month — so a teacher who
+   *  has not taught for weeks lands on their last real month rather than an
+   *  empty one. An explicit `date` overrides both. */
+  static async getClassHistory(teacherId: string, date?: string | null): Promise<ClassHistoryResponse> {
+    const supabase = await createClient();
+
+    /* Defensive rather than decorative: an undefined id would otherwise become
+       `teacher_id = null` and silently match nothing, returning an empty report
+       that reads as "this teacher has never taught". */
+    if (!teacherId) {
+      throw new HttpError(400, "A teacher id is required.");
+    }
+
+    /* Attendance hangs off timetable, so the teacher's sessions are the only
+       ones whose attendance can be reachable from here. Resolved once and
+       reused as an `in` filter rather than nested per row. */
+    const { data: timetableIdsData, error: timetableError } = await supabase
+      .from("timetables")
+      .select("id")
+      .eq("teacher_id", teacherId);
+
+    if (timetableError) {
+      throw timetableError;
+    }
+
+    const timetableIds = timetableIdsData.map((item) => item.id);
+
+    /* No sessions assigned at all — an unbound teacher has nothing to page between. */
+    if (timetableIds.length === 0) {
+      return { finalData: [], minDate: null, maxDate: null, month: null };
+    }
+
+    const [{ data: minDateRow }, { data: maxDateRow }] = await Promise.all([
+      supabase
+        .from("attendances")
+        .select("date")
+        .in("timetable_id", timetableIds)
+        .order("date", { ascending: true })
+        .limit(1)
+        .maybeSingle(),
+      supabase
+        .from("attendances")
+        .select("date")
+        .in("timetable_id", timetableIds)
+        .order("date", { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+    ]);
+
+    const minDate = minDateRow?.date ?? null;
+    const maxDate = maxDateRow?.date ?? null;
+
+    /* Sessions assigned but none ever taught yet. */
+    if (!minDate || !maxDate) {
+      return { finalData: [], minDate, maxDate, month: null };
+    }
+
+    const today = new Date();
+    const latest = new Date(maxDate + "T00:00:00");
+
+    const baseDate = date
+      ? new Date(date + "T00:00:00")
+      : latest.getFullYear() === today.getFullYear() && latest.getMonth() === today.getMonth()
+        ? today
+        : latest;
+
+    const startOfMonth = new Date(baseDate.getFullYear(), baseDate.getMonth(), 1);
+    const endOfMonth = new Date(baseDate.getFullYear(), baseDate.getMonth() + 1, 0);
+    const startDateStr = toLocalDateString(startOfMonth);
+    const endDateStr = toLocalDateString(endOfMonth);
+
+    const { data, error } = await supabase
+      .from("attendances")
+      .select(`
+        id,
+        date,
+        timetables(
+          id,
+          module_id,
+          batch_id,
+          class_id,
+          day_of_week,
+          start_time,
+          end_time,
+          status,
+          modules(
+            id,
+            code,
+            title
+          ),
+          batches(
+            id,
+            batch_name
+          ),
+          classes(
+            id,
+            class_number
+          ),
+          profiles:teacher_id(
+            id,
+            full_name
+          )
+        )
+      `)
+      .in("timetable_id", timetableIds)
+      .gte("date", startDateStr)
+      .lte("date", endDateStr)
+      .order("date", { ascending: false });
+
+    if (error) throw new Error(error.message);
+
+    return {
+      finalData: (data ?? []) as unknown as ClassHistoryEntry[],
+      minDate,
+      maxDate,
+      month: startDateStr,
     };
   }
 

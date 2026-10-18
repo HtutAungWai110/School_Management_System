@@ -50,6 +50,69 @@ export function readIdParams(request: NextRequest): { ids: string[] | undefined;
   return { ids: values, error };
 }
 
+/**
+ * Validates an id that arrives as a route segment rather than a query parameter.
+ *
+ * The `read*Param` readers all read `searchParams`, so a `/teachers/[id]/…`
+ * route would otherwise have to reach for `request.nextUrl` itself and lose the
+ * shared guarantee. Same rationale as `readUuidParam`: reject up front rather
+ * than hand a malformed id to Postgres, where it raises a 500.
+ */
+export function readPathUuid(value: string | undefined, name = "id"): { id: string | undefined; error: NextResponse | null } {
+  const trimmed = value?.trim() ?? "";
+
+  if (!trimmed || !UUID.test(trimmed)) {
+    return {
+      id: undefined,
+      error: NextResponse.json({ error: `The ${name} must be a valid uuid` }, { status: 400 }),
+    };
+  }
+
+  return { id: trimmed, error: null };
+}
+
+/**
+ * Reads an optional `?date=` month anchor, as `YYYY-MM-DD`.
+ *
+ * Same reasoning as the uuid readers: an unvalidated date reaches Postgres as a
+ * timestamptz comparison, where garbage quietly matches nothing and the caller
+ * is handed an empty month with no indication the request was malformed.
+ *
+ * Only the calendar day is kept. Any time component is dropped rather than
+ * rejected, so `2026-10-01T00:00:00Z` still resolves to October.
+ */
+export function readMonthParam(request: NextRequest): { date: string | undefined; error: NextResponse | null } {
+  const raw = request.nextUrl.searchParams.get("date")?.trim();
+
+  if (!raw) return { date: undefined, error: null };
+
+  const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(raw);
+  if (!match) {
+    return {
+      date: undefined,
+      error: NextResponse.json({ error: "The date parameter must be formatted as YYYY-MM-DD" }, { status: 400 }),
+    };
+  }
+
+  const [, year, month, day] = match;
+  const parsed = new Date(Number(year), Number(month) - 1, Number(day));
+
+  /* Rejects impossible calendar days, which the regex alone lets through:
+     2026-02-31 would otherwise silently roll into March. */
+  if (
+    parsed.getFullYear() !== Number(year) ||
+    parsed.getMonth() !== Number(month) - 1 ||
+    parsed.getDate() !== Number(day)
+  ) {
+    return {
+      date: undefined,
+      error: NextResponse.json({ error: "The date parameter is not a real calendar date" }, { status: 400 }),
+    };
+  }
+
+  return { date: `${year}-${month}-${day}`, error: null };
+}
+
 function validateIds(raw: string[], message: string): { values: string[] | undefined; error: NextResponse | null } {
   const trimmed = raw.map((value) => value.trim()).filter(Boolean);
 

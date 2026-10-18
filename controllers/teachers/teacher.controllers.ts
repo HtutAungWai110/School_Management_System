@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { TeachersService } from "@/services/teachers/services";
 import { handleError } from "@/lib/errors/error.handler";
+import { HttpError } from "@/lib/errors/http.error";
+import { createClient } from "@/lib/supabase/server.client";
 // `readIdParam` for the teacher directory (a single profile lookup);
 // `readIdParams` for the timetable, where a swap links to two sessions.
-import { readIdParam, readIdParams, readUuidParam } from "@/lib/api.util";
+import { readIdParam, readIdParams, readMonthParam, readPathUuid, readUuidParam } from "@/lib/api.util";
 
 export class TeacherController {
   static async list(request: NextRequest) {
@@ -55,6 +57,62 @@ export class TeacherController {
     try {
       const timetableSessions = await TeachersService.getTimetableSessions(ids);
       return NextResponse.json(timetableSessions);
+    } catch (error) {
+      return handleError(error);
+    }
+  }
+
+  /** Class history takes an optional month anchor rather than an id — it is a
+   *  month-scoped report across every session, not a single record lookup.
+   *
+   *  The teacher is resolved from the session rather than the query string, so
+   *  one teacher cannot read another's history by editing a parameter. The
+   *  service accepts the id explicitly so an admin endpoint can hand it any
+   *  teacher's id and get the same report back. */
+  static async getClassHistory(request: NextRequest) {
+    const { date, error } = readMonthParam(request);
+    if (error) return error;
+
+    try {
+      const supabase = await createClient();
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+
+      if (userError) throw userError;
+      if (!user) throw new HttpError(401, "Authentication required.");
+
+      const history = await TeachersService.getClassHistory(user.id, date);
+      return NextResponse.json(history);
+    } catch (error) {
+      return handleError(error);
+    }
+  }
+
+  /** Class history for an arbitrary teacher, for the admin teacher list.
+   *
+   *  Distinct from the teacher-facing endpoint above: there the id is resolved
+   *  from the session so one teacher cannot read another's, here it comes from
+   *  the path and is validated as a uuid before it reaches the service. Both
+   *  land on the same service method. */
+  static async getTeacherClassHistory(
+    request: NextRequest,
+    { params }: { params: Promise<{ id: string }> }
+  ) {
+    const { id } = await params;
+
+    const { id: teacherId, error: idError } = readPathUuid(id, "teacher id");
+    if (idError) return idError;
+    /* Unreachable alongside idError, but the reader's success type is widened to
+       `string | undefined`, so this is what narrows it for the service. */
+    if (!teacherId) {
+      return NextResponse.json({ error: "The teacher id must be a valid uuid" }, { status: 400 });
+    }
+
+    const { date, error } = readMonthParam(request);
+    if (error) return error;
+
+    try {
+      const history = await TeachersService.getClassHistory(teacherId, date);
+      return NextResponse.json(history);
     } catch (error) {
       return handleError(error);
     }
