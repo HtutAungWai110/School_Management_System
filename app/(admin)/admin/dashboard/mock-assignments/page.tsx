@@ -81,7 +81,7 @@ export default function MockAssignmentsPage() {
   }
 
   return (
-    <main className="mx-auto flex max-w-xl flex-col gap-6 p-8">
+    <main className="mx-auto flex max-w-xl flex-col gap-6 p-4 sm:p-8 lg:ml-64">
       <div className="rounded-xl border border-primary/10 bg-surface-container-lowest p-6 shadow-sm">
         <h1 className="text-[16px] font-[600] text-on-surface">
           Mock student assignments seed
@@ -93,17 +93,17 @@ export default function MockAssignmentsPage() {
         </p>
 
         <dl className="mt-4 space-y-1 text-[12px] text-on-surface-variant">
-          <div className="flex justify-between gap-4">
+          <div className="flex flex-wrap justify-between gap-4">
             <dt className="shrink-0">Students</dt>
             <dd className="truncate font-[600] text-on-surface">
               {studentIds.length}
             </dd>
           </div>
-          <div className="flex justify-between gap-4">
+          <div className="flex flex-wrap justify-between gap-4">
             <dt className="shrink-0">Assignment</dt>
             <dd className="truncate font-[600] text-on-surface">{ASSIGNMENT_ID}</dd>
           </div>
-          <div className="flex justify-between gap-4">
+          <div className="flex flex-wrap justify-between gap-4">
             <dt className="shrink-0">Folder</dt>
             <dd className="truncate font-[600] text-on-surface">{BATCH_ID}_…</dd>
           </div>

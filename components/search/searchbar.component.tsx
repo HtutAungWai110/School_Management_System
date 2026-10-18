@@ -23,7 +23,7 @@ export default function SearchBar({ placeholder }: { placeholder: string }) {
   }
 
   return (
-    <div className="flex justify-between items-center border rounded-2xl overflow-hidden h-10">
+    <div className="flex justify-between items-center border rounded-2xl overflow-hidden h-10 min-w-0 w-full sm:w-56 max-w-full">
       <Input
         className="border-none bg-none rounded-none focus:outline-none"
         value={search}
@@ -34,7 +34,7 @@ export default function SearchBar({ placeholder }: { placeholder: string }) {
         }}
         onChange={(e) => setSearch(e.target.value)}
         placeholder={placeholder} />
-      <button className="text-primary/50 cursor-pointer bg-primary/20 h-[100%] rounded-none px-5" onClick={handleSearch}><Search/></button>
+      <button className="shrink-0 text-primary/50 cursor-pointer bg-primary/20 h-[100%] rounded-none px-5" onClick={handleSearch}><Search/></button>
     </div>
   )
 

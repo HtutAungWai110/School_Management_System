@@ -23,7 +23,7 @@ export default function NotificationsPage() {
        which pushed the list off centre. */
     <div className="min-h-screen bg-background">
       <header className="bg-background sticky top-0 z-10 w-full border-b border-outline-variant/10">
-        <div className="flex justify-between items-center px-6 py-4 max-w-[900px] mx-auto md:px-10">
+        <div className="flex flex-col gap-3 px-4 py-4 max-w-[900px] mx-auto sm:px-6 sm:flex-row sm:items-center sm:justify-between md:px-10">
           <Link
             href="/"
             className="inline-flex items-center gap-1.5 text-[13px] font-medium leading-5 text-on-surface-variant transition-colors hover:text-primary"

@@ -7,7 +7,7 @@ export default function StudentPortalFooter() {
         <div className="text-[14px] leading-[20px] text-on-surface-variant">
           © 2024 CodePoint Academy School Management System. All rights reserved.
         </div>
-        <nav className="flex items-center gap-6">
+        <nav className="flex flex-wrap items-center gap-4 sm:gap-6">
           {LEGAL_LINKS.map((link) => (
             <a
               key={link}

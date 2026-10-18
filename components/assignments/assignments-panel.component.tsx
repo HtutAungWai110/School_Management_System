@@ -149,7 +149,7 @@ export function AssignmentsPanel({
                     <span className="text-on-background/10 bg-primary-fixed/50 inline-flex items-center px-2 py-0.5 rounded-md border border-secondary-container/60 text-[11px] font-[700] leading-[14px] tracking-wide uppercase shrink-0">
                       {assignment.modules?.code}
                     </span>
-                    <span className="text-[14px] font-[600] leading-[20px] text-on-surface truncate">
+                    <span className="text-[14px] font-[600] leading-[20px] text-on-surface truncate min-w-0">
                       {assignment.modules?.title}
                     </span>
                     {assignment.profiles && (
@@ -157,16 +157,16 @@ export function AssignmentsPanel({
                          separates the fields, gap-1.5 separates each icon from
                          its own value. Previously ml-1 left the name touching
                          the mail icon and the email touching the phone icon. */
-                      <span className="inline-flex items-center gap-3 text-[12px] font-[500] leading-[16px] text-on-surface-variant shrink-0">
-                        <span>{assignment.profiles.full_name}</span>
+                      <span className="inline-flex items-center gap-3 text-[12px] font-[500] leading-[16px] text-on-surface-variant min-w-0">
+                        <span className="truncate">{assignment.profiles.full_name}</span>
                         {assignment.profiles.email && (
-                          <span className="inline-flex items-center gap-1.5">
+                          <span className="hidden sm:inline-flex items-center gap-1.5">
                             <Mail className="size-3.5 text-on-surface-variant/80" />
                             {assignment.profiles.email}
                           </span>
                         )}
                         {assignment.profiles.phone && (
-                          <span className="inline-flex items-center gap-1.5">
+                          <span className="hidden sm:inline-flex items-center gap-1.5">
                             <Phone className="size-3.5 text-on-surface-variant/80" />
                             {assignment.profiles.phone}
                           </span>

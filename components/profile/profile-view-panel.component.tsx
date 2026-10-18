@@ -157,7 +157,7 @@ export function ProfileViewPanel({ profile, modules, onClose }: ProfileViewPanel
 
         <div className="flex-1 overflow-y-auto px-8 py-7">
           <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-on-surface-variant">Details</p>
-          <div className="mt-4 grid grid-cols-2 gap-x-6">
+          <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-x-6">
             <Field label="Email" value={profile.email} />
             <Field label="Phone" value={profile.phone} />
             <Field label="Date of birth" value={formatDateInput(profile.date_of_birth)} />

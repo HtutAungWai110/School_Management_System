@@ -27,7 +27,7 @@ export function TimetableSessionWrapper({ title, subtitle, sessions, showDay = f
 
   return (
     <div className="bg-surface-container-lowest rounded-xl border border-primary/10 overflow-hidden shadow-[0_4px_6px_-1px_rgba(15,23,42,0.05)]">
-      <div className="p-6 border-b border-outline-variant/10 flex justify-between items-center">
+      <div className="p-6 border-b border-outline-variant/10 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="text-[20px] font-[600] leading-[28px] text-primary">{title}</h2>
           <span className="text-[12px] font-[500] leading-[16px] text-on-surface-variant">{subtitle}</span>

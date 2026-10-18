@@ -44,11 +44,11 @@ export default async function StudentsPage({ searchParams }: PageProps) {
 
   return (
     <div className="min-h-screen bg-background flex">
-      <main className="flex-1 lg:ml-64">
+      <main className="min-w-0 flex-1 lg:ml-64">
         <header className="bg-background sticky top-0 z-10 w-full border-b border-outline-variant/10">
-          <div className="flex justify-between items-center px-12 py-4 max-w-[1440px] mx-5">
+          <div className="flex flex-col gap-4 px-4 py-4 max-w-[1440px] mx-4 sm:mx-5 sm:px-6 lg:flex-row lg:items-center lg:justify-between lg:px-12">
             <h1 className="text-[24px] font-[600] leading-[32px] text-primary">Students</h1>
-            <div className="flex items-center gap-6">
+            <div className="flex flex-wrap items-center gap-4 sm:gap-6">
 
               <SearchBar placeholder="Search students..." />
               <button className="text-on-surface-variant hover:text-primary transition-colors duration-200 flex items-center gap-1">
@@ -60,7 +60,7 @@ export default async function StudentsPage({ searchParams }: PageProps) {
           </div>
         </header>
 
-        <div className="px-12 py-10 max-w-[1440px] mx-auto">
+        <div className="px-4 py-6 max-w-[1440px] mx-auto sm:px-6 sm:py-8 lg:px-12 lg:py-10">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
             <MetricCard
               icon={User}
@@ -86,7 +86,7 @@ export default async function StudentsPage({ searchParams }: PageProps) {
           </div>
 
           <div className="bg-surface-container-lowest rounded-xl border border-primary/10 overflow-hidden shadow-[0_4px_6px_-1px_rgba(15,23,42,0.05)]">
-            <div className="p-6 border-b border-outline-variant/10 flex justify-between items-center">
+            <div className="p-6 border-b border-outline-variant/10 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <h2 className="text-[20px] font-[600] leading-[28px] text-primary">Student Directory</h2>
               <div className="flex gap-4 items-center">
                 <FilterButton options={[{ label: "New this month", value: "recent" }]} />
@@ -114,7 +114,7 @@ export default async function StudentsPage({ searchParams }: PageProps) {
                 </tbody>
               </table>
             </div>
-            <div className="px-6 py-4 border-t border-outline-variant/10 flex justify-between items-center bg-surface-container-low/20">
+            <div className="px-6 py-4 border-t border-outline-variant/10 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between bg-surface-container-low/20">
               <p className="text-[12px] font-[500] leading-[16px] text-on-surface-variant">
                 Showing 1-{students.length} of {totalCount} students
               </p>
@@ -124,12 +124,12 @@ export default async function StudentsPage({ searchParams }: PageProps) {
         </div>
 
         <footer className="bg-surface-container-lowest border-t border-outline-variant/10 mt-10">
-          <div className="flex flex-col md:flex-row justify-between items-center px-12 py-6 w-full max-w-[1440px] mx-auto">
-            <div className="flex items-center gap-4 mb-4 md:mb-0">
+          <div className="flex flex-col md:flex-row justify-between items-center gap-4 px-4 py-6 sm:px-6 lg:px-12 w-full max-w-[1440px] mx-auto">
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mb-4 md:mb-0">
               <span className="text-[14px] font-[600] leading-[16px] tracking-[0.05em] text-on-surface">CodePoint Academy</span>
               <span className="text-[12px] font-[500] leading-[16px] text-secondary">© 2024 ScholarlyAdmin School Management System</span>
             </div>
-            <div className="flex gap-6">
+            <div className="flex flex-wrap gap-4 sm:gap-6">
               {["Help Center", "Privacy Policy", "Terms of Service"].map((link) => (
                 <a key={link} href="#" className="text-[12px] font-[500] leading-[16px] text-on-surface-variant hover:text-primary transition-colors">
                   {link}

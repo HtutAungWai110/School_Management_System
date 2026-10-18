@@ -21,11 +21,11 @@ export default async function TeacherAssignmentsPage({ searchParams }: PageProps
   }
   return (
     <div className="min-h-screen bg-background flex">
-      <main className="flex-1 lg:ml-64">
+      <main className="min-w-0 flex-1 lg:ml-64">
         <header className="bg-background sticky top-0 z-10 w-full border-b border-outline-variant/10">
-          <div className="flex justify-between items-center px-12 py-4 max-w-[1440px] mx-5">
+          <div className="flex flex-col gap-4 px-4 py-4 max-w-[1440px] mx-4 sm:mx-5 sm:px-6 lg:flex-row lg:items-center lg:justify-between lg:px-12">
             <h1 className="text-[24px] font-[600] leading-[32px] text-primary">Assignments</h1>
-            <div className="flex items-center gap-6">
+            <div className="flex flex-wrap items-center gap-4 sm:gap-6">
               <button className="text-on-surface-variant hover:text-primary transition-colors duration-200 flex items-center gap-1">
                 <span className="font-label-md text-label-md">Help</span>
               </button>
@@ -34,7 +34,7 @@ export default async function TeacherAssignmentsPage({ searchParams }: PageProps
           </div>
         </header>
 
-        <div className="px-12 py-10 max-w-[1440px] mx-auto">
+        <div className="px-4 py-6 max-w-[1440px] mx-auto sm:px-6 sm:py-8 lg:px-12 lg:py-10">
           <AssignmentsPanel
             endpoint={endpoint}
             subtitle="Work your students have turned in, across every batch you teach."

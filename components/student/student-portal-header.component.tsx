@@ -30,7 +30,7 @@ export default function StudentPortalHeader({ active }: { active: StudentPortalN
           <ProfileCard />
         </div>
 
-        <div className="flex items-center gap-6">
+        <div className="flex flex-wrap items-center gap-4 sm:gap-6">
           <nav className="hidden items-center gap-6 lg:flex">
             {NAV_LINKS.map((link) => {
               const isActive = link.key === active

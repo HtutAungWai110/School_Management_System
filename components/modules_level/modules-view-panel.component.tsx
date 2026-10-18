@@ -31,7 +31,7 @@ export function ModulesViewPanel({ module, onClose }: ModulesViewPanelProps) {
     >
       <div className="flex flex-1 flex-col">
         <div className="flex-1 space-y-6 overflow-y-auto px-6 py-6">
-          <div className="grid grid-cols-2 gap-x-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6">
             <Field label="Code" value={module.code} />
             <Field label="Title" value={module.title} />
           </div>

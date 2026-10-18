@@ -33,9 +33,12 @@ export function AssignmentStudentsTable({
   )
 
   return (
-    <div className="pl-12 pr-5 pb-3">
+    <div className="px-5 pb-3 sm:pl-12 sm:pr-5">
       <div className="overflow-x-auto border border-outline-variant/10 rounded-lg">
-        <table className="w-full table-fixed text-left border-collapse">
+        {/* table-fixed resolves columns against the table's own width, so w-full
+            alone pins it to the container and the scroll wrapper never engages.
+            min-w is what gives the columns a floor to crush against instead. */}
+        <table className="w-full min-w-[640px] table-fixed text-left border-collapse">
           <thead>
             <tr className="border-b border-outline-variant/10 bg-surface-container-low/50">
               <th className={cn(nameW, "px-4 py-2 text-[11px] font-[600] leading-[14px] text-on-surface-variant uppercase tracking-wider")}>

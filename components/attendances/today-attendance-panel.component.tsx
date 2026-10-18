@@ -77,7 +77,7 @@ export default function TodayAttendancePanel({ timetable_id, batch_id, module_id
       {!loading && data &&
         <div>
           <div
-            className="flex justfiy-between m-5"
+            className="flex flex-wrap justify-between items-center gap-3 m-5"
           >
             <span className="text-[13px] font-[600] leading-[18px] text-on-surface">
               {new Date().toLocaleDateString("en-US", {
