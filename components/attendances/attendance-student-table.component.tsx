@@ -117,13 +117,19 @@ export function AttendanceStudentTable({
     return updates
   }
 
-  function applyStatus(status: "present" | "absent") {
+  /** The draft set `applyStatus` would produce, so a bulk action can be measured
+   *  before it fires rather than only after. */
+  function draftsWithStatus(status: "present" | "absent"): Record<string, Draft> {
     const nextDrafts: Record<string, Draft> = {}
     selected.forEach((id) => {
       const current = drafts[id] ?? { remark: "", status: "absent" }
       nextDrafts[id] = { ...current, status }
     })
-    const merged = { ...drafts, ...nextDrafts }
+    return { ...drafts, ...nextDrafts }
+  }
+
+  function applyStatus(status: "present" | "absent") {
+    const merged = draftsWithStatus(status)
     setDrafts(merged)
     onSave(buildUpdates(merged))
   }
@@ -131,6 +137,13 @@ export function AttendanceStudentTable({
   const handleSave = () => {
     onSave(buildUpdates(drafts))
   }
+
+  /* Only rows whose status or remark actually differ are ever sent, so an empty
+   * result means the request would be a no-op PATCH against nothing. Deriving
+   * the count here keeps each control honest about what pressing it does. */
+  const pendingCount = buildUpdates(drafts).length
+  const wouldMarkAbsent = buildUpdates(draftsWithStatus("absent")).length > 0
+  const wouldMarkPresent = buildUpdates(draftsWithStatus("present")).length > 0
 
   const handleCancel = () => {
     setDrafts({})
@@ -159,7 +172,7 @@ export function AttendanceStudentTable({
               type="button"
               size="sm"
               variant="outline"
-              disabled={saving || selected.size === 0}
+              disabled={saving || selected.size === 0 || !wouldMarkAbsent}
               onClick={() => applyStatus("absent")}
             >
               Mark selected absent
@@ -168,7 +181,7 @@ export function AttendanceStudentTable({
               type="button"
               size="sm"
               variant="outline"
-              disabled={saving || selected.size === 0}
+              disabled={saving || selected.size === 0 || !wouldMarkPresent}
               onClick={() => applyStatus("present")}
             >
               Mark selected present
@@ -183,7 +196,12 @@ export function AttendanceStudentTable({
             >
               Cancel
             </Button>
-            <Button type="button" size="sm" onClick={handleSave} disabled={saving}>
+            <Button
+              type="button"
+              size="sm"
+              onClick={handleSave}
+              disabled={saving || pendingCount === 0}
+            >
               {saving ? "Saving..." : "Save"}
             </Button>
           </>
