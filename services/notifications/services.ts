@@ -1,6 +1,8 @@
 import { createClient } from "@/lib/supabase/server.client";
 import {
+  announcementNotificationLink,
   assignmentNotificationLink,
+  buildAnnouncementPostedMessage,
   buildAssignmentSubmittedMessage,
   buildBatchAssignedMessage,
   buildEnrollmentRequestMessage,
@@ -451,6 +453,107 @@ export class NotificationsService {
       if (result.status === "rejected") {
         console.error("[notifications] create failed:", result.reason);
       }
+    }
+  }
+
+  /**
+   * Tells everyone attached to the batch that a notice went up: its students,
+   * from `batch_assignments`, and every teacher timetabled against it.
+   *
+   * `timetables` holds one row per weekly slot, so a teacher who takes three
+   * sessions with the batch appears three times — the Set is what keeps that to
+   * one notification.
+   *
+   * Never throws: the announcement row is already committed by the time this
+   * runs, so a lookup or delivery failure must not turn a successful post into
+   * an error response.
+   */
+  static async notifyAnnouncementPosted({
+    batchId,
+    announcementId,
+    content,
+    actorId,
+  }: {
+    batchId: string;
+    announcementId: string;
+    content: string | null;
+    actorId: string;
+  }) {
+    try {
+      const supabase = await createClient();
+
+      const [batchResult, studentResult, teacherResult] = await Promise.all([
+        supabase.from("batches").select("batch_name").eq("id", batchId).maybeSingle(),
+        supabase.from("batch_assignments").select("student_id").eq("batch_id", batchId),
+        supabase.from("timetables").select("teacher_id").eq("batch_id", batchId),
+      ]);
+
+      /* A failed lookup only costs that group its notification; the rest of the
+         fan-out still runs. */
+      if (batchResult.error) {
+        console.error("[notifications] batch lookup failed:", batchResult.error.message);
+      }
+      if (studentResult.error) {
+        console.error("[notifications] batch_assignments lookup failed:", studentResult.error.message);
+      }
+      if (teacherResult.error) {
+        console.error("[notifications] timetable teachers lookup failed:", teacherResult.error.message);
+      }
+
+      const batchName = (batchResult.data as { batch_name: string } | null)?.batch_name ?? "";
+
+      const studentIds = [
+        ...new Set(
+          ((studentResult.data ?? []) as Array<{ student_id: string | null }>)
+            .map((row) => row.student_id)
+            .filter((id): id is string => Boolean(id) && id !== actorId)
+        ),
+      ];
+
+      const teacherIds = [
+        ...new Set(
+          ((teacherResult.data ?? []) as Array<{ teacher_id: string | null }>)
+            .map((row) => row.teacher_id)
+            .filter((id): id is string => Boolean(id) && id !== actorId)
+        ),
+      ];
+
+      if (studentIds.length === 0 && teacherIds.length === 0) return;
+
+      const message = buildAnnouncementPostedMessage(batchName, content);
+
+      const results = await Promise.allSettled([
+        ...studentIds.map((recipientId) =>
+          NotificationsService.create({
+            data: {
+              message,
+              link: announcementNotificationLink("student", batchId, announcementId),
+            },
+            senderIds: [actorId],
+            recipientId,
+            type: "announcement_posted",
+          })
+        ),
+        ...teacherIds.map((recipientId) =>
+          NotificationsService.create({
+            data: {
+              message,
+              link: announcementNotificationLink("teacher", batchId, announcementId),
+            },
+            senderIds: [actorId],
+            recipientId,
+            type: "announcement_posted",
+          })
+        ),
+      ]);
+
+      for (const result of results) {
+        if (result.status === "rejected") {
+          console.error("[notifications] create failed:", result.reason);
+        }
+      }
+    } catch (error) {
+      console.error("[notifications] announcement fan-out failed:", error);
     }
   }
 }

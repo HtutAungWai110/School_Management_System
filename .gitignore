@@ -60,3 +60,4 @@ db_schema.sql
 supabase_rpc_batch_roster.sql
 supabase/migrations/20261017163204_remote_schema.sql
 supabase/seed.sql
+supabase_rpc_availability.sql

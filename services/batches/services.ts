@@ -1,6 +1,8 @@
 import { createClient } from "@/lib/supabase/server.client";
 import { HttpError } from "@/lib/errors/http.error";
+import { NotificationsService } from "@/services/notifications/services";
 import type { BatchStatus, BatchAssignment, BatchModule, BatchTeacherModule, Assignment } from "@/types/batch.type";
+import type { Announcement, AnnouncementAttachments, AnnouncementAuthor, AnnouncementComment } from "@/types/announcement.type";
 
 const BATCH_SELECT = `
   id,
@@ -86,6 +88,155 @@ const STUDENT_ENROLLMENTS_SELECT = `
     )
   )
 `;
+
+const ANNOUNCEMENT_BUCKET = "batch_announcements";
+
+const ANNOUNCEMENT_SELECT = `
+  id,
+  batch_id,
+  author_id,
+  content,
+  attachments,
+  likes_count,
+  comments_count,
+  created_at,
+  updated_at,
+  profiles!batch_announcements_author_id_fkey (
+    id,
+    full_name,
+    avatar_url
+  )
+`;
+
+type ServerSupabase = Awaited<ReturnType<typeof createClient>>;
+
+/** Storage keys held by a stored `attachments` blob. */
+function storedImagePaths(attachments: unknown): string[] {
+  if (!attachments || typeof attachments !== "object") return [];
+
+  const images = (attachments as { images?: unknown }).images;
+  if (!Array.isArray(images)) return [];
+
+  return images
+    .map((image) =>
+      image && typeof image === "object" ? (image as { path?: unknown }).path : null
+    )
+    .filter((path): path is string => typeof path === "string" && path.length > 0);
+}
+
+/**
+ * Best effort on purpose. Every caller reaches this after the row already
+ * points elsewhere; throwing here would report a save that did succeed. The
+ * worst case is an unreferenced object, which is cheaper than a false failure.
+ */
+async function removeFromBucket(supabase: ServerSupabase, paths: string[]) {
+  if (paths.length === 0) return;
+
+  /* Supabase reports storage failures as `{ error }` rather than throwing, so
+     ignoring the result would hide a policy regression behind a successful
+     save. The row is already committed either way, so this must not throw. */
+  try {
+    const { error } = await supabase.storage.from(ANNOUNCEMENT_BUCKET).remove(paths);
+
+    if (error) {
+      console.error("Could not remove announcement images from storage:", error.message);
+    }
+  } catch (error) {
+    console.error("Could not remove announcement images from storage:", error);
+  }
+}
+
+async function signedInUserId(supabase: ServerSupabase) {
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser();
+
+  if (error || !user) {
+    throw new HttpError(401, "You must be signed in to manage announcements");
+  }
+
+  return user.id;
+}
+
+/**
+ * 404s unless the announcement exists in that batch *and* the caller's RLS can
+ * see it.
+ *
+ * The second half matters for writes: the comment and like insert policies
+ * only check `profile_id`, so visibility has to be enforced here before a row
+ * is attached to a post the caller is not in the audience for.
+ */
+async function assertAnnouncementVisible(
+  supabase: ServerSupabase,
+  batchId: string,
+  announcementId: string
+) {
+  const { data, error } = await supabase
+    .from("batch_announcements")
+    .select("id")
+    .eq("id", announcementId)
+    .eq("batch_id", batchId)
+    .maybeSingle();
+
+  if (error) throw new Error(error.message);
+  if (!data) throw new HttpError(404, "That announcement no longer exists");
+}
+
+/**
+ * Looks up the display fields for a set of authors.
+ *
+ * `profiles` is no longer readable by non-admins, so this goes through the
+ * security-definer helper that exposes exactly id, full_name and avatar_url.
+ */
+async function loadProfileSummaries(
+  supabase: ServerSupabase,
+  ids: string[]
+): Promise<Map<string, AnnouncementAuthor>> {
+  const uniqueIds = [...new Set(ids)];
+  if (uniqueIds.length === 0) return new Map();
+
+  const { data, error } = await supabase.rpc("get_profile_summaries", {
+    p_ids: uniqueIds,
+  });
+
+  if (error) throw new Error(error.message);
+
+  return new Map(
+    ((data ?? []) as AnnouncementAuthor[]).map((profile) => [profile.id, profile])
+  );
+}
+
+/**
+ * Reads the row and proves the caller wrote it.
+ *
+ * `batch_announcements` lets any admin write any row, which is the right rule
+ * for moderation but wrong for these routes: the noticeboard menu is offered
+ * only to the author, so the API has to agree.
+ */
+async function readAuthoredAnnouncement(
+  supabase: ServerSupabase,
+  batchId: string,
+  announcementId: string,
+  userId: string,
+  action: "edit" | "delete"
+) {
+  const { data, error } = await supabase
+    .from("batch_announcements")
+    .select("author_id, attachments")
+    .eq("id", announcementId)
+    .eq("batch_id", batchId)
+    .maybeSingle();
+
+  if (error) throw new Error(error.message);
+  if (!data) throw new HttpError(404, "That announcement no longer exists");
+
+  if (data.author_id !== userId) {
+    throw new HttpError(403, `Only the author can ${action} this announcement`);
+  }
+
+  return data as { author_id: string | null; attachments: unknown };
+}
 
 export class BatchesService {
   static async list(search: string, status: string) {
@@ -570,5 +721,303 @@ export class BatchesService {
     }
 
     return (data ?? []) as unknown as Assignment[];
+  }
+
+  static async getAnnouncements(batchId: string): Promise<Announcement[]> {
+    const supabase = await createClient();
+
+    const { data, error } = await supabase
+      .from("batch_announcements")
+      .select(ANNOUNCEMENT_SELECT)
+      .eq("batch_id", batchId)
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    return (data ?? []) as unknown as Announcement[];
+  }
+
+  static async createAnnouncement(
+    batchId: string,
+    content: string | null,
+    attachments: AnnouncementAttachments
+  ): Promise<Announcement> {
+    const supabase = await createClient();
+
+    /* The author is taken from the session, never from the request body: a
+       caller must not be able to publish a notice under someone else's name. */
+    const userId = await signedInUserId(supabase);
+
+    /* Authorization is the table's admin-only RLS policy, not a role check
+       here: the same rule then guards this route, the browser, and any future
+       caller instead of being re-stated in each one. */
+    const { data, error } = await supabase
+      .from("batch_announcements")
+      .insert({ batch_id: batchId, author_id: userId, content, attachments })
+      .select(ANNOUNCEMENT_SELECT)
+      .single();
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    const announcement = data as unknown as Announcement;
+
+    /* The row is committed; delivery is a follow-up. `notifyAnnouncementPosted`
+       never throws, so a failed fan-out cannot report a post that did happen as
+       an error. */
+    await NotificationsService.notifyAnnouncementPosted({
+      batchId,
+      announcementId: announcement.id,
+      content,
+      actorId: userId,
+    });
+
+    return announcement;
+  }
+
+  static async getAnnouncement(
+    batchId: string,
+    announcementId: string
+  ): Promise<Announcement | null> {
+    const supabase = await createClient();
+
+    const { data, error } = await supabase
+      .from("batch_announcements")
+      .select(ANNOUNCEMENT_SELECT)
+      .eq("id", announcementId)
+      .eq("batch_id", batchId)
+      .maybeSingle();
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    return (data as unknown as Announcement) ?? null;
+  }
+
+  static async isAnnouncementLiked(batchId: string, announcementId: string): Promise<boolean> {
+    const supabase = await createClient();
+    const userId = await signedInUserId(supabase);
+
+    /* The embedded filter makes a wrong batch id answer "not liked" and, via
+       the announcement's own RLS, refuses posts the caller cannot see. */
+    const { data, error } = await supabase
+      .from("batch_announcements_likes")
+      .select("id, batch_announcements!inner(batch_id)")
+      .eq("announcement_id", announcementId)
+      .eq("profile_id", userId)
+      .eq("batch_announcements.batch_id", batchId)
+      .maybeSingle();
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    return Boolean(data);
+  }
+
+  /**
+   * Sets the viewer's like to `liked` and reports the counter afterwards.
+   *
+   * Idempotent on purpose: an optimistic button can repeat a request, so a
+   * second like is a no-op and a second dislike deletes nothing.
+   */
+  static async setAnnouncementLike(
+    batchId: string,
+    announcementId: string,
+    liked: boolean
+  ): Promise<{ liked: boolean; likes_count: number }> {
+    const supabase = await createClient();
+    const userId = await signedInUserId(supabase);
+
+    /* Reading the post first turns an unknown id into a 404 instead of a
+       foreign-key 500, and its RLS proves the caller is in the audience. */
+    await assertAnnouncementVisible(supabase, batchId, announcementId);
+
+    if (liked) {
+      /* The unique key makes a repeated tap a no-op rather than an error, and
+         a skipped insert leaves the trigger's counter untouched. */
+      const { error } = await supabase.from("batch_announcements_likes").upsert(
+        { announcement_id: announcementId, profile_id: userId },
+        { onConflict: "announcement_id,profile_id", ignoreDuplicates: true }
+      );
+
+      if (error) throw new Error(error.message);
+    } else {
+      const { error } = await supabase
+        .from("batch_announcements_likes")
+        .delete()
+        .eq("announcement_id", announcementId)
+        .eq("profile_id", userId);
+
+      if (error) throw new Error(error.message);
+    }
+
+    /* The trigger owns the counter, so the response reports what the table
+       actually holds instead of a number guessed by the client. */
+    const { data: counts, error: countError } = await supabase
+      .from("batch_announcements")
+      .select("likes_count")
+      .eq("id", announcementId)
+      .eq("batch_id", batchId)
+      .maybeSingle();
+
+    if (countError) throw new Error(countError.message);
+
+    return {
+      liked,
+      likes_count: (counts as { likes_count: number } | null)?.likes_count ?? 0,
+    };
+  }
+
+  /**
+   * One page of the thread, oldest first.
+   *
+   * Ascending order keeps new comments at the end, which is where the input
+   * and the "load more" control are; it also means a new comment never shifts
+   * the pages already loaded.
+   */
+  static async getAnnouncementComments(
+    batchId: string,
+    announcementId: string,
+    page: number,
+    limit: number
+  ): Promise<{ data: AnnouncementComment[]; total: number }> {
+    const supabase = await createClient();
+    await assertAnnouncementVisible(supabase, batchId, announcementId);
+
+    const from = (page - 1) * limit;
+
+    const { data, error, count } = await supabase
+      .from("batch_announcements_comments")
+      .select("id, announcement_id, profile_id, parent_id, content, created_at", {
+        count: "exact",
+      })
+      .eq("announcement_id", announcementId)
+      .order("created_at", { ascending: true })
+      .order("id", { ascending: true })
+      .range(from, from + limit - 1);
+
+    if (error) throw new Error(error.message);
+
+    const rows = (data ?? []) as Array<Omit<AnnouncementComment, "author">>;
+    const authors = await loadProfileSummaries(
+      supabase,
+      rows.map((row) => row.profile_id)
+    );
+
+    return {
+      data: rows.map((row) => ({
+        ...row,
+        author: authors.get(row.profile_id) ?? null,
+      })),
+      total: count ?? 0,
+    };
+  }
+
+  static async createAnnouncementComment(
+    batchId: string,
+    announcementId: string,
+    content: string
+  ): Promise<{ data: AnnouncementComment; comments_count: number }> {
+    const supabase = await createClient();
+    const userId = await signedInUserId(supabase);
+    await assertAnnouncementVisible(supabase, batchId, announcementId);
+
+    const { data, error } = await supabase
+      .from("batch_announcements_comments")
+      .insert({ announcement_id: announcementId, profile_id: userId, content })
+      .select("id, announcement_id, profile_id, parent_id, content, created_at")
+      .single();
+
+    if (error) throw new Error(error.message);
+
+    const authors = await loadProfileSummaries(supabase, [userId]);
+    const comment = data as Omit<AnnouncementComment, "author">;
+
+    /* The trigger has already counted the row by now, so the response can
+       update the button without a second round trip from the client. */
+    const { data: counts, error: countError } = await supabase
+      .from("batch_announcements")
+      .select("comments_count")
+      .eq("id", announcementId)
+      .eq("batch_id", batchId)
+      .maybeSingle();
+
+    if (countError) throw new Error(countError.message);
+
+    return {
+      data: { ...comment, author: authors.get(userId) ?? null },
+      comments_count: (counts as { comments_count: number } | null)?.comments_count ?? 0,
+    };
+  }
+
+  static async updateAnnouncement(
+    batchId: string,
+    announcementId: string,
+    content: string | null,
+    attachments: AnnouncementAttachments
+  ): Promise<Announcement> {
+    const supabase = await createClient();
+    const userId = await signedInUserId(supabase);
+    const existing = await readAuthoredAnnouncement(
+      supabase,
+      batchId,
+      announcementId,
+      userId,
+      "edit"
+    );
+
+    const { data, error } = await supabase
+      .from("batch_announcements")
+      .update({ content, attachments, updated_at: new Date().toISOString() })
+      .eq("id", announcementId)
+      .eq("batch_id", batchId)
+      .eq("author_id", userId)
+      .select(ANNOUNCEMENT_SELECT)
+      .single();
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    /* Only keys that were stored and are no longer referenced are removed. The
+       request cannot nominate an arbitrary object for deletion, and an upload
+       that failed midway leaves the previous row intact. */
+    const kept = new Set(attachments.images.map((image) => image.path));
+    const removed = storedImagePaths(existing.attachments).filter((path) => !kept.has(path));
+    await removeFromBucket(supabase, removed);
+
+    return data as unknown as Announcement;
+  }
+
+  static async deleteAnnouncement(batchId: string, announcementId: string): Promise<void> {
+    const supabase = await createClient();
+    const userId = await signedInUserId(supabase);
+    const existing = await readAuthoredAnnouncement(
+      supabase,
+      batchId,
+      announcementId,
+      userId,
+      "delete"
+    );
+
+    /* Likes and comments go with the row through ON DELETE CASCADE, so their
+       counters never have to be adjusted by hand. */
+    const { error } = await supabase
+      .from("batch_announcements")
+      .delete()
+      .eq("id", announcementId)
+      .eq("batch_id", batchId)
+      .eq("author_id", userId);
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    await removeFromBucket(supabase, storedImagePaths(existing.attachments));
   }
 }

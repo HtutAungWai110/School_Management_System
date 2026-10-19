@@ -297,3 +297,46 @@ export function assignmentNotificationLink(
 
   return query.length > 0 ? `${base}?${query.join("&")}` : base;
 }
+
+/* ------------------------------------------------------------------ */
+/* Announcements                                                        */
+/* ------------------------------------------------------------------ */
+
+/**
+ * "Admin posted an announcement in Level 4, Batch 2: Sports day moved to
+ * Friday" — the excerpt saves opening the noticeboard for a one-line post.
+ *
+ * The body is multi-line and a newline would break the single-line toast, so
+ * every run of whitespace collapses to one space first.
+ */
+export function buildAnnouncementPostedMessage(
+  batchName: string,
+  content?: string | null
+): string {
+  const batch = batchName.trim() || "your batch";
+  const excerpt = content?.replace(/\s+/g, " ").trim() ?? "";
+  const preview = excerpt.length > 80 ? `${excerpt.slice(0, 80)}…` : excerpt;
+
+  return preview
+    ? `Admin posted an announcement in ${batch}: ${preview}`
+    : `Admin posted an announcement in ${batch}`;
+}
+
+/**
+ * Destination for a notice. Both role-side noticeboards read
+ * `?announcement_id=`, so the reader lands on the exact post rather than the
+ * top of the feed. The path segment keeps each role on its own side of the
+ * proxy, which would otherwise bounce a role mismatch.
+ */
+export function announcementNotificationLink(
+  recipientRole: string,
+  batchId: string,
+  announcementId: string
+): string {
+  const base =
+    recipientRole === "teacher"
+      ? `/teacher/dashboard/batches/${encodeURIComponent(batchId)}/announcements`
+      : `/student/dashboard/batches/${encodeURIComponent(batchId)}/announcements`;
+
+  return `${base}?announcement_id=${encodeURIComponent(announcementId)}`;
+}

@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { ArrowLeft, BookX, Calendar, CircleHelp, Users } from "lucide-react"
+import { ArrowLeft, BookX, Calendar, CircleHelp, Megaphone, Users } from "lucide-react"
 import { NotificationBell } from "@/components/notifications/notification-bell.component"
 
 import { serverFetch } from "@/lib/server.service"
@@ -52,6 +52,13 @@ export default async function BatchDetailPage({ params }: { params: Promise<{ id
           <div className="flex flex-col gap-4 px-4 py-4 max-w-[1440px] mx-4 sm:mx-5 sm:px-6 lg:flex-row lg:items-center lg:justify-between lg:px-12">
             <h1 className="text-[24px] font-[600] leading-[32px] text-primary">Batch Details</h1>
             <div className="flex flex-wrap items-center gap-4 sm:gap-6">
+              <Link
+                href={`/admin/dashboard/batches/${id}/announcements`}
+                className="flex items-center gap-1 text-on-surface-variant hover:text-primary transition-colors duration-200"
+              >
+                <Megaphone className="w-5 h-5" />
+                <span className="text-[14px] font-[600] leading-[16px] tracking-[0.05em]">Announcements</span>
+              </Link>
               <button className="text-on-surface-variant hover:text-primary transition-colors duration-200 flex items-center gap-1">
                 <CircleHelp className="w-5 h-5" />
                 <span className="text-[14px] font-[600] leading-[16px] tracking-[0.05em]">Help</span>

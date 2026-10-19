@@ -7,7 +7,8 @@ export type NotificationType =
   | "attendance_checked_in"
   | "enrollment_requested"
   | "batch_assigned"
-  | "assignment_submitted";
+  | "assignment_submitted"
+  | "announcement_posted";
 
 /** Shape of `notifications.data`. Deliberately display-only: the row itself
  *  already carries recipient/sender/type, so anything needed to render a link
