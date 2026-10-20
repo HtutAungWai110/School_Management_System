@@ -44,9 +44,21 @@ interface BatchTimetableProps {
   batch: Batch
   timetables: BatchTimetable[]
   classes: Class[]
+  canCreateTimetable?: boolean
+  canCreateAttendance?: boolean
+  canCreateAssignment?: boolean
+  canDeleteTimetable?: boolean
 }
 
-export function BatchTimetable({ batch, timetables, classes }: BatchTimetableProps) {
+export function BatchTimetable({
+  batch,
+  timetables,
+  classes,
+  canCreateTimetable = true,
+  canCreateAttendance = true,
+  canCreateAssignment = true,
+  canDeleteTimetable = true,
+}: BatchTimetableProps) {
   const timeSlots = [...new Map(
     timetables.map(s => [`${s.start_time}-${s.end_time}`, { start: s.start_time, end: s.end_time }])
   ).values()].sort((a, b) => a.start.localeCompare(b.start));
@@ -76,11 +88,13 @@ export function BatchTimetable({ batch, timetables, classes }: BatchTimetablePro
             </p>
           </div>
         </div>
-        <TimetableCreateButton
-          batches={[batch]}
-          classes={classes}
-          fixedBatch={batch}
-        />
+        {canCreateTimetable && (
+          <TimetableCreateButton
+            batches={[batch]}
+            classes={classes}
+            fixedBatch={batch}
+          />
+        )}
       </div>
       {timetables.length === 0 ? (
         <div className="px-6 py-16 text-center">
@@ -89,7 +103,9 @@ export function BatchTimetable({ batch, timetables, classes }: BatchTimetablePro
             No sessions scheduled yet
           </p>
           <p className="mt-1 text-[12px] leading-[16px] text-on-surface-variant">
-            Create the first session for this batch.
+            {canCreateTimetable
+              ? "Create the first session for this batch."
+              : "No sessions have been scheduled for this batch yet."}
           </p>
         </div>
       ) : (
@@ -144,6 +160,9 @@ export function BatchTimetable({ batch, timetables, classes }: BatchTimetablePro
                                 timetable={toTimetable(session, batch)}
                                 classes={classes}
                                 batch={batch}
+                                canCreateAttendance={canCreateAttendance}
+                                canCreateAssignment={canCreateAssignment}
+                                canDeleteTimetable={canDeleteTimetable}
                               />
                             ))}
                           </div>
@@ -167,9 +186,21 @@ interface SessionCardProps {
   timetable: Timetable
   classes: Class[]
   batch: Batch
+  canCreateAttendance: boolean
+  canCreateAssignment: boolean
+  canDeleteTimetable: boolean
 }
 
-function SessionCard({ session, sessions, timetable, classes, batch }: SessionCardProps) {
+function SessionCard({
+  session,
+  sessions,
+  timetable,
+  classes,
+  batch,
+  canCreateAttendance,
+  canCreateAssignment,
+  canDeleteTimetable,
+}: SessionCardProps) {
   const [menuOpen, setMenuOpen] = useState(false)
   const [editOpen, setEditOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
@@ -196,22 +227,30 @@ function SessionCard({ session, sessions, timetable, classes, batch }: SessionCa
     iconClassName?: string
     onClick: () => void
   }[] = [
-    {
-      label: "Create attendance",
-      icon: CalendarCheck,
-      onClick: () => {
-        setMenuOpen(false)
-        setCreateOpen(true)
-      },
-    },
-    {
-      label: "Create assignment",
-      icon: ClipboardList,
-      onClick: () => {
-        setMenuOpen(false)
-        setAssignmentOpen(true)
-      },
-    },
+    ...(canCreateAttendance
+      ? [
+          {
+            label: "Create attendance",
+            icon: CalendarCheck,
+            onClick: () => {
+              setMenuOpen(false)
+              setCreateOpen(true)
+            },
+          },
+        ]
+      : []),
+    ...(canCreateAssignment
+      ? [
+          {
+            label: "Create assignment",
+            icon: ClipboardList,
+            onClick: () => {
+              setMenuOpen(false)
+              setAssignmentOpen(true)
+            },
+          },
+        ]
+      : []),
     ...(session.status === "ongoing"
       ? [
           {
@@ -232,16 +271,20 @@ function SessionCard({ session, sessions, timetable, classes, batch }: SessionCa
         setEditOpen(true)
       },
     },
-    {
-      label: "Delete",
-      icon: Trash2,
-      className: "text-destructive hover:bg-destructive/10",
-      iconClassName: "text-destructive",
-      onClick: () => {
-        setMenuOpen(false)
-        setDeleteOpen(true)
-      },
-    },
+    ...(canDeleteTimetable
+      ? [
+          {
+            label: "Delete",
+            icon: Trash2,
+            className: "text-destructive hover:bg-destructive/10",
+            iconClassName: "text-destructive",
+            onClick: () => {
+              setMenuOpen(false)
+              setDeleteOpen(true)
+            },
+          },
+        ]
+      : []),
   ]
 
   return (

@@ -3,7 +3,8 @@ import { BatchController } from "@/controllers/batches/batch.controllers";
 
 /** `?page=` is one-based and `?limit=` defaults to 50, the largest page the
  *  route accepts. Both are validated; a malformed value is a 400, not an
- *  empty page. */
+ *  empty page. The signed-in user's own comments are excluded here; they are
+ *  served newest-first by the sibling `/mine` route. */
 export const GET = async (
   request: NextRequest,
   { params }: { params: Promise<{ id: string; announcementId: string }> }

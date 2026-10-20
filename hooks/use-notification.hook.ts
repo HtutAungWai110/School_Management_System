@@ -95,9 +95,15 @@ function listenForInserts(userId: string, listener: InsertListener, onCatchUp?: 
       rebuildTimer = null;
     }
     if (activeChannel && activeUserId === userId) {
-      client.removeChannel(activeChannel);
+      /* Invalidate the channel before unsubscribing. `removeChannel` emits
+         CLOSED synchronously, and the subscribe callback below would otherwise
+         see a live generation and tear the same channel down again — recursion
+         until the stack runs out. */
+      generation += 1;
+      const channel = activeChannel;
       activeChannel = null;
       activeUserId = null;
+      client.removeChannel(channel);
     }
   };
 
@@ -106,8 +112,11 @@ function listenForInserts(userId: string, listener: InsertListener, onCatchUp?: 
     /* Already live for this user. */
     if (activeChannel && activeUserId === userId) return;
     if (activeChannel) {
-      client.removeChannel(activeChannel);
+      generation += 1;
+      const staleChannel = activeChannel;
       activeChannel = null;
+      activeUserId = null;
+      client.removeChannel(staleChannel);
     }
 
     const gen = ++generation;

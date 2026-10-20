@@ -13,9 +13,14 @@ import { BatchStudentRow } from "./batch-student-row.component"
 interface BatchStudentsPanelProps {
   batchId: string
   students: BatchAssignment[]
+  canManageStudents?: boolean
 }
 
-export function BatchStudentsPanel({ batchId, students }: BatchStudentsPanelProps) {
+export function BatchStudentsPanel({
+  batchId,
+  students,
+  canManageStudents = true,
+}: BatchStudentsPanelProps) {
   const pathname = usePathname()
 
   const [selectedIds, setSelectedIds] = useState<string[]>([])
@@ -23,7 +28,7 @@ export function BatchStudentsPanel({ batchId, students }: BatchStudentsPanelProp
   const [isRemoving, setIsRemoving] = useState(false)
   const [removeError, setRemoveError] = useState<string | null>(null)
 
-  const selectMode = selectedIds.length > 0
+  const selectMode = canManageStudents && selectedIds.length > 0
   const allSelected = students.length > 0 && selectedIds.length === students.length
 
   function toggleSelect(assignmentId: string) {
@@ -112,7 +117,8 @@ export function BatchStudentsPanel({ batchId, students }: BatchStudentsPanelProp
               <div>
                 <h3 className="text-[16px] font-[600] leading-[24px] text-on-surface">Assigned Students</h3>
                 <p className="mt-0.5 text-[12px] leading-[16px] text-on-surface-variant">
-                  {students.length} student{students.length === 1 ? "" : "s"} in this batch
+                  {students.length} student{students.length === 1 ? "" : "s"}{" "}
+                  {canManageStudents ? "in this batch" : "in your modules"}
                 </p>
               </div>
             </div>
@@ -132,7 +138,9 @@ export function BatchStudentsPanel({ batchId, students }: BatchStudentsPanelProp
               No students assigned yet
             </p>
             <p className="mt-1 text-[12px] leading-[16px] text-on-surface-variant">
-              Assign students to this batch from the Enrollments page.
+              {canManageStudents
+                ? "Assign students to this batch from the Enrollments page."
+                : "No students in your modules are assigned to this batch yet."}
             </p>
           </div>
         ) : (
@@ -142,34 +150,37 @@ export function BatchStudentsPanel({ batchId, students }: BatchStudentsPanelProp
                 key={assignment.id}
                 assignment={assignment}
                 batchId={batchId}
+                canManage={canManageStudents}
                 selectMode={selectMode}
                 selected={selectedIds.includes(assignment.id)}
                 onToggleSelect={() => toggleSelect(assignment.id)}
-                onSelect={() => toggleSelect(assignment.id)}
+                onSelect={canManageStudents ? () => toggleSelect(assignment.id) : undefined}
               />
             ))}
           </ul>
         )}
       </div>
 
-      <ConfirmDialog
-        open={confirmOpen}
-        title={`Remove ${selectedIds.length} ${selectedIds.length === 1 ? "student" : "students"}?`}
-        description={
-          removeError ??
-          `Remove ${selectedIds.length} selected ${
-            selectedIds.length === 1 ? "student" : "students"
-          } from this batch? They will lose access to batch-specific resources.`
-        }
-        confirmLabel="Remove"
-        variant="destructive"
-        isSubmitting={isRemoving}
-        onConfirm={() => void handleBulkRemove()}
-        onCancel={() => {
-          setConfirmOpen(false)
-          setRemoveError(null)
-        }}
-      />
+      {canManageStudents && (
+        <ConfirmDialog
+          open={confirmOpen}
+          title={`Remove ${selectedIds.length} ${selectedIds.length === 1 ? "student" : "students"}?`}
+          description={
+            removeError ??
+            `Remove ${selectedIds.length} selected ${
+              selectedIds.length === 1 ? "student" : "students"
+            } from this batch? They will lose access to batch-specific resources.`
+          }
+          confirmLabel="Remove"
+          variant="destructive"
+          isSubmitting={isRemoving}
+          onConfirm={() => void handleBulkRemove()}
+          onCancel={() => {
+            setConfirmOpen(false)
+            setRemoveError(null)
+          }}
+        />
+      )}
     </>
   )
 }

@@ -37,8 +37,9 @@ export type Announcement = {
   comments_count: number;
   created_at: string;
   updated_at: string | null;
-  /* Embedded through author_id. Null when the admin's profile was deleted,
-     which the FK handles by setting the column to null rather than cascading. */
+  /* Resolved through get_profile_summaries so students and teachers can read
+     the byline without access to the profiles table. Null when the author's
+     profile was deleted, which the FK handles by nulling author_id. */
   profiles: AnnouncementAuthor | null;
 };
 

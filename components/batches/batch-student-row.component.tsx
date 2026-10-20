@@ -21,6 +21,7 @@ function formatDate(value: string) {
 interface BatchStudentRowProps {
   assignment: BatchAssignment
   batchId: string
+  canManage?: boolean
   selectMode?: boolean
   selected?: boolean
   onToggleSelect?: () => void
@@ -30,6 +31,7 @@ interface BatchStudentRowProps {
 export function BatchStudentRow({
   assignment,
   batchId,
+  canManage = true,
   selectMode = false,
   selected = false,
   onToggleSelect,
@@ -145,47 +147,49 @@ export function BatchStudentRow({
           <span className="text-[12px] font-[500] leading-[16px] text-on-surface-variant">
             Added {formatDate(assignment.assigned_at)}
           </span>
-          <div className="relative" ref={menuRef}>
-            <button
-              type="button"
-              aria-label="Student actions"
-              aria-haspopup="menu"
-              aria-expanded={menuOpen}
-              onClick={() => setMenuOpen((open) => !open)}
-              className="cursor-pointer rounded-md p-1.5 text-on-surface-variant hover:bg-surface-container hover:text-primary transition-colors"
-            >
-              <MoreVertical className="w-5 h-5" />
-            </button>
-            {menuOpen && (
-              <div className="absolute right-0 top-9 z-10 min-w-[170px] rounded-lg border border-outline-variant/20 bg-surface-container-lowest shadow-lg py-1">
-                {onSelect && (
+          {canManage && (
+            <div className="relative" ref={menuRef}>
+              <button
+                type="button"
+                aria-label="Student actions"
+                aria-haspopup="menu"
+                aria-expanded={menuOpen}
+                onClick={() => setMenuOpen((open) => !open)}
+                className="cursor-pointer rounded-md p-1.5 text-on-surface-variant hover:bg-surface-container hover:text-primary transition-colors"
+              >
+                <MoreVertical className="w-5 h-5" />
+              </button>
+              {menuOpen && (
+                <div className="absolute right-0 top-9 z-10 min-w-[170px] rounded-lg border border-outline-variant/20 bg-surface-container-lowest shadow-lg py-1">
+                  {onSelect && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMenuOpen(false)
+                        onSelect()
+                      }}
+                      className="w-full flex items-center gap-2 px-4 py-2 text-left text-[14px] leading-[20px] text-on-surface hover:bg-surface-container transition-colors"
+                    >
+                      <MousePointerClick className="w-4 h-4 text-on-surface-variant" />
+                      Select
+                    </button>
+                  )}
                   <button
                     type="button"
                     onClick={() => {
                       setMenuOpen(false)
-                      onSelect()
+                      setRemoveError(null)
+                      setRemoveOpen(true)
                     }}
-                    className="w-full flex items-center gap-2 px-4 py-2 text-left text-[14px] leading-[20px] text-on-surface hover:bg-surface-container transition-colors"
+                    className="w-full flex items-center gap-2 px-4 py-2 text-left text-[14px] leading-[20px] text-destructive hover:bg-destructive/10 transition-colors"
                   >
-                    <MousePointerClick className="w-4 h-4 text-on-surface-variant" />
-                    Select
+                    <UserMinus className="w-4 h-4 text-destructive" />
+                    Remove from batch
                   </button>
-                )}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setMenuOpen(false)
-                    setRemoveError(null)
-                    setRemoveOpen(true)
-                  }}
-                  className="w-full flex items-center gap-2 px-4 py-2 text-left text-[14px] leading-[20px] text-destructive hover:bg-destructive/10 transition-colors"
-                >
-                  <UserMinus className="w-4 h-4 text-destructive" />
-                  Remove from batch
-                </button>
-              </div>
-            )}
-          </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </li>
 

@@ -4,10 +4,10 @@ import { usePathname } from "next/navigation"
 
 import { ConfirmDeletePanel } from "@/components/ui/confirm-delete-panel.component"
 import { refetchData } from "@/lib/action.action"
-import type { Batch } from "@/types/batch.type"
+import type { BatchOption } from "@/types/batch.type"
 
 interface BatchesDeletePanelProps {
-  batch: Batch
+  batch: BatchOption
   onClose: () => void
 }
 

@@ -3,7 +3,7 @@
 import { useState } from "react"
 import Image from "next/image"
 import ProfileCard from "@/components/profile/profile-card.component"
-import { LayoutDashboard, Calendar, Book, ClipboardList, History, Settings, Menu, X } from "lucide-react"
+import { LayoutDashboard, Calendar, Layers, Book, ClipboardList, History, Settings, Menu, X } from "lucide-react"
 import { usePathname } from "next/navigation"
 import Link from "next/link"
 
@@ -14,6 +14,7 @@ export default function TeacherSidebar() {
   const navLinks = [
     { href: "/teacher/dashboard/overview", label: "Overview", icon: LayoutDashboard, active: path === "/teacher/dashboard/overview" },
     { href: "/teacher/dashboard/timetable", label: "Timetable", icon: Calendar, active: path === "/teacher/dashboard/timetable" },
+    { href: "/teacher/dashboard/batches", label: "Batches", icon: Layers, active: path.startsWith("/teacher/dashboard/batches") },
     { href: "/teacher/dashboard/modules", label: "My Modules", icon: Book, active: path === "/teacher/dashboard/modules" },
     { href: "/teacher/dashboard/assignments", label: "Assignments", icon: ClipboardList, active: path === "/teacher/dashboard/assignments" },
     { href: "/teacher/dashboard/class-history", label: "Class History", icon: History, active: path.startsWith("/teacher/dashboard/class-history") },

@@ -11,7 +11,7 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog.component"
 import { cn } from "@/lib/utils.util"
 import { refetchData } from "@/lib/action.action"
 import { ModulesPanelShell } from "@/components/modules_level/modules-panel-shell.component"
-import type { Batch } from "@/types/batch.type"
+import type { BatchOption } from "@/types/batch.type"
 
 interface RenameFormValues {
   batch_name: string
@@ -20,7 +20,7 @@ interface RenameFormValues {
 const inputErrorClass = "aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/30"
 
 interface BatchesRenamePanelProps {
-  batch: Batch
+  batch: BatchOption
   onClose: () => void
 }
 

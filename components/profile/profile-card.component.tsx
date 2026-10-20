@@ -20,11 +20,14 @@ export default function ProfileCard() {
     <div className="flex items-center gap-2.5">
       <div className="grid size-9 shrink-0 place-items-center overflow-hidden rounded-full bg-primary-container">
         {profile.avatar_url ? (
+          /* Local Supabase storage is a private IP, which the image optimizer
+             rejects. The other avatar surfaces bypass it the same way. */
           <Image
             src={profile.avatar_url}
             alt={profile.full_name}
             width={36}
             height={36}
+            unoptimized
             className="size-full object-cover"
           />
         ) : (

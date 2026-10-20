@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog.component"
 import { refetchData } from "@/lib/action.action"
 import { ModulesPanelShell } from "@/components/modules_level/modules-panel-shell.component"
-import type { Batch } from "@/types/batch.type"
+import type { BatchOption } from "@/types/batch.type"
 import type { Class } from "@/types/class.type"
 import { DAY_OF_WEEK_LABELS, TIMETABLE_STATUS_OPTIONS } from "@/types/timetable.type"
 import { SingleCombobox, type Option } from "./single-combobox.component"
@@ -36,7 +36,7 @@ interface TimetableFormValues {
 }
 
 interface TimetableCreatePanelProps {
-  batches: Batch[]
+  batches: BatchOption[]
   classes: Class[]
   onClose: () => void
   fixedBatchId?: string

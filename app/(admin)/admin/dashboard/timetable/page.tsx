@@ -7,7 +7,7 @@ import { TimetableRow } from "@/components/timetable/timetable-row.component"
 import { PaginationNav } from "@/components/navigation/pagination-nav.component"
 import { PageLimitSelector } from "@/components/navigation/page-limit-selector.component"
 import FilterButton from "@/components/search/filter-dropdown.component"
-import type { Batch } from "@/types/batch.type"
+import type { BatchListItem } from "@/types/batch.type"
 import type { Class } from "@/types/class.type"
 import type { Timetable } from "@/types/timetable.type"
 
@@ -37,7 +37,7 @@ export default async function TimetablePage({ searchParams }: PageProps) {
 
   const [timetablesData, batches, classes] = await Promise.all([
     serverFetch(timetablesUrl, { next: { revalidate: 120 } }).then(res => res.json()) as Promise<TimetablesData>,
-    serverFetch("http://localhost:3000/api/batches", { next: { revalidate: 120 } }).then(res => res.json()) as Promise<Batch[]>,
+    serverFetch("http://localhost:3000/api/batches", { next: { revalidate: 120 } }).then(res => res.json()) as Promise<BatchListItem[]>,
     serverFetch("http://localhost:3000/api/classes", { next: { revalidate: 120 } }).then(res => res.json()) as Promise<Class[]>,
   ]);
 

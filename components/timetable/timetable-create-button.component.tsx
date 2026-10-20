@@ -3,14 +3,14 @@
 import { useState } from "react"
 import { Plus } from "lucide-react"
 
-import type { Batch } from "@/types/batch.type"
+import type { BatchOption } from "@/types/batch.type"
 import type { Class } from "@/types/class.type"
 import { TimetableCreatePanel } from "./timetable-create-panel.component"
 
 interface TimetableCreateButtonProps {
-  batches: Batch[]
+  batches: BatchOption[]
   classes: Class[]
-  fixedBatch?: Batch | null
+  fixedBatch?: BatchOption | null
 }
 
 export function TimetableCreateButton({ batches, classes, fixedBatch }: TimetableCreateButtonProps) {

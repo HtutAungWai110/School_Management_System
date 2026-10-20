@@ -349,6 +349,25 @@ export class BatchController {
     }
   }
 
+  static async getOwnAnnouncementComments(
+    _request: NextRequest,
+    { params }: { params: Promise<{ id: string; announcementId: string }> }
+  ) {
+    const path = await readAnnouncementPath(params);
+    if ("error" in path) return path.error;
+
+    try {
+      const data = await BatchesService.getOwnAnnouncementComments(
+        path.batchId,
+        path.announcementId
+      );
+
+      return NextResponse.json(data);
+    } catch (error) {
+      return handleError(error);
+    }
+  }
+
   static async createAnnouncementComment(
     request: NextRequest,
     { params }: { params: Promise<{ id: string; announcementId: string }> }

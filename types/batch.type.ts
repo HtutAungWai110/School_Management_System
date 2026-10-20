@@ -96,3 +96,15 @@ export type Batch = {
   batch_assignments: BatchAssignment[];
   timetables?: BatchTimetable[];
 };
+
+/** Summary row returned by GET /api/batches. Assignments are aggregated into
+ *  `student_count` instead of being embedded as a full roster. */
+export type BatchListItem = Pick<
+  Batch,
+  "id" | "batch_name" | "created_at" | "status" | "batch_level"
+> & {
+  student_count: number;
+};
+
+/** Minimal batch fields for pickers that only need an id and a label. */
+export type BatchOption = Pick<Batch, "id" | "batch_name">;

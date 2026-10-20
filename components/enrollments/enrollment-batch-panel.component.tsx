@@ -9,7 +9,7 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog.component"
 import { refetchData } from "@/lib/action.action"
 import { ModulesPanelShell } from "@/components/modules_level/modules-panel-shell.component"
 import type { EnrolledStudent } from "@/types/enrollment.type"
-import type { Batch } from "@/types/batch.type"
+import type { BatchListItem } from "@/types/batch.type"
 
 interface EnrollmentBatchPanelProps {
   student: EnrolledStudent
@@ -18,7 +18,7 @@ interface EnrollmentBatchPanelProps {
 
 export function EnrollmentBatchPanel({ student, onClose }: EnrollmentBatchPanelProps) {
   const pathname = usePathname()
-  const [batches, setBatches] = useState<Batch[] | null>(null)
+  const [batches, setBatches] = useState<BatchListItem[] | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [assigningId, setAssigningId] = useState<string | null>(null)
   const [submitError, setSubmitError] = useState<string | null>(null)
@@ -36,7 +36,7 @@ export function EnrollmentBatchPanel({ student, onClose }: EnrollmentBatchPanelP
     fetch("/api/batches", { credentials: "include" })
       .then((res) => {
         if (!res.ok) throw new Error("Failed to load batches")
-        return res.json() as Promise<Batch[]>
+        return res.json() as Promise<BatchListItem[]>
       })
       .then((data) => {
         if (!cancelled) setBatches(data)

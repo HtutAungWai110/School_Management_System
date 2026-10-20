@@ -5,7 +5,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Users, MoreVertical, Pencil, Trash2, CheckCircle2, RotateCcw, ChevronRight } from "lucide-react"
 
-import type { Batch, BatchStatus } from "@/types/batch.type";
+import type { BatchListItem, BatchStatus } from "@/types/batch.type";
 import { cn } from "@/lib/utils.util"
 import { refetchData } from "@/lib/action.action"
 import { batchPages } from "@/lib/batch-pages"
@@ -18,9 +18,9 @@ function formatDate(value: string) {
   return new Date(value).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 }
 
-export function BatchesRow({ batch }: { batch: Batch }) {
+export function BatchesRow({ batch }: { batch: BatchListItem }) {
   const levels = batch.batch_level ?? [];
-  const students = batch.batch_assignments ?? [];
+  const studentCount = batch.student_count ?? 0;
 
   const pathname = usePathname()
 
@@ -113,7 +113,7 @@ export function BatchesRow({ batch }: { batch: Batch }) {
           </div>
         </td>
         <td className="px-6 py-4 text-[14px] leading-[20px] text-on-surface-variant">
-          {students.length} student{students.length === 1 ? "" : "s"}
+          {studentCount} student{studentCount === 1 ? "" : "s"}
         </td>
         <td className="px-6 py-4">
           <BatchStatusBadge status={batch.status ?? null} />

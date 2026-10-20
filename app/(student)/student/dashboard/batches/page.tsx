@@ -19,7 +19,7 @@ export default async function StudentBatchesPage() {
         </p>
       </header>
 
-      <StudentBatchList batches={batches} />
+      <StudentBatchList batches={batches} basePath="/student/dashboard/batches" />
     </div>
   )
 }

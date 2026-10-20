@@ -11,15 +11,29 @@ function formatDate(value: string) {
   return date.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })
 }
 
-export default function StudentBatchList({ batches }: { batches: StudentBatch[] }) {
+type StudentBatchListProps = {
+  batches: StudentBatch[];
+  /** When set, each batch links to `${basePath}/${batch.id}`. Omit it for a
+   *  read-only list. */
+  basePath?: string;
+  emptyTitle?: string;
+  emptyDescription?: string;
+};
+
+export default function StudentBatchList({
+  batches,
+  basePath,
+  emptyTitle = "You aren't in a batch yet",
+  emptyDescription = "Your academy assigns you to a batch once your enrolment is confirmed.",
+}: StudentBatchListProps) {
   if (batches.length === 0) {
     return (
       <div className="rounded-xl border border-outline-variant/20 bg-surface-container-lowest/70 px-6 py-14 text-center">
         <p className="text-[14px] font-medium leading-5 text-on-surface">
-          You aren&apos;t in a batch yet
+          {emptyTitle}
         </p>
         <p className="mt-1 text-[13px] leading-5 text-on-surface-variant">
-          Your academy assigns you to a batch once your enrolment is confirmed.
+          {emptyDescription}
         </p>
       </div>
     )
@@ -33,16 +47,22 @@ export default function StudentBatchList({ batches }: { batches: StudentBatch[] 
           className="flex flex-col gap-2 border-b border-outline-variant/15 px-5 py-5 last:border-b-0 sm:flex-row sm:items-center sm:justify-between sm:gap-8"
         >
           <div className="min-w-0">
-            <Link
-              href={`/student/dashboard/batches/${batch.id}`}
-              className="group inline-flex items-center gap-1.5 text-[17px] font-semibold leading-6 text-primary transition-colors hover:text-primary/80"
-            >
-              <span className="truncate">{batch.batch_name}</span>
-              <ChevronRight
-                aria-hidden="true"
-                className="size-4 shrink-0 text-primary/50 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:text-primary"
-              />
-            </Link>
+            {basePath ? (
+              <Link
+                href={`${basePath}/${batch.id}`}
+                className="group inline-flex items-center gap-1.5 text-[17px] font-semibold leading-6 text-primary transition-colors hover:text-primary/80"
+              >
+                <span className="truncate">{batch.batch_name}</span>
+                <ChevronRight
+                  aria-hidden="true"
+                  className="size-4 shrink-0 text-primary/50 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:text-primary"
+                />
+              </Link>
+            ) : (
+              <p className="truncate text-[17px] font-semibold leading-6 text-primary">
+                {batch.batch_name}
+              </p>
+            )}
 
             {batch.levels.length > 0 && (
               <ul className="ml-2 mt-1">

@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server.client";
 import { HttpError } from "@/lib/errors/http.error";
 import { NotificationsService } from "@/services/notifications/services";
-import type { BatchStatus, BatchAssignment, BatchModule, BatchTeacherModule, Assignment } from "@/types/batch.type";
+import type { BatchStatus, BatchAssignment, BatchListItem, BatchModule, BatchTeacherModule, Assignment } from "@/types/batch.type";
 import type { Announcement, AnnouncementAttachments, AnnouncementAuthor, AnnouncementComment } from "@/types/announcement.type";
 
 const BATCH_SELECT = `
@@ -17,17 +17,7 @@ const BATCH_SELECT = `
       description
     )
   ),
-  batch_assignments (
-    id,
-    student_id,
-    assigned_at,
-    profiles (
-      id,
-      full_name,
-      email,
-      avatar_url
-    )
-  )
+  batch_assignments (count)
 `;
 
 const BATCH_DETAIL_SELECT = `
@@ -91,6 +81,9 @@ const STUDENT_ENROLLMENTS_SELECT = `
 
 const ANNOUNCEMENT_BUCKET = "batch_announcements";
 
+/* Author summaries are resolved separately through `get_profile_summaries`:
+   `profiles` is no longer readable by non-admins, and embedding the FK here
+   silently returned `profiles: null` for every student and teacher. */
 const ANNOUNCEMENT_SELECT = `
   id,
   batch_id,
@@ -100,13 +93,16 @@ const ANNOUNCEMENT_SELECT = `
   likes_count,
   comments_count,
   created_at,
-  updated_at,
-  profiles!batch_announcements_author_id_fkey (
-    id,
-    full_name,
-    avatar_url
-  )
+  updated_at
 `;
+
+type AnnouncementRow = Omit<Announcement, "profiles">;
+
+/** Raw GET /api/batches row: the only assignment data selected is an
+ *  aggregate count, which is flattened to `student_count` before returning. */
+type BatchListRow = Omit<BatchListItem, "student_count"> & {
+  batch_assignments: { count: number }[] | null;
+};
 
 type ServerSupabase = Awaited<ReturnType<typeof createClient>>;
 
@@ -153,7 +149,7 @@ async function signedInUserId(supabase: ServerSupabase) {
   } = await supabase.auth.getUser();
 
   if (error || !user) {
-    throw new HttpError(401, "You must be signed in to manage announcements");
+    throw new HttpError(401, "You must be signed in to continue");
   }
 
   return user.id;
@@ -207,6 +203,32 @@ async function loadProfileSummaries(
   );
 }
 
+/** Attaches the author summary to announcement rows fetched without the FK. */
+async function withAnnouncementAuthors(
+  supabase: ServerSupabase,
+  rows: AnnouncementRow[]
+): Promise<Announcement[]> {
+  const authorIds = rows
+    .map((row) => row.author_id)
+    .filter((id): id is string => Boolean(id));
+  const authors = await loadProfileSummaries(supabase, authorIds);
+
+  return rows.map((row) => ({
+    ...row,
+    profiles: row.author_id ? authors.get(row.author_id) ?? null : null,
+  }));
+}
+
+async function loadAnnouncement(
+  supabase: ServerSupabase,
+  row: AnnouncementRow | null
+): Promise<Announcement | null> {
+  if (!row) return null;
+
+  const [announcement] = await withAnnouncementAuthors(supabase, [row]);
+  return announcement ?? null;
+}
+
 /**
  * Reads the row and proves the caller wrote it.
  *
@@ -239,7 +261,7 @@ async function readAuthoredAnnouncement(
 }
 
 export class BatchesService {
-  static async list(search: string, status: string) {
+  static async list(search: string, status: string): Promise<BatchListItem[]> {
     const supabase = await createClient();
 
     let query = supabase
@@ -261,7 +283,12 @@ export class BatchesService {
       throw new Error(error.message);
     }
 
-    return data ?? [];
+    return ((data ?? []) as unknown as BatchListRow[]).map(
+      ({ batch_assignments, ...batch }) => ({
+        ...batch,
+        student_count: batch_assignments?.[0]?.count ?? 0,
+      })
+    );
   }
 
   static async getById(id: string) {
@@ -736,7 +763,10 @@ export class BatchesService {
       throw new Error(error.message);
     }
 
-    return (data ?? []) as unknown as Announcement[];
+    return withAnnouncementAuthors(
+      supabase,
+      (data ?? []) as unknown as AnnouncementRow[]
+    );
   }
 
   static async createAnnouncement(
@@ -763,7 +793,14 @@ export class BatchesService {
       throw new Error(error.message);
     }
 
-    const announcement = data as unknown as Announcement;
+    const announcement = await loadAnnouncement(
+      supabase,
+      data as unknown as AnnouncementRow
+    );
+
+    if (!announcement) {
+      throw new Error("The announcement could not be reloaded after publishing.");
+    }
 
     /* The row is committed; delivery is a follow-up. `notifyAnnouncementPosted`
        never throws, so a failed fan-out cannot report a post that did happen as
@@ -795,7 +832,7 @@ export class BatchesService {
       throw new Error(error.message);
     }
 
-    return (data as unknown as Announcement) ?? null;
+    return loadAnnouncement(supabase, (data as AnnouncementRow | null) ?? null);
   }
 
   static async isAnnouncementLiked(batchId: string, announcementId: string): Promise<boolean> {
@@ -874,11 +911,11 @@ export class BatchesService {
   }
 
   /**
-   * One page of the thread, oldest first.
+   * One page of everyone else's comments, oldest first.
    *
-   * Ascending order keeps new comments at the end, which is where the input
-   * and the "load more" control are; it also means a new comment never shifts
-   * the pages already loaded.
+   * The signed-in user's own comments are served separately so the client can
+   * pin them above the rest; the count here is the "others" total, which is
+   * what drives the load-more control.
    */
   static async getAnnouncementComments(
     batchId: string,
@@ -887,6 +924,7 @@ export class BatchesService {
     limit: number
   ): Promise<{ data: AnnouncementComment[]; total: number }> {
     const supabase = await createClient();
+    const userId = await signedInUserId(supabase);
     await assertAnnouncementVisible(supabase, batchId, announcementId);
 
     const from = (page - 1) * limit;
@@ -897,6 +935,7 @@ export class BatchesService {
         count: "exact",
       })
       .eq("announcement_id", announcementId)
+      .neq("profile_id", userId)
       .order("created_at", { ascending: true })
       .order("id", { ascending: true })
       .range(from, from + limit - 1);
@@ -915,6 +954,39 @@ export class BatchesService {
         author: authors.get(row.profile_id) ?? null,
       })),
       total: count ?? 0,
+    };
+  }
+
+  /** The signed-in user's comments on one announcement, newest first. */
+  static async getOwnAnnouncementComments(
+    batchId: string,
+    announcementId: string
+  ): Promise<{ data: AnnouncementComment[]; total: number }> {
+    const supabase = await createClient();
+    const userId = await signedInUserId(supabase);
+    await assertAnnouncementVisible(supabase, batchId, announcementId);
+
+    const { data, error, count } = await supabase
+      .from("batch_announcements_comments")
+      .select("id, announcement_id, profile_id, parent_id, content, created_at", {
+        count: "exact",
+      })
+      .eq("announcement_id", announcementId)
+      .eq("profile_id", userId)
+      .order("created_at", { ascending: false })
+      .order("id", { ascending: false });
+
+    if (error) throw new Error(error.message);
+
+    const rows = (data ?? []) as Array<Omit<AnnouncementComment, "author">>;
+    const authors = await loadProfileSummaries(supabase, [userId]);
+
+    return {
+      data: rows.map((row) => ({
+        ...row,
+        author: authors.get(row.profile_id) ?? null,
+      })),
+      total: count ?? rows.length,
     };
   }
 
@@ -991,7 +1063,16 @@ export class BatchesService {
     const removed = storedImagePaths(existing.attachments).filter((path) => !kept.has(path));
     await removeFromBucket(supabase, removed);
 
-    return data as unknown as Announcement;
+    const announcement = await loadAnnouncement(
+      supabase,
+      data as unknown as AnnouncementRow
+    );
+
+    if (!announcement) {
+      throw new Error("The announcement could not be reloaded after saving.");
+    }
+
+    return announcement;
   }
 
   static async deleteAnnouncement(batchId: string, announcementId: string): Promise<void> {

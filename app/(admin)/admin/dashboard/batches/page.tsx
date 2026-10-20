@@ -5,7 +5,7 @@ import { serverFetch } from "@/lib/server.service"
 import { BatchesRow } from "@/components/batches/batches-row.component"
 import { BatchesCreateButton } from "@/components/batches/batches-create-button.component"
 import FilterButton from "@/components/search/filter-dropdown.component"
-import type { Batch } from "@/types/batch.type"
+import type { BatchListItem } from "@/types/batch.type"
 import type { Level } from "@/types/module.type"
 
 const STATUS_OPTIONS = [
@@ -30,7 +30,7 @@ export default async function BatchesPage({
   }
 
   const [batches, levels] = await Promise.all([
-    serverFetch(url, { next: { revalidate: 120 } }).then(res => res.json()) as Promise<Batch[]>,
+    serverFetch(url, { next: { revalidate: 120 } }).then(res => res.json()) as Promise<BatchListItem[]>,
     serverFetch(`http://localhost:3000/api/levels`, { next: { revalidate: 120 } }).then(res => res.json()) as Promise<Level[]>,
   ]);
 

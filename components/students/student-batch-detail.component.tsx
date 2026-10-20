@@ -1,9 +1,11 @@
 import Link from "next/link"
-import { ArrowLeft, Users } from "lucide-react"
+import { ArrowLeft, Megaphone, Users } from "lucide-react"
 
 import { BatchStatusBadge } from "@/components/batches/batch-status-badge.component"
 import BatchModuleCoverage from "@/components/batches/batch-module-coverage.component"
 import BatchRosterList from "@/components/students/batch-roster-list.component"
+import { buttonVariants } from "@/components/ui/button"
+import { cn } from "@/lib/utils.util"
 import type { StudentBatchDetail } from "@/types/student-batch-detail.type"
 
 function formatDate(value: string) {
@@ -37,7 +39,16 @@ export default function StudentBatchDetail({ batch }: { batch: StudentBatchDetai
               {batch.levels.join(" · ")}
             </p>
           </div>
-          <BatchStatusBadge status={batch.status} />
+          <div className="flex flex-wrap items-center gap-2">
+            <BatchStatusBadge status={batch.status} />
+            <Link
+              href={`/student/dashboard/batches/${batch.id}/announcements`}
+              className={cn(buttonVariants({ variant: "outline", size: "sm" }), "gap-1.5")}
+            >
+              <Megaphone className="size-3.5" aria-hidden="true" />
+              Announcements
+            </Link>
+          </div>
         </div>
 
         <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-1 border-t border-outline-variant/15 pt-3">

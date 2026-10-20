@@ -15,12 +15,22 @@ import type {
 const PAGE_SIZE = 50
 const MAX_COMMENT_LENGTH = 2000
 
+type OwnCommentPage = {
+  data: AnnouncementComment[]
+  total: number
+}
+
+type PendingComment = {
+  id: string
+  content: string
+}
+
 /**
  * The thread for one announcement.
  *
- * Loaded only when the wrapper opens, one page at a time, oldest first. New
- * comments are appended and the parent is told the fresh total so the count on
- * the icon stays in step without a server refresh.
+ * Two lists: the signed-in user's own comments, newest first, and everyone
+ * else's, oldest first and paginated. They are fetched separately so the
+ * user's row can sit at the top and appear immediately while it is posting.
  */
 export function AnnouncementComments({
   batchId,
@@ -33,8 +43,8 @@ export function AnnouncementComments({
   initialCount: number
   onCountChange: (count: number) => void
 }) {
+  const [ownComments, setOwnComments] = useState<AnnouncementComment[]>([])
   const [comments, setComments] = useState<AnnouncementComment[]>([])
-  const [postedComments, setPostedComments] = useState<AnnouncementComment[]>([])
   const [loadedPage, setLoadedPage] = useState(0)
   const [total, setTotal] = useState(initialCount)
   const [hasMore, setHasMore] = useState(false)
@@ -43,75 +53,116 @@ export function AnnouncementComments({
   const [draft, setDraft] = useState("")
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
+  const [pendingComment, setPendingComment] = useState<PendingComment | null>(null)
 
   const listRef = useRef<HTMLDivElement>(null)
-  const inputRef = useRef<HTMLInputElement>(null)
-  const stickToBottomRef = useRef(false)
   const loadingRef = useRef(false)
 
   const commentsUrl = `/api/batches/${batchId}/announcement/${announcementId}/comments`
 
-  const loadPage = useCallback(
-    async (nextPage: number) => {
-      if (loadingRef.current) return
+  const loadInitial = useCallback(async () => {
+    if (loadingRef.current) return
 
-      loadingRef.current = true
-      setLoading(true)
-      setError(null)
+    loadingRef.current = true
+    setLoading(true)
+    setError(null)
 
-      try {
-        const response = await fetch(`${commentsUrl}?page=${nextPage}&limit=${PAGE_SIZE}`, {
+    try {
+      const [ownResponse, otherResponse] = await Promise.all([
+        fetch(`${commentsUrl}/mine`, { credentials: "include", cache: "no-store" }),
+        fetch(`${commentsUrl}?page=1&limit=${PAGE_SIZE}`, {
           credentials: "include",
           cache: "no-store",
-        })
+        }),
+      ])
 
-        if (!response.ok) {
-          throw new Error(`Comments request failed with ${response.status}`)
-        }
-
-        const body = (await response.json()) as AnnouncementCommentPage
-        const rows = Array.isArray(body?.data) ? body.data : []
-        const nextTotal = typeof body?.total === "number" ? body.total : rows.length
-
-        setComments((current) => (nextPage === 1 ? rows : [...current, ...rows]))
-        setLoadedPage(nextPage)
-        setTotal(nextTotal)
-        setHasMore(Boolean(body?.has_more))
-        onCountChange(nextTotal)
-      } catch {
-        setError("Could not load comments. Check your connection and try again.")
-      } finally {
-        loadingRef.current = false
-        setLoading(false)
+      if (!ownResponse.ok || !otherResponse.ok) {
+        throw new Error("Comments request failed")
       }
-    },
-    [commentsUrl, onCountChange]
-  )
+
+      const ownBody = (await ownResponse.json()) as OwnCommentPage | null
+      const otherBody = (await otherResponse.json()) as AnnouncementCommentPage | null
+
+      const ownRows = Array.isArray(ownBody?.data) ? ownBody.data : []
+      const otherRows = Array.isArray(otherBody?.data) ? otherBody.data : []
+      const ownCount = typeof ownBody?.total === "number" ? ownBody.total : ownRows.length
+      const otherCount =
+        typeof otherBody?.total === "number" ? otherBody.total : otherRows.length
+      const nextTotal = ownCount + otherCount
+
+      setOwnComments(ownRows)
+      setComments(otherRows)
+      setLoadedPage(1)
+      setTotal(nextTotal)
+      setHasMore(Boolean(otherBody?.has_more))
+      onCountChange(nextTotal)
+    } catch {
+      setError("Could not load comments. Check your connection and try again.")
+    } finally {
+      loadingRef.current = false
+      setLoading(false)
+    }
+  }, [commentsUrl, onCountChange])
+
+  const loadMore = useCallback(async () => {
+    if (loadingRef.current) return
+
+    const nextPage = loadedPage + 1
+    loadingRef.current = true
+    setLoading(true)
+    setError(null)
+
+    try {
+      const response = await fetch(`${commentsUrl}?page=${nextPage}&limit=${PAGE_SIZE}`, {
+        credentials: "include",
+        cache: "no-store",
+      })
+
+      if (!response.ok) {
+        throw new Error(`Comments request failed with ${response.status}`)
+      }
+
+      const body = (await response.json()) as AnnouncementCommentPage
+      const rows = Array.isArray(body?.data) ? body.data : []
+
+      setComments((current) => [...current, ...rows])
+      setLoadedPage(nextPage)
+      setHasMore(Boolean(body?.has_more))
+    } catch {
+      setError("Could not load comments. Check your connection and try again.")
+    } finally {
+      loadingRef.current = false
+      setLoading(false)
+    }
+  }, [commentsUrl, loadedPage])
 
   useEffect(() => {
-    /* The request writes state after its response resolves, not synchronously;
-       the compiler's setState tracking does not model the await boundary. */
+    /* The requests write state after their responses resolve, not
+       synchronously; the compiler's setState tracking does not model the
+       await boundary. */
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    void loadPage(1)
-  }, [loadPage])
-
-  useEffect(() => {
-    if (!stickToBottomRef.current) return
-
-    stickToBottomRef.current = false
-    const list = listRef.current
-    if (list) list.scrollTop = list.scrollHeight
-    inputRef.current?.focus()
-  }, [comments, postedComments])
+    void loadInitial()
+  }, [loadInitial])
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
 
     const content = draft.trim()
-    if (!content || submitting) return
+    if (!content || submitting || (loading && loadedPage === 0)) return
 
+    const previousDraft = draft
+    const previousTotal = total
+
+    /* Show the row and count immediately; both are rolled back on failure. */
     setSubmitting(true)
     setSubmitError(null)
+    setPendingComment({ id: `pending-${Date.now()}`, content })
+    setDraft("")
+    setTotal(previousTotal + 1)
+    onCountChange(previousTotal + 1)
+
+    /* The new row lives at the top of the thread; bring it into view. */
+    if (listRef.current) listRef.current.scrollTop = 0
 
     try {
       const response = await fetch(commentsUrl, {
@@ -133,18 +184,19 @@ export function AnnouncementComments({
       }
 
       const nextTotal =
-        typeof body.comments_count === "number" ? body.comments_count : total + 1
+        typeof body.comments_count === "number" ? body.comments_count : previousTotal + 1
 
-      /* Keep locally posted rows apart from the fetched pages: if the thread
-         has unloaded pages, the new (newest) comment has to render after them,
-         not between page one and page two. */
-      setPostedComments((current) => [...current, body.data as AnnouncementComment])
+      setOwnComments((current) => [body.data as AnnouncementComment, ...current])
       setTotal(nextTotal)
-      setHasMore(comments.length + postedComments.length + 1 < nextTotal)
       onCountChange(nextTotal)
-      setDraft("")
-      stickToBottomRef.current = true
+      setPendingComment(null)
     } catch (failure) {
+      /* The request did not commit, so remove the optimistic row and hand the
+         text back to the composer. */
+      setPendingComment(null)
+      setDraft(previousDraft)
+      setTotal(previousTotal)
+      onCountChange(previousTotal)
       setSubmitError(
         failure instanceof Error ? failure.message : "Could not post your comment."
       )
@@ -155,7 +207,9 @@ export function AnnouncementComments({
 
   const loadingFirstPage = loading && loadedPage === 0
   const canSubmit = draft.trim().length > 0 && !submitting && !loadingFirstPage
-  const visibleComments = [...comments, ...postedComments]
+  const hasAnyComments =
+    ownComments.length > 0 || comments.length > 0 || pendingComment !== null
+  const showOwnComments = ownComments.length > 0 || pendingComment !== null
 
   return (
     <div className="border-t border-outline-variant/25 bg-surface-container-low/40 px-4 pb-4 pt-3 lg:px-6">
@@ -169,56 +223,72 @@ export function AnnouncementComments({
       </div>
 
       <div ref={listRef} className="mt-2 max-h-80 overflow-y-auto overscroll-contain pr-1">
-        {loading && visibleComments.length === 0 ? (
+        {loading && !hasAnyComments ? (
           <CommentSkeletons />
-        ) : error && visibleComments.length === 0 ? (
+        ) : error && !hasAnyComments ? (
           <div className="py-6 text-center">
             <p className="text-[13px] leading-[19px] text-on-surface-variant">{error}</p>
             <button
               type="button"
-              onClick={() => void loadPage(loadedPage + 1)}
+              onClick={() => void loadInitial()}
               className="mt-2 text-[12px] font-[700] leading-[17px] text-primary hover:underline focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
             >
               Try again
             </button>
           </div>
-        ) : visibleComments.length === 0 ? (
+        ) : !hasAnyComments ? (
           <p className="py-6 text-center text-[13px] leading-[19px] text-on-surface-variant">
             No comments yet. Start the conversation.
           </p>
         ) : (
-          <ul className="space-y-4">
-            {visibleComments.map((comment) => (
-              <CommentRow key={comment.id} comment={comment} />
-            ))}
-          </ul>
-        )}
+          <>
+            {showOwnComments && (
+              <section aria-label="Your comments">
 
-        {error && visibleComments.length > 0 && (
-          <p className="mt-3 text-center text-[12px] leading-[17px] text-error">{error}</p>
-        )}
+                <ul className="mt-2 mb-4 space-y-4">
+                  {pendingComment && <PendingCommentRow content={pendingComment.content} />}
+                  {ownComments.map((comment) => (
+                    <CommentRow key={comment.id} comment={comment} />
+                  ))}
+                </ul>
+              </section>
+            )}
 
-        {visibleComments.length > 0 && (
-          <div className="flex justify-center py-3">
-            {loading ? (
-              <Spinner className="size-4 text-on-surface-variant" />
-            ) : hasMore ? (
-              <button
-                type="button"
-                onClick={() => void loadPage(loadedPage + 1)}
-                className="text-[12px] font-[700] leading-[17px] text-primary hover:underline focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
-              >
-                Load more comments
-              </button>
-            ) : null}
-          </div>
+
+            {comments.length > 0 && (
+              <ul className="space-y-4">
+                {comments.map((comment) => (
+                  <CommentRow key={comment.id} comment={comment} />
+                ))}
+              </ul>
+            )}
+
+            {error && (
+              <p className="mt-3 text-center text-[12px] leading-[17px] text-error">{error}</p>
+            )}
+
+            {comments.length > 0 && (
+              <div className="flex justify-center py-3">
+                {loading ? (
+                  <Spinner className="size-4 text-on-surface-variant" />
+                ) : hasMore ? (
+                  <button
+                    type="button"
+                    onClick={() => void loadMore()}
+                    className="text-[12px] font-[700] leading-[17px] text-primary hover:underline focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+                  >
+                    Load more comments
+                  </button>
+                ) : null}
+              </div>
+            )}
+          </>
         )}
       </div>
 
       <form onSubmit={handleSubmit} className="mt-1 border-t border-outline-variant/25 pt-3">
         <div className="flex items-center gap-2">
           <input
-            ref={inputRef}
             type="text"
             value={draft}
             onChange={(event) => setDraft(event.target.value)}
@@ -291,6 +361,28 @@ function CommentRow({ comment }: { comment: AnnouncementComment }) {
         </div>
         <p className="mt-0.5 whitespace-pre-wrap break-words text-[13px] leading-[19px] text-on-surface">
           {comment.content}
+        </p>
+      </div>
+    </li>
+  )
+}
+
+function PendingCommentRow({ content }: { content: string }) {
+  return (
+    <li className="flex items-start gap-2.5">
+      <span className="grid size-7 shrink-0 place-items-center rounded-full bg-primary-fixed">
+        <Spinner className="size-3.5 text-primary" />
+      </span>
+
+      <div className="min-w-0 flex-1 pt-0.5">
+        <div className="flex items-baseline gap-2">
+          <p className="text-[12px] font-[700] leading-[16px] text-on-surface">You</p>
+          <span className="text-[10px] font-[600] uppercase leading-[14px] tracking-[0.08em] text-primary">
+            Posting
+          </span>
+        </div>
+        <p className="mt-0.5 whitespace-pre-wrap break-words text-[13px] leading-[19px] text-on-surface/70">
+          {content}
         </p>
       </div>
     </li>
