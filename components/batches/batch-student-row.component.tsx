@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react"
 import Image from "next/image"
 import { usePathname } from "next/navigation"
-import { Check, MoreVertical, MousePointerClick, UserMinus } from "lucide-react"
+import { Check, Mail, MoreVertical, MousePointerClick, Phone, UserMinus } from "lucide-react"
 
 import type { BatchAssignment } from "@/types/batch.type"
 import { cn } from "@/lib/utils.util"
@@ -122,9 +122,18 @@ export function BatchStudentRow({
           <p className="text-[15px] font-[600] leading-[20px] text-on-surface truncate">
             {profile.full_name}
           </p>
-          <p className="text-[13px] leading-[18px] text-on-surface-variant truncate">
-            {profile.email}
-          </p>
+          <div className="mt-0.5 space-y-0.5">
+            <p className="flex items-center gap-1.5 text-[13px] leading-[18px] text-on-surface-variant">
+              <Mail className="size-3.5 shrink-0 text-on-surface-variant/80" />
+              <span className="truncate">{profile.email}</span>
+            </p>
+            {profile.phone && (
+              <p className="flex items-center gap-1.5 text-[13px] leading-[18px] text-on-surface-variant">
+                <Phone className="size-3.5 shrink-0 text-on-surface-variant/80" />
+                <span className="truncate">{profile.phone}</span>
+              </p>
+            )}
+          </div>
           {profile.student_enrollments && profile.student_enrollments.length > 0 && (
             <div className="mt-2 flex flex-wrap gap-1.5">
               {profile.student_enrollments.map((enrollment) =>

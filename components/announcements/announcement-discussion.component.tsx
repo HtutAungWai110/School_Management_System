@@ -19,15 +19,19 @@ export function AnnouncementDiscussion({
   announcementId,
   likeCount,
   commentCount,
+  defaultOpen = false,
   children,
 }: {
   batchId: string
   announcementId: string
   likeCount: number
   commentCount: number
+  /** The thread starts open on a page that exists to show the post, and
+   *  closed on a feed where it would push every other post down the page. */
+  defaultOpen?: boolean
   children: ReactNode
 }) {
-  const [open, setOpen] = useState(false)
+  const [open, setOpen] = useState(defaultOpen)
   const [commentsCount, setCommentsCount] = useState(commentCount)
   const reduceMotion = useReducedMotion()
   const panelId = `announcement-comments-${announcementId}`

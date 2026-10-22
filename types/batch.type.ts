@@ -10,7 +10,7 @@ export type BatchLevel = {
   levels: Level;
 };
 
-export type BatchAssignmentProfile = Pick<Profile, "id" | "full_name" | "email" | "avatar_url"> & {
+export type BatchAssignmentProfile = Pick<Profile, "id" | "full_name" | "email" | "phone" | "avatar_url"> & {
   student_enrollments?: {
     id: string;
     level_id: string;

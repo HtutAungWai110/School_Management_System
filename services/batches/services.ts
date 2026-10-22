@@ -48,6 +48,7 @@ const BATCH_DETAIL_SELECT = `
       id,
       full_name,
       email,
+      phone,
       avatar_url
     ),
     classes(
@@ -66,6 +67,7 @@ const STUDENT_ENROLLMENTS_SELECT = `
     id,
     full_name,
     email,
+    phone,
     avatar_url,
     student_enrollments(
       id,
@@ -317,7 +319,7 @@ export class BatchesService {
       }
 
       const filteredAssignments = (assignments ?? []).map((assignment: { id: string; student_id: string; assigned_at: string; profiles: unknown }) => {
-        const profile = assignment.profiles as { id: string; full_name: string; email: string; avatar_url: string | null; student_enrollments: { level_id: string }[] } | null;
+        const profile = assignment.profiles as { id: string; full_name: string; email: string; phone: string; avatar_url: string | null; student_enrollments: { level_id: string }[] } | null;
         if (!profile) return assignment;
 
         const filteredEnrollments = (profile.student_enrollments ?? []).filter(
