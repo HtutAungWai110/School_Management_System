@@ -101,6 +101,7 @@ export default async function TeacherBatchAnnouncementsPage({
                         key={announcement.id}
                         announcement={announcement}
                         currentUserId={null}
+                        href={`/teacher/dashboard/batches/${id}/announcements/${announcement.id}`}
                       />
                     ))}
                   </ol>

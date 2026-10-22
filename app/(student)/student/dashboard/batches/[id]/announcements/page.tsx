@@ -89,6 +89,7 @@ export default async function StudentBatchAnnouncementsPage({
                     key={announcement.id}
                     announcement={announcement}
                     currentUserId={null}
+                    href={`/student/dashboard/batches/${id}/announcements/${announcement.id}`}
                   />
                 ))}
               </ol>

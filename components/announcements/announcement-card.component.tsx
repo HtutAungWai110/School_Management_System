@@ -1,4 +1,5 @@
 import Image from "next/image"
+import Link from "next/link"
 import { ExternalLink } from "lucide-react"
 
 import { AnnouncementActions } from "./announcement-actions.component"
@@ -20,9 +21,13 @@ function hostnameOf(value: string) {
 export function AnnouncementCard({
   announcement,
   currentUserId,
+  href,
 }: {
   announcement: Announcement
   currentUserId: string | null
+  /** When set, the announcement body links to its own page instead of plain
+   *  text. Used by noticeboard lists so readers can open the exact post. */
+  href?: string
 }) {
   const author = announcement.profiles
   const authorName = author?.full_name ?? "CodePoint Academy"
@@ -75,7 +80,14 @@ export function AnnouncementCard({
           likeCount={announcement.likes_count}
           commentCount={announcement.comments_count}
         >
-          {content && (
+          {content && href ? (
+            <Link href={href} className="block">
+              <p className="whitespace-pre-wrap px-4 lg:px-6 pt-1.5 text-[14px] leading-[20px] text-on-surface">
+                <span className="font-[700]">{authorName}</span>{" "}
+                <span className="font-[400]">{content}</span>
+              </p>
+            </Link>
+          ) : (
             <p className="whitespace-pre-wrap px-4 lg:px-6 pt-1.5 text-[14px] leading-[20px] text-on-surface">
               <span className="font-[700]">{authorName}</span>{" "}
               <span className="font-[400]">{content}</span>

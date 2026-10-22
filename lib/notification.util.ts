@@ -323,10 +323,14 @@ export function buildAnnouncementPostedMessage(
 }
 
 /**
- * Destination for a notice. Both role-side noticeboards read
- * `?announcement_id=`, so the reader lands on the exact post rather than the
- * top of the feed. The path segment keeps each role on its own side of the
- * proxy, which would otherwise bounce a role mismatch.
+ * Destination for a notice.
+ *
+ * The announcement is a page of its own, so the id is the last path segment
+ * rather than a query parameter: the reader lands on the exact post, and the
+ * link reads the same whether it is shared or clicked from the inbox.
+ *
+ * The path segment keeps each role on its own side of the proxy, which would
+ * otherwise bounce a role mismatch.
  */
 export function announcementNotificationLink(
   recipientRole: string,
@@ -338,5 +342,5 @@ export function announcementNotificationLink(
       ? `/teacher/dashboard/batches/${encodeURIComponent(batchId)}/announcements`
       : `/student/dashboard/batches/${encodeURIComponent(batchId)}/announcements`;
 
-  return `${base}?announcement_id=${encodeURIComponent(announcementId)}`;
+  return `${base}/${encodeURIComponent(announcementId)}`;
 }
