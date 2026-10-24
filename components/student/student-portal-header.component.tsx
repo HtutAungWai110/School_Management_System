@@ -9,18 +9,33 @@ import { cn } from "@/lib/utils.util"
 
 export type StudentPortalNav = "home" | "levels"
 
-const NAV_LINKS = [
-  { label: "Portal Home", href: "/student", key: "home" },
-  { label: "Levels", href: "/student/levels", key: "levels" },
-] as const
+export default function StudentPortalHeader({
+  active,
+  homeHref = "/student",
+  dashboardHref = "/student/dashboard/overview",
+  showLevels = true,
+}: {
+  active: StudentPortalNav
+  /** Portal root for this role, e.g. `/teacher`. */
+  homeHref?: string
+  /** Where "Go to Dashboard" points for this role. */
+  dashboardHref?: string
+  /** Levels is a student-only catalogue. */
+  showLevels?: boolean
+}) {
+  const navLinks = showLevels
+    ? [
+        { label: "Portal Home", href: homeHref, key: "home" as const },
+        { label: "Levels", href: `${homeHref}/levels`, key: "levels" as const },
+      ]
+    : [{ label: "Portal Home", href: homeHref, key: "home" as const }]
 
-export default function StudentPortalHeader({ active }: { active: StudentPortalNav }) {
   return (
     <header className="fixed top-0 left-0 z-50 w-full border-b border-border bg-surface/85 backdrop-blur-xl">
       <div className="mx-auto flex h-16 max-w-[1440px] items-center justify-between px-6 md:px-12">
         <div className="flex items-center gap-3">
           <Link
-            href="/student/dashboard/overview"
+            href={dashboardHref}
             className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg bg-primary px-4 py-2 text-[14px] font-medium text-primary-foreground transition-opacity hover:opacity-90"
           >
             <LayoutDashboard className="size-[18px]" />
@@ -32,7 +47,7 @@ export default function StudentPortalHeader({ active }: { active: StudentPortalN
 
         <div className="flex flex-wrap items-center gap-4 sm:gap-6">
           <nav className="hidden items-center gap-6 lg:flex">
-            {NAV_LINKS.map((link) => {
+            {navLinks.map((link) => {
               const isActive = link.key === active
               return (
                 <Link

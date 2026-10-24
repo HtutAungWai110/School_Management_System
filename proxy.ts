@@ -44,13 +44,12 @@ export async function proxy(request: NextRequest) {
   };
 
   /**
-   * Where each role lands. Admin and teacher have no index route at their
-   * section root, so they must be sent to their dashboard; only the student
-   * area has a landing page at `/student`.
+   * Where each role lands. All three sections open on their portal home; the
+   * dashboard is one click away from the header.
    */
   const roleHomes: Record<string, string> = {
-    admin: '/admin/dashboard/overview',
-    teacher: '/teacher/dashboard/overview',
+    admin: '/admin',
+    teacher: '/teacher',
     student: '/student/',
   };
 

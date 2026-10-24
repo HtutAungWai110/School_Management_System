@@ -3,7 +3,7 @@
 import { useState } from "react"
 import Image from "next/image"
 import ProfileCard from "@/components/profile/profile-card.component"
-import { LayoutDashboard, GraduationCap, User, Users, Calendar, Settings, Book, BookOpenCheck, Layers, ClipboardList, Menu, X } from "lucide-react"
+import { LayoutDashboard, GraduationCap, User, Users, Calendar, CalendarDays, Settings, Book, BookOpenCheck, Layers, ClipboardList, Menu, X } from "lucide-react"
 import { usePathname } from "next/navigation"
 import Link from "next/link"
 
@@ -21,6 +21,7 @@ export default function Sidebar() {
     { href: "/admin/dashboard/batches", label: "Batches", icon: Users, active: path === "/admin/dashboard/batches" },
   { href: "/admin/dashboard/assignments", label: "Assignments", icon: ClipboardList, active: path === "/admin/dashboard/assignments" },
     { href: "/admin/dashboard/timetable", label: "Timetable", icon: Calendar, active: path === "/admin/dashboard/timetable" },
+    { href: "/admin/announcements", label: "Announcements", icon: CalendarDays, active: path.startsWith("/admin/announcements") },
     { href: "/admin/dashboard/settings", label: "Settings", icon: Settings, active: path === "/admin/dashboard/settings"  },
   ]
   return (
