@@ -1,8 +1,11 @@
 import Image from "next/image";
-import { CalendarDays, Clock, ExternalLink, Heart, Users } from "lucide-react";
+import { CalendarDays, Clock, ExternalLink, Users } from "lucide-react";
 
 import { AnnouncementCarousel } from "@/components/announcements/announcement-carousel.component";
 import { EventAnnouncementActions } from "./event-announcement-actions.component";
+import { EventAnnouncementLikeButton } from "./event-announcement-like-button.component";
+import { EventRegistrationButton } from "./event-registration-button.component";
+import { EventRegistrationsLink } from "./event-registrations-link.component";
 import { initialsOf, timeAgo } from "@/lib/format.util";
 import type { EventAnnouncement } from "@/types/event-announcement.type";
 
@@ -85,7 +88,7 @@ export function EventAnnouncementCard({
         <span
           className={
             isEvent
-              ? "shrink-0 rounded-full bg-primary-container px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-on-primary"
+              ? "shrink-0 rounded-full bg-primary px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-on-primary"
               : "shrink-0 rounded-full bg-secondary-fixed px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-on-secondary-fixed"
           }
         >
@@ -162,10 +165,17 @@ export function EventAnnouncementCard({
               {announcement.registration_count}
             </span>
           )}
-          <span className="inline-flex items-center gap-1.5">
-            <Heart className="size-4" aria-hidden="true" />
-            {announcement.like_count}
-          </span>
+          <EventAnnouncementLikeButton
+            announcementId={announcement.id}
+            likeCount={announcement.like_count}
+          />
+          {isEvent && (
+            <EventRegistrationButton
+              announcementId={announcement.id}
+              registrationDeadline={announcement.registration_deadline}
+            />
+          )}
+          {isEvent && <EventRegistrationsLink announcementId={announcement.id} />}
         </div>
       </footer>
     </article>

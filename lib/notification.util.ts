@@ -344,3 +344,39 @@ export function announcementNotificationLink(
 
   return `${base}/${encodeURIComponent(announcementId)}`;
 }
+
+/* ------------------------------------------------------------------ */
+/* Event registrations                                                  */
+/* ------------------------------------------------------------------ */
+
+/**
+ * "Ana registered for Introduction to Python: ..." — the event body is what
+ * tells an admin which of the many workshops this is, so it is excerpted the
+ * same way an announcement is.
+ */
+export function buildEventRegistrationMessage(
+  actor: { role: string; name: string },
+  eventContent?: string | null
+): string {
+  const who = actor.role === "admin" ? "Admin" : actor.name?.trim() || "Someone";
+  const excerpt = eventContent?.replace(/\s+/g, " ").trim() ?? "";
+  const preview = excerpt.length > 80 ? `${excerpt.slice(0, 80)}…` : excerpt;
+
+  return preview
+    ? `${who} registered for ${preview}`
+    : `${who} registered for an event`;
+}
+
+/**
+ * Lands on the registration review page filtered to this one row: the event id
+ * scopes the page, and the registration id narrows the list to the person the
+ * notification is about.
+ */
+export function eventRegistrationNotificationLink(
+  eventId: string,
+  registrationId: string
+): string {
+  return `/admin/announcements/registrations?announcement_id=${encodeURIComponent(
+    eventId
+  )}&registration_id=${encodeURIComponent(registrationId)}`;
+}

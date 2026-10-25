@@ -6,8 +6,10 @@ import {
   buildAssignmentSubmittedMessage,
   buildBatchAssignedMessage,
   buildEnrollmentRequestMessage,
+  buildEventRegistrationMessage,
   buildTeacherCheckInMessage,
   buildTimetableNotificationMessage,
+  eventRegistrationNotificationLink,
   timetableNotificationLink,
   type CheckInSession,
   type TimetableAction,
@@ -337,6 +339,74 @@ export class NotificationsService {
    *
    * Never throws: the assignment row is already written by this point.
    */
+  /**
+   * Tells the admins that a student or teacher claimed a seat at an event.
+   *
+   * The link carries both ids so the review page opens filtered to this one
+   * registration rather than dumping the whole attendee list.
+   *
+   * Never throws: the registration row is already written by this point.
+   */
+  static async notifyAdminsOfEventRegistration({
+    actorId,
+    actorName,
+    actorRole,
+    eventId,
+    eventContent,
+    registrationId,
+  }: {
+    actorId: string;
+    actorName: string;
+    actorRole: string;
+    eventId: string;
+    eventContent?: string | null;
+    registrationId: string;
+  }) {
+    try {
+      const supabase = await createClient();
+
+      const { data: adminIds, error } = await supabase.rpc("get_admin_ids");
+
+      if (error) {
+        console.error("[notifications] get_admin_ids failed:", error.message);
+        return;
+      }
+
+      const recipients = ((adminIds ?? []) as Array<{ profile_id: string }>)
+        .map((row) => row.profile_id)
+        .filter((id) => id && id !== actorId);
+
+      if (recipients.length === 0) return;
+
+      const data = {
+        message: buildEventRegistrationMessage(
+          { role: actorRole, name: actorName },
+          eventContent
+        ),
+        link: eventRegistrationNotificationLink(eventId, registrationId),
+      };
+
+      const results = await Promise.allSettled(
+        recipients.map((recipientId) =>
+          NotificationsService.create({
+            data,
+            senderIds: [actorId],
+            recipientId,
+            type: "event_registered",
+          })
+        )
+      );
+
+      for (const result of results) {
+        if (result.status === "rejected") {
+          console.error("[notifications] create failed:", result.reason);
+        }
+      }
+    } catch (error) {
+      console.error("[notifications] event registration failed:", error);
+    }
+  }
+
   /**
    * Tells a student they have been placed in a batch, which is the moment their
    * timetable, assignments and attendance start to mean something.

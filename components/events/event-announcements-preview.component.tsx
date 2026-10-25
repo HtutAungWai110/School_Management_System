@@ -10,8 +10,11 @@ import type { EventAnnouncement } from "@/types/event-announcement.type";
  */
 export function EventAnnouncementsPreview({
   announcements,
+  href = "/admin/announcements",
 }: {
   announcements: EventAnnouncement[];
+  /** Where "View all" points; role-specific feeds share this component. */
+  href?: string;
 }) {
   return (
     <section className="w-full">
@@ -25,7 +28,7 @@ export function EventAnnouncementsPreview({
           </p>
         </div>
         <Link
-          href="/admin/announcements"
+          href={href}
           className="inline-flex items-center gap-1 self-start text-[13px] font-semibold text-primary hover:underline sm:self-auto"
         >
           View all

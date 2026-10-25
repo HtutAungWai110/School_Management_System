@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { EventsService, type EventPostInput } from "@/services/events/services";
 import { handleError } from "@/lib/errors/error.handler";
 import { HttpError } from "@/lib/errors/http.error";
-import { readPathUuid } from "@/lib/api.util";
+import { readPathUuid, readUuidParam } from "@/lib/api.util";
 import type {
   AnnouncementAttachments,
   AnnouncementImage,
@@ -13,6 +13,8 @@ import type {
 const DEFAULT_PAGE_SIZE = 10;
 const MAX_PAGE_SIZE = 50;
 const MAX_CONTENT = 5000;
+const MAX_REGISTRATION_MESSAGE = 1000;
+const REGISTRATION_PAGE_LIMITS = [10, 20, 30];
 const MAX_LINKS = 20;
 const MAX_IMAGES = 20;
 const MAX_ATTACHMENT_URL = 2048;
@@ -28,6 +30,12 @@ function readLimit(value: string | null) {
   const parsed = Number.parseInt(value ?? String(DEFAULT_PAGE_SIZE), 10);
   if (!Number.isFinite(parsed) || parsed < 1) return DEFAULT_PAGE_SIZE;
   return Math.min(parsed, MAX_PAGE_SIZE);
+}
+
+/** The review table only offers 10, 20 or 30 rows; anything else is a 10. */
+function readRegistrationLimit(value: string | null) {
+  const parsed = Number.parseInt(value ?? "10", 10);
+  return REGISTRATION_PAGE_LIMITS.includes(parsed) ? parsed : 10;
 }
 
 /** `2026-02-31` matches the shape but is not a calendar date. */
@@ -139,6 +147,159 @@ export class EventAnnouncementsController {
       return handleError(error);
     }
   }
+
+  static async isLiked(
+    request: NextRequest,
+    { params }: { params: Promise<{ id: string }> }
+  ) {
+    const { id } = await params;
+    const { id: postId, error } = readPathUuid(id, "post id");
+    if (error) return error;
+    if (!postId) {
+      return NextResponse.json({ error: "The post id must be a valid uuid" }, { status: 400 });
+    }
+
+    try {
+      const liked = await EventsService.isLiked(postId);
+      return NextResponse.json({ liked });
+    } catch (error) {
+      return handleError(error);
+    }
+  }
+
+  static async like(
+    request: NextRequest,
+    { params }: { params: Promise<{ id: string }> }
+  ) {
+    return setLike(params, true);
+  }
+
+  static async unlike(
+    request: NextRequest,
+    { params }: { params: Promise<{ id: string }> }
+  ) {
+    return setLike(params, false);
+  }
+
+  static async isRegistered(
+    request: NextRequest,
+    { params }: { params: Promise<{ id: string }> }
+  ) {
+    const { id } = await params;
+    const { id: postId, error } = readPathUuid(id, "post id");
+    if (error) return error;
+    if (!postId) {
+      return NextResponse.json({ error: "The post id must be a valid uuid" }, { status: 400 });
+    }
+
+    try {
+      const registered = await EventsService.isRegistered(postId);
+      return NextResponse.json({ registered });
+    } catch (error) {
+      return handleError(error);
+    }
+  }
+
+  static async register(
+    request: NextRequest,
+    { params }: { params: Promise<{ id: string }> }
+  ) {
+    return registerForEvent(request, params);
+  }
+
+  static async listRegistrations(
+    request: NextRequest,
+    { params }: { params: Promise<{ id: string }> }
+  ) {
+    const { id } = await params;
+    const { id: postId, error } = readPathUuid(id, "post id");
+    if (error) return error;
+    if (!postId) {
+      return NextResponse.json({ error: "The post id must be a valid uuid" }, { status: 400 });
+    }
+
+    const page = readPage(request.nextUrl.searchParams.get("page"));
+    const limit = readRegistrationLimit(request.nextUrl.searchParams.get("limit"));
+
+    const { value: registrationId, error: registrationIdError } = readUuidParam(
+      request,
+      "registration_id"
+    );
+    if (registrationIdError) return registrationIdError;
+
+    try {
+      const data = await EventsService.listRegistrations(
+        postId,
+        page,
+        limit,
+        registrationId
+      );
+      return NextResponse.json(data);
+    } catch (error) {
+      return handleError(error);
+    }
+  }
+}
+
+async function setLike(
+  params: Promise<{ id: string }>,
+  liked: boolean
+) {
+  const { id } = await params;
+  const { id: postId, error } = readPathUuid(id, "post id");
+  if (error) return error;
+  if (!postId) {
+    return NextResponse.json({ error: "The post id must be a valid uuid" }, { status: 400 });
+  }
+
+  try {
+    const data = await EventsService.setLike(postId, liked);
+    return NextResponse.json(data);
+  } catch (error) {
+    return handleError(error);
+  }
+}
+
+async function registerForEvent(
+  request: NextRequest,
+  params: Promise<{ id: string }>
+) {
+  const { id } = await params;
+  const { id: postId, error } = readPathUuid(id, "post id");
+  if (error) return error;
+  if (!postId) {
+    return NextResponse.json({ error: "The post id must be a valid uuid" }, { status: 400 });
+  }
+
+  const body = (await request.json().catch(() => null)) as Record<string, unknown> | null;
+
+  try {
+    const data = await EventsService.register(postId, readRegistrationMessage(body));
+    return NextResponse.json(data, { status: 201 });
+  } catch (error) {
+    return handleError(error);
+  }
+}
+
+/** Optional note from the registrant. An empty box means no note, not `""`. */
+function readRegistrationMessage(body: Record<string, unknown> | null): string | null {
+  const raw = body?.message;
+
+  if (raw === undefined || raw === null) return null;
+  if (typeof raw !== "string") {
+    throw new HttpError(400, "The message must be text");
+  }
+
+  const message = raw.trim();
+
+  if (message.length > MAX_REGISTRATION_MESSAGE) {
+    throw new HttpError(
+      400,
+      `A message can be at most ${MAX_REGISTRATION_MESSAGE} characters`
+    );
+  }
+
+  return message || null;
 }
 
 function readPost(body: Record<string, unknown> | null): EventPostInput {

@@ -1,17 +1,21 @@
 import { createClient } from "@/lib/supabase/server.client";
 import { HttpError } from "@/lib/errors/http.error";
+import { NotificationsService } from "@/services/notifications/services";
 import type {
   EventAnnouncement,
   EventAnnouncementData,
   EventAnnouncementPage,
   EventAnnouncementType,
+  EventRegistration,
+  EventRegistrationPage,
 } from "@/types/event-announcement.type";
-import type { AnnouncementAttachments } from "@/types/announcement.type";
+import type { AnnouncementAttachments, AnnouncementAuthor } from "@/types/announcement.type";
 
 /**
- * Author joins go through `profiles`, which the admin role can read in full.
- * Registrations are embedded as an aggregate so the list can show how full an
- * event is without a second round trip per card.
+ * Authors and registration totals are resolved with security-definer RPCs.
+ * `profiles` is only readable by admins, and `event_registrations` only
+ * exposes the caller's own rows, so neither can be embedded for the student
+ * and teacher feeds.
  */
 const EVENT_SELECT = `
   id,
@@ -24,9 +28,7 @@ const EVENT_SELECT = `
   registration_deadline,
   author_id,
   created_at,
-  updated_at,
-  profiles ( id, full_name, avatar_url ),
-  event_registrations ( count )
+  updated_at
 `;
 
 const EVENT_BUCKET = "event_annoncements";
@@ -40,18 +42,72 @@ export type EventPostInput = {
   attachments: AnnouncementAttachments;
 };
 
-type EventAnnouncementRow = Omit<EventAnnouncement, "registration_count"> & {
-  event_registrations?: { count: number }[] | null;
-};
+type EventAnnouncementRow = Omit<EventAnnouncement, "registration_count" | "profiles">;
 
 type ServerSupabase = Awaited<ReturnType<typeof createClient>>;
 
-/** PostgREST returns aggregates as a one-element array; flatten it here so
- *  every consumer sees the same `registration_count` number. */
-function normalise(rows: EventAnnouncementRow[]): EventAnnouncement[] {
-  return rows.map(({ event_registrations, ...row }) => ({
+/** Display fields for a set of authors, via the public profile summaries. */
+async function loadProfileSummaries(
+  supabase: ServerSupabase,
+  ids: string[]
+): Promise<Map<string, AnnouncementAuthor>> {
+  const uniqueIds = [...new Set(ids)];
+  if (uniqueIds.length === 0) return new Map();
+
+  const { data, error } = await supabase.rpc("get_profile_summaries", {
+    p_ids: uniqueIds,
+  });
+
+  if (error) throw new Error(error.message);
+
+  return new Map(
+    ((data ?? []) as AnnouncementAuthor[]).map((profile) => [profile.id, profile])
+  );
+}
+
+/** Total registrations per event, readable without the registration rows. */
+async function loadRegistrationCounts(
+  supabase: ServerSupabase,
+  ids: string[]
+): Promise<Map<string, number>> {
+  const uniqueIds = [...new Set(ids)];
+  if (uniqueIds.length === 0) return new Map();
+
+  const { data, error } = await supabase.rpc("get_event_registration_counts", {
+    p_ids: uniqueIds,
+  });
+
+  if (error) throw new Error(error.message);
+
+  return new Map(
+    (
+      (data ?? []) as { event_id: string; registration_count: number | string }[]
+    ).map((row) => [row.event_id, Number(row.registration_count)])
+  );
+}
+
+/** Attaches byline and registration total to rows selected without joins. */
+async function decorate(
+  supabase: ServerSupabase,
+  rows: EventAnnouncementRow[]
+): Promise<EventAnnouncement[]> {
+  if (rows.length === 0) return [];
+
+  const [authors, counts] = await Promise.all([
+    loadProfileSummaries(
+      supabase,
+      rows.map((row) => row.author_id).filter(Boolean)
+    ),
+    loadRegistrationCounts(
+      supabase,
+      rows.map((row) => row.id)
+    ),
+  ]);
+
+  return rows.map((row) => ({
     ...row,
-    registration_count: event_registrations?.[0]?.count ?? 0,
+    profiles: authors.get(row.author_id) ?? null,
+    registration_count: counts.get(row.id) ?? 0,
   }));
 }
 
@@ -142,9 +198,10 @@ export class EventsService {
     }
 
     const total = count ?? 0;
+    const rows = (data ?? []) as unknown as EventAnnouncementRow[];
 
     return {
-      data: normalise((data ?? []) as unknown as EventAnnouncementRow[]),
+      data: await decorate(supabase, rows),
       page,
       limit,
       total,
@@ -165,7 +222,9 @@ export class EventsService {
       throw new Error(error.message);
     }
 
-    return data ? normalise([data as unknown as EventAnnouncementRow])[0] : null;
+    return data
+      ? (await decorate(supabase, [data as unknown as EventAnnouncementRow]))[0]
+      : null;
   }
 
   static async create(input: EventPostInput): Promise<EventAnnouncement> {
@@ -193,7 +252,7 @@ export class EventsService {
       throw new Error(error.message);
     }
 
-    return normalise([data as unknown as EventAnnouncementRow])[0];
+    return (await decorate(supabase, [data as unknown as EventAnnouncementRow]))[0];
   }
 
   static async update(id: string, input: EventPostInput): Promise<EventAnnouncement> {
@@ -228,7 +287,7 @@ export class EventsService {
     const removed = storedImagePaths(existing.data).filter((path) => !kept.has(path));
     await removeFromBucket(supabase, removed);
 
-    return normalise([data as unknown as EventAnnouncementRow])[0];
+    return (await decorate(supabase, [data as unknown as EventAnnouncementRow]))[0];
   }
 
   static async remove(id: string): Promise<void> {
@@ -247,5 +306,297 @@ export class EventsService {
     }
 
     await removeFromBucket(supabase, storedImagePaths(existing.data));
+  }
+
+  static async isLiked(id: string): Promise<boolean> {
+    const supabase = await createClient();
+    const userId = await signedInUserId(supabase);
+
+    const { data, error } = await supabase
+      .from("event_announcements_likes")
+      .select("id")
+      .eq("announcement_id", id)
+      .eq("profile_id", userId)
+      .maybeSingle();
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    return Boolean(data);
+  }
+
+  /**
+   * Sets the viewer's like to `liked` and reports the counter afterwards.
+   *
+   * Idempotent on purpose: an optimistic button can repeat a request, so a
+   * second like is a no-op and a second unlike deletes nothing. The database
+   * trigger owns the counter, so the response reports what the row actually
+   * holds rather than a number guessed by the client.
+   */
+  static async setLike(
+    id: string,
+    liked: boolean
+  ): Promise<{ liked: boolean; likes_count: number }> {
+    const supabase = await createClient();
+    const userId = await signedInUserId(supabase);
+
+    /* Reading the post first turns an unknown id into a 404 instead of a
+       foreign-key 500. Select policy is public, so this only proves existence. */
+    const { data: post, error: postError } = await supabase
+      .from("event_announcements")
+      .select("id")
+      .eq("id", id)
+      .maybeSingle();
+
+    if (postError) {
+      throw new Error(postError.message);
+    }
+    if (!post) {
+      throw new HttpError(404, "That post no longer exists");
+    }
+
+    if (liked) {
+      /* The unique key makes a repeated tap a no-op rather than an error, and a
+         skipped insert leaves the trigger's counter untouched. */
+      const { error } = await supabase.from("event_announcements_likes").upsert(
+        { announcement_id: id, profile_id: userId },
+        { onConflict: "announcement_id,profile_id", ignoreDuplicates: true }
+      );
+
+      if (error) throw new Error(error.message);
+    } else {
+      const { error } = await supabase
+        .from("event_announcements_likes")
+        .delete()
+        .eq("announcement_id", id)
+        .eq("profile_id", userId);
+
+      if (error) throw new Error(error.message);
+    }
+
+    const { data: counts, error: countError } = await supabase
+      .from("event_announcements")
+      .select("like_count")
+      .eq("id", id)
+      .maybeSingle();
+
+    if (countError) {
+      throw new Error(countError.message);
+    }
+
+    return {
+      liked,
+      likes_count: (counts as { like_count: number } | null)?.like_count ?? 0,
+    };
+  }
+
+  static async isRegistered(id: string): Promise<boolean> {
+    const supabase = await createClient();
+    const userId = await signedInUserId(supabase);
+
+    const { data, error } = await supabase
+      .from("event_registrations")
+      .select("id")
+      .eq("event_id", id)
+      .eq("profile_id", userId)
+      .maybeSingle();
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    return Boolean(data);
+  }
+
+  /**
+   * Registers the signed-in student or teacher for an event.
+   *
+   * The caller's profile comes from the session, and the post is read first so
+   * a non-event, a missing post, or a closed deadline is a clear 400/404 rather
+   * than a foreign-key or policy error. A repeated submit is a no-op, backed by
+   * the unique `(event_id, profile_id)` key.
+   */
+  static async register(
+    id: string,
+    message: string | null
+  ): Promise<{ registered: boolean }> {
+    const supabase = await createClient();
+    const userId = await signedInUserId(supabase);
+
+    const { data: post, error: postError } = await supabase
+      .from("event_announcements")
+      .select("type, content, registration_deadline")
+      .eq("id", id)
+      .maybeSingle();
+
+    if (postError) {
+      throw new Error(postError.message);
+    }
+    if (!post) {
+      throw new HttpError(404, "That post no longer exists");
+    }
+
+    const event = post as {
+      type: EventAnnouncementType | null;
+      content: string | null;
+      registration_deadline: string | null;
+    };
+
+    if (event.type !== "event") {
+      throw new HttpError(400, "Only events accept registrations");
+    }
+
+    if (
+      event.registration_deadline &&
+      new Date(event.registration_deadline).getTime() < Date.now()
+    ) {
+      throw new HttpError(400, "Registration for this event has already closed");
+    }
+
+    const { data: existing, error: existingError } = await supabase
+      .from("event_registrations")
+      .select("id")
+      .eq("event_id", id)
+      .eq("profile_id", userId)
+      .maybeSingle();
+
+    if (existingError) {
+      throw new Error(existingError.message);
+    }
+    if (existing) return { registered: true };
+
+    const { data: inserted, error } = await supabase
+      .from("event_registrations")
+      .insert({
+        event_id: id,
+        profile_id: userId,
+        message,
+      })
+      .select("id")
+      .single();
+
+    if (error) {
+      /* 23505: a concurrent submit won the race. The user is registered either
+         way, so report success instead of surfacing a constraint error. The
+         winning request sends the notification, so this one stays silent. */
+      if (error.code === "23505") return { registered: true };
+      throw new Error(error.message);
+    }
+
+    const registrationId = (inserted as { id?: string } | null)?.id;
+
+    if (registrationId) {
+      const { data: actor } = await supabase
+        .from("profiles")
+        .select("full_name, role")
+        .eq("id", userId)
+        .maybeSingle();
+
+      const profile = actor as {
+        full_name: string | null;
+        role: string;
+      } | null;
+
+      /* Never blocks the registration: the row is already committed, and the
+         notification helper swallows its own failures. */
+      await NotificationsService.notifyAdminsOfEventRegistration({
+        actorId: userId,
+        actorName: profile?.full_name ?? "",
+        actorRole: profile?.role ?? "student",
+        eventId: id,
+        eventContent: event.content,
+        registrationId,
+      });
+    }
+
+    return { registered: true };
+  }
+
+  /**
+   * One page of the registrations for an event, admin-only.
+   *
+   * The role is checked here rather than inferred from RLS: an admin policy
+   * would let the row through, but a student policy would quietly return a
+   * one-row list instead of an error, which would look like a working page.
+   */
+  static async listRegistrations(
+    eventId: string,
+    page: number,
+    limit: number,
+    registrationId?: string
+  ): Promise<EventRegistrationPage> {
+    const supabase = await createClient();
+    const userId = await signedInUserId(supabase);
+
+    const { data: viewer, error: viewerError } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", userId)
+      .maybeSingle();
+
+    if (viewerError) {
+      throw new Error(viewerError.message);
+    }
+    if ((viewer as { role?: string } | null)?.role !== "admin") {
+      throw new HttpError(403, "Only admins can review registrations");
+    }
+
+    const { data: event, error: eventError } = await supabase
+      .from("event_announcements")
+      .select("id")
+      .eq("id", eventId)
+      .maybeSingle();
+
+    if (eventError) {
+      throw new Error(eventError.message);
+    }
+    if (!event) {
+      throw new HttpError(404, "That post no longer exists");
+    }
+
+    const from = (page - 1) * limit;
+
+    let query = supabase
+      .from("event_registrations")
+      .select("id, event_id, profile_id, message, created_at", { count: "exact" })
+      .eq("event_id", eventId);
+
+    /* A notification deep-links to one registration, so the filter narrows
+       the list rather than sitting beside it: the id and the event id both
+       have to match, or a link from the wrong event finds nothing. */
+    if (registrationId) {
+      query = query.eq("id", registrationId);
+    }
+
+    const { data, error, count } = await query
+      /* `id` is the tie-breaker so simultaneous registrations do not shuffle
+         between pages. */
+      .order("created_at", { ascending: false })
+      .order("id", { ascending: true })
+      .range(from, from + limit - 1);
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    const rows = (data ?? []) as Omit<EventRegistration, "profile">[];
+    const profiles = await loadProfileSummaries(
+      supabase,
+      rows.map((row) => row.profile_id)
+    );
+
+    const total = count ?? 0;
+
+    return {
+      data: rows.map((row) => ({
+        ...row,
+        profile: profiles.get(row.profile_id) ?? null,
+      })),
+      page,
+      limit,
+      total,
+      totalPages: Math.max(1, Math.ceil(total / limit)),
+    };
   }
 }

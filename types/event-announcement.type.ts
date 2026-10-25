@@ -43,3 +43,23 @@ export type EventAnnouncementPage = {
   total: number;
   totalPages: number;
 };
+
+/** One seat claimed for an event, as the admin review page lists it. */
+export type EventRegistration = {
+  id: string;
+  event_id: string;
+  profile_id: string;
+  message: string | null;
+  created_at: string;
+  /* Resolved through get_profile_summaries so this shape does not depend on
+     whether the caller can read the profiles table directly. */
+  profile: EventAnnouncementAuthor | null;
+};
+
+export type EventRegistrationPage = {
+  data: EventRegistration[];
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+};
