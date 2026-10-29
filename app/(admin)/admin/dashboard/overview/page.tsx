@@ -2,10 +2,7 @@
 import { MetricCard } from "@/components/admin/metric-card.component"
 import { ActivityItem } from "@/components/admin/activity-item.component"
 import { AdmissionRow } from "@/components/admin/admission-row.component"
-import {
-  MonthlyAttendanceChart,
-  type MonthlyAttendance,
-} from "@/components/admin/monthly-attendance-chart.component"
+import { MonthlyAttendanceChart } from "@/components/admin/monthly-attendance-chart.component"
 import { CircleHelp, GraduationCap, User, Users, ClipboardList, AlertTriangle, Mail } from "lucide-react"
 import { NotificationBell } from "@/components/notifications/notification-bell.component"
 
@@ -14,7 +11,7 @@ import { serverFetch } from "@/lib/server.service"
 
 export default async function AdminPage() {
 
-  const { teacherCount, studentCount, monthlyAttendance = [] } = await serverFetch("http://localhost:3000/api/school/overview").then((res) => res.json())
+  const { teacherCount, studentCount } = await serverFetch("http://localhost:3000/api/school/overview").then((res) => res.json())
 
   return (
     <div className="min-h-screen bg-background flex">
@@ -60,7 +57,7 @@ export default async function AdminPage() {
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
             <div className="lg:col-span-8">
-              <MonthlyAttendanceChart data={monthlyAttendance as MonthlyAttendance[]} />
+              <MonthlyAttendanceChart />
             </div>
 
             <div className="lg:col-span-4 bg-surface-container-lowest rounded-xl border border-primary/10 p-6 shadow-[0_4px_6px_-1px_rgba(15,23,42,0.05)]">

@@ -59,6 +59,12 @@
   --c-amber-ink: #92400e;
   --c-amber-line: #fde68a;
 
+  /* Attendance series — green / red / yellow, deliberately separate from
+     the brand petrol so a status colour never reads as an action. */
+  --c-present: #15803d;
+  --c-absent: #dc2626;
+  --c-late: #ca8a04;
+
   --c-danger: #e11d48;
   --c-danger-soft: #fff1f2;
   --c-danger-ink: #9f1239;
@@ -169,6 +175,10 @@
   --c-amber-ink: #fcd34d;
   --c-amber-line: #78350f;
 
+  --c-present: #4ade80;
+  --c-absent: #f87171;
+  --c-late: #facc15;
+
   --c-danger: #fb7185;
   --c-danger-soft: #2c0a14;
   --c-danger-ink: #fda4af;
@@ -275,6 +285,9 @@
   --color-outline: var(--outline);
   --color-outline-variant: var(--outline-variant);
   --color-error: var(--error);
+  --color-present: var(--c-present);
+  --color-absent: var(--c-absent);
+  --color-late: var(--c-late);
 
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
