@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server.client";
 import { NotificationsService } from "@/services/notifications/services";
 import { first } from "@/lib/supabase.util";
+import { AttendanceService } from "@/services/attendances/services";
 
 const PAGE_SIZE = 20;
 
@@ -133,6 +134,11 @@ export class StudentsService {
 
     return { coursesEnrolledCount, assignedBatches, timetableData }
 
+  }
+
+  /** Delegates: a student's month is the same calendar, narrowed to their rows. */
+  static async getAttendance(batchId: string, date: string | null) {
+    return AttendanceService.getStudentCalendar(batchId, date);
   }
 
   static async getEnrollments() {

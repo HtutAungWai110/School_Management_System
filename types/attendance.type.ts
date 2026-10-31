@@ -42,6 +42,59 @@ export type AttendanceCalendarResponse = {
   maxDate: string | null;
 };
 
+/** Counts for one date a session actually ran.
+ *
+ *  Student identities are deliberately absent: the staff list only needs
+ *  numbers, and the roster is fetched for a single date when it is opened. */
+export type AttendanceDayCount = {
+  date: string;
+  present: number;
+  late: number;
+  absent: number;
+  total: number;
+};
+
+/** A timetable row in the staff attendance list, without per-student rows. */
+export type AttendanceCalendarSession = Omit<AttendanceSession, "attendances"> & {
+  days: AttendanceDayCount[];
+};
+
+export type AttendanceCalendarSummaryResponse = {
+  finalData: AttendanceCalendarSession[];
+  minDate: string | null;
+  maxDate: string | null;
+  /** Distinct students with at least one mark in the month. */
+  studentCount: number;
+};
+
+/** One module's present/late/absent roll-up for the month. */
+export type ModuleAttendanceStats = {
+  moduleId: string;
+  code: string;
+  title: string;
+  sessions: number;
+  present: number;
+  late: number;
+  absent: number;
+  total: number;
+};
+
+/** One student's attendance rate per module for the month. */
+export type StudentModuleRate = {
+  studentId: string;
+  fullName: string;
+  email: string;
+  phone: string;
+  modules: Array<{
+    moduleId: string;
+    code: string;
+    title: string;
+    present: number;
+    total: number;
+    percentage: number;
+  }>;
+};
+
 /** One session as it was actually taught: an `attendances` row with its
  *  timetable, and that timetable's batch, classroom and module, populated.
  *

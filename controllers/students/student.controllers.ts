@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { StudentsService } from "@/services/students/services";
 import { handleError } from "@/lib/errors/error.handler";
-import { readIdParam, readIdParams } from "@/lib/api.util";
+import { readIdParam, readIdParams, readMonthParam, readUuidParam } from "@/lib/api.util";
 
 export class StudentController {
   static async list(request: NextRequest) {
@@ -25,6 +25,25 @@ export class StudentController {
     try {
       const { coursesEnrolledCount, assignedBatches, timetableData } = await StudentsService.getStudentOverview()
       return NextResponse.json({ coursesEnrolledCount, assignedBatches, timetableData })
+    } catch (error) {
+      return handleError(error);
+    }
+  }
+
+  /** The caller's own month of attendance, for one batch. */
+  static async getAttendance(request: NextRequest) {
+    const { value: batchId, error } = readUuidParam(request, "batch_id");
+    if (error) return error;
+    if (!batchId) {
+      return NextResponse.json({ error: "The batch_id parameter is required" }, { status: 400 });
+    }
+
+    const { date, error: dateError } = readMonthParam(request);
+    if (dateError) return dateError;
+
+    try {
+      const data = await StudentsService.getAttendance(batchId, date ?? null);
+      return NextResponse.json(data);
     } catch (error) {
       return handleError(error);
     }

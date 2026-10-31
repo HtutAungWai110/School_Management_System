@@ -3,7 +3,7 @@
 import { motion } from "motion/react"
 import { Mail, Phone } from "lucide-react"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
-import type { StudentModuleRate } from "./attendance-report.data"
+import type { StudentModuleRate } from "@/types/attendance.type"
 
 export function StudentAttendanceRateChart({
   students,

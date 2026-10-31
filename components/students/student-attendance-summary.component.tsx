@@ -1,12 +1,14 @@
 "use client"
 
-import { type ModuleRatio } from "@/lib/attendance.util"
+import { type ModuleRatio, summariseRatios } from "@/lib/attendance.util"
 
 function share(count: number, total: number) {
   return `${(count / total) * 100}%`
 }
 
 export default function StudentAttendanceSummary({ ratios }: { ratios: ModuleRatio[] }) {
+  const overall = summariseRatios(ratios)
+
   return (
     <div>
       <div className="flex items-center justify-between gap-3">
@@ -18,7 +20,23 @@ export default function StudentAttendanceSummary({ ratios }: { ratios: ModuleRat
         </p>
       </div>
 
-      <ul className="mt-3 divide-y divide-outline-variant/15">
+      <div className="mt-3 rounded-lg border border-primary/10 bg-surface-container-low/40 px-4 py-3.5">
+        <div className="flex items-baseline gap-2.5">
+          <p className="font-mono text-[32px] font-semibold leading-9 tabular-nums text-primary">
+            {overall.percentage.toFixed(1)}%
+          </p>
+          <p className="font-mono text-[10px] font-medium uppercase tracking-[0.18em] text-on-surface-variant">
+            overall
+          </p>
+        </div>
+        <p className="mt-1 text-[12px] leading-4 text-on-surface-variant">
+          Present in {overall.present} of {overall.total} sessions
+          {overall.late > 0 && <> · {overall.late} late</>}
+          {overall.absent > 0 && <> · {overall.absent} absent</>}
+        </p>
+      </div>
+
+      <ul className="mt-1 divide-y divide-outline-variant/15">
         {ratios.map((row) => (
           <li key={row.sessionId} className="py-3.5">
             <div className="flex items-start justify-between gap-4">

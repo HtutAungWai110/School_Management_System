@@ -11,15 +11,12 @@ import {
   Phone,
 } from "lucide-react"
 import { cn } from "@/lib/utils.util"
-import { useAttendanceData } from "./use-attendance-data.hook"
 import {
-  AttendanceStudentTable,
-  type AttendanceUpdate,
-} from "./attendance-student-table.component"
-import {
-  buildModuleAttendanceStats,
-  buildStudentModuleRates,
-} from "./attendance-report.data"
+  useAttendanceCalendar,
+  useModuleSummary,
+  useStudentRates,
+} from "./use-attendance-data.hook"
+import { AttendanceDateRow } from "./attendance-date-row.component"
 import { ModuleAttendancePie } from "./module-attendance-pie.component"
 import { StudentAttendanceRateChart } from "./student-attendance-rate-chart.component"
 
@@ -42,45 +39,66 @@ function monthOf(dateStr: string): { year: number; month: number } {
   return { year: d.getFullYear(), month: d.getMonth() }
 }
 
+/** Local calendar day, for the pager. `toISOString()` would shift the month
+ *  boundary west of Greenwich and land the pager on the previous month. */
+function toDayString(d: Date): string {
+  const month = String(d.getMonth() + 1).padStart(2, "0")
+  const day = String(d.getDate()).padStart(2, "0")
+  return `${d.getFullYear()}-${month}-${day}`
+}
+
+function ReportBody({
+  loading,
+  error,
+  empty,
+  children,
+}: {
+  loading: boolean
+  error: string | null
+  empty: boolean
+  children: React.ReactNode
+}) {
+  if (loading) {
+    return (
+      <div className="space-y-2 animate-pulse">
+        <div className="h-24 bg-surface-container-high rounded-lg" />
+        <div className="h-4 w-1/2 bg-surface-container-high rounded" />
+      </div>
+    )
+  }
+  if (error) {
+    return <p className="text-[12px] leading-[16px] text-destructive">{error}</p>
+  }
+  if (empty) {
+    return (
+      <p className="text-[12px] leading-[16px] text-on-surface-variant">
+        Nothing recorded for this month.
+      </p>
+    )
+  }
+  return <>{children}</>
+}
+
 export function BatchAttendancePanel({ batchId, timetableId }: { batchId?: string; timetableId?: string }) {
   const { data, date, setDate, loading, error, refresh } =
-    useAttendanceData(batchId, timetableId)
+    useAttendanceCalendar(batchId, timetableId)
 
   const sessions = useMemo(() => data?.finalData ?? [], [data])
+  const totalStudents = data?.studentCount ?? 0
   const viewingMonth = computeMonth(date, data?.maxDate ?? null)
   const minMonth = data?.minDate ? monthOf(data.minDate) : null
   const maxMonth = data?.maxDate ? monthOf(data.maxDate) : null
 
   const [expandedSessions, setExpandedSessions] = useState<Set<string>>(new Set())
-  const [expandedDates, setExpandedDates] = useState<Set<string>>(new Set())
-  const [editKey, setEditKey] = useState<string | null>(null)
-  const [saving, setSaving] = useState(false)
   const [reportOpen, setReportOpen] = useState<{ pie: boolean; students: boolean }>({
     pie: false,
     students: false,
   })
 
-  async function handleSaveUpdates(updates: AttendanceUpdate[]) {
-    setSaving(true)
-    try {
-      const res = await fetch("/api/attendances/bulk", {
-        method: "PATCH",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(updates),
-      })
-      if (!res.ok) {
-        const err = await res.json().catch(() => null)
-        throw new Error(err?.error ?? "Failed to update attendance")
-      }
-      refresh()
-    } catch (e) {
-      console.error(e)
-    } finally {
-      setSaving(false)
-      setEditKey(null)
-    }
-  }
+  /* Both reports are month-wide aggregates over every student mark, so they are
+     requested only once their section is actually opened. */
+  const moduleSummary = useModuleSummary(batchId, timetableId, date, reportOpen.pie)
+  const studentRates = useStudentRates(batchId, timetableId, date, reportOpen.students)
 
   function toggleSession(sessionId: string) {
     setExpandedSessions((prev) => {
@@ -91,25 +109,16 @@ export function BatchAttendancePanel({ batchId, timetableId }: { batchId?: strin
     })
   }
 
-  function toggleDate(key: string) {
-    setExpandedDates((prev) => {
-      const next = new Set(prev)
-      if (next.has(key)) next.delete(key)
-      else next.add(key)
-      return next
-    })
-  }
-
   function goToPrevMonth() {
     const prev = new Date(viewingMonth)
     prev.setMonth(prev.getMonth() - 1)
-    setDate(prev.toISOString().split("T")[0])
+    setDate(toDayString(prev))
   }
 
   function goToNextMonth() {
     const next = new Date(viewingMonth)
     next.setMonth(next.getMonth() + 1)
-    setDate(next.toISOString().split("T")[0])
+    setDate(toDayString(next))
   }
 
   const canGoPrev =
@@ -132,17 +141,6 @@ export function BatchAttendancePanel({ batchId, timetableId }: { batchId?: strin
   const fmtShort = (d: Date) =>
     d.toLocaleDateString("en-US", { month: "short", day: "numeric" })
   const dateRangeLabel = `${fmtShort(startOfMonth)} – ${fmtShort(endOfMonth)}`
-
-  const studentIds = new Set<string>()
-  sessions.forEach((s) => {
-    Object.values(s.attendances).forEach((arr) => {
-      arr.forEach((st) => studentIds.add(st.id))
-    })
-  })
-  const totalStudents = studentIds.size
-
-  const moduleStats = useMemo(() => buildModuleAttendanceStats(sessions), [sessions])
-  const studentRates = useMemo(() => buildStudentModuleRates(sessions), [sessions])
 
   const showReports = !loading && !error && sessions.length > 0
 
@@ -220,7 +218,13 @@ export function BatchAttendancePanel({ batchId, timetableId }: { batchId?: strin
             </button>
             {reportOpen.pie && (
               <div className="p-6 pt-4">
-                <ModuleAttendancePie modules={moduleStats} />
+                <ReportBody
+                  loading={moduleSummary.loading}
+                  error={moduleSummary.error}
+                  empty={(moduleSummary.data?.length ?? 0) === 0}
+                >
+                  <ModuleAttendancePie modules={moduleSummary.data ?? []} />
+                </ReportBody>
               </div>
             )}
           </section>
@@ -252,7 +256,13 @@ export function BatchAttendancePanel({ batchId, timetableId }: { batchId?: strin
             </button>
             {reportOpen.students && (
               <div className="p-6 pt-4">
-                <StudentAttendanceRateChart students={studentRates} />
+                <ReportBody
+                  loading={studentRates.loading}
+                  error={studentRates.error}
+                  empty={(studentRates.data?.length ?? 0) === 0}
+                >
+                  <StudentAttendanceRateChart students={studentRates.data ?? []} />
+                </ReportBody>
               </div>
             )}
           </section>
@@ -294,7 +304,6 @@ export function BatchAttendancePanel({ batchId, timetableId }: { batchId?: strin
           <div className="divide-y divide-outline-variant/10">
             {sessions.map((session) => {
               const isSessionExpanded = expandedSessions.has(session.id)
-              const dates = Object.keys(session.attendances).sort()
 
               return (
                 <div key={session.id}>
@@ -351,67 +360,19 @@ export function BatchAttendancePanel({ batchId, timetableId }: { batchId?: strin
                   {/* Expanded: dates */}
                   {isSessionExpanded && (
                     <div>
-                      {dates.length === 0 ? (
+                      {session.days.length === 0 ? (
                         <div className="pl-12 pr-5 py-4 text-[13px] leading-[18px] text-on-surface-variant">
                           No sessions this month.
                         </div>
                       ) : (
-                        dates.map((d) => {
-                          const dateKey = `${session.id}|${d}`
-                          const isDateExpanded = expandedDates.has(dateKey)
-                          const students = session.attendances[d] ?? []
-                          const presentCount = students.filter(
-                            (s) => s.status === "present"
-                          ).length
-
-                          const isEditMode = editKey === dateKey
-
-                          return (
-                            <div key={d}>
-                              {/* Date row */}
-                              <button
-                                type="button"
-                                onClick={() => toggleDate(dateKey)}
-                                className={cn(
-                                  "w-full flex items-center gap-3 pl-12 pr-5 py-2.5 text-left transition-colors hover:bg-surface-container-low/30 cursor-pointer",
-                                  isDateExpanded && "bg-surface-container-low/20"
-                                )}
-                              >
-                                <ChevronDown
-                                  className={cn(
-                                    "w-3.5 h-3.5 text-on-surface-variant transition-transform duration-200 shrink-0",
-                                    isDateExpanded ? "rotate-0" : "-rotate-90"
-                                  )}
-                                />
-                                <CalendarDays className="w-3.5 h-3.5 text-on-surface-variant/60 shrink-0" />
-                                <span className="text-[13px] font-[600] leading-[18px] text-on-surface">
-                                  {new Date(d + "T00:00:00").toLocaleDateString("en-US", {
-                                    weekday: "long",
-                                    day: "numeric",
-                                    month: "short",
-                                  })}
-                                </span>
-                                <span className="ml-auto text-[11px] font-[500] leading-[14px] text-on-surface-variant shrink-0">
-                                  {presentCount}/{students.length} present
-                                </span>
-                              </button>
-
-                              {isDateExpanded && (
-                                <AttendanceStudentTable
-                                  key={`${dateKey}-${String(isEditMode)}`}
-                                  students={students}
-                                  editMode={isEditMode}
-                                  saving={saving}
-                                  onEnterEdit={() => setEditKey(dateKey)}
-                                  onCancel={() => setEditKey(null)}
-                                  onSave={(updates) => {
-                                    handleSaveUpdates(updates)
-                                  }}
-                                />
-                              )}
-                            </div>
-                          )
-                        })
+                        session.days.map((day) => (
+                          <AttendanceDateRow
+                            key={day.date}
+                            timetableId={session.id}
+                            day={day}
+                            onSaved={refresh}
+                          />
+                        ))
                       )}
                     </div>
                   )}

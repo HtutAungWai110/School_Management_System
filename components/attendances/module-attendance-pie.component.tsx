@@ -1,7 +1,7 @@
 "use client"
 
 import { motion } from "motion/react"
-import type { ModuleAttendanceStats } from "./attendance-report.data"
+import type { ModuleAttendanceStats } from "@/types/attendance.type"
 
 export const ATTENDANCE_STATUS_COLORS = {
   present: "#22c55e",

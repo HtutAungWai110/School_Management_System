@@ -4,14 +4,14 @@ import { ChevronLeft, ChevronRight } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { useProfileStore } from "@/components/profile/profile.state"
-import { useAttendanceData } from "@/components/attendances/use-attendance-data.hook"
+import { useStudentAttendance } from "@/components/attendances/use-attendance-data.hook"
 import StudentAttendanceCalendar from "./student-attendance-calendar.component"
 import StudentAttendanceSummary from "./student-attendance-summary.component"
 import { buildMarks, buildRatios, monthIndex, monthLabel, monthParam, parseMonth } from "@/lib/attendance.util"
 
 export default function StudentAttendancePanel({ batchId }: { batchId: string }) {
   const studentId = useProfileStore((state) => state.profile.id)
-  const { data, date, setDate, loading, error } = useAttendanceData(batchId)
+  const { data, date, setDate, loading, error } = useStudentAttendance(batchId)
 
   // With no explicit date the API answers for the month of its latest record,
   // so the switcher starts there too.

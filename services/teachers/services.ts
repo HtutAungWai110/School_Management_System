@@ -1,10 +1,10 @@
 import { createClient } from "@/lib/supabase/server.client";
 import { BatchesService } from "../batches/services";
-import { ATTENDANCE_SELECT, buildFinalData, RawAttendance, toLocalDateString } from "../attendances/services";
+import { AttendanceService, toLocalDateString } from "../attendances/services";
 import { ASSIGNMENT_SUBMISSIONS_SELECT } from "../assignments/services";
 import { HttpError } from "@/lib/errors/http.error";
 import type { Assignment } from "@/types/batch.type";
-import type { AttendanceCalendarResponse, AttendanceSession, ClassHistoryEntry, ClassHistoryResponse } from "@/types/attendance.type";
+import type { AttendanceCalendarSummaryResponse, ClassHistoryEntry, ClassHistoryResponse } from "@/types/attendance.type";
 import { TeacherModuleRow, TeacherModuleQueryRow } from "@/types/teacher-module.type";
 
 const PAGE_SIZE = 20;
@@ -312,68 +312,10 @@ export class TeachersService {
     return attendanceData
   }
 
-  static async getTimetableAttendances(timetable_id: string, date?: string | null): Promise<AttendanceCalendarResponse> {
-    const supabase = await createClient();
-
-    const query = supabase
-      .from("timetables")
-      .select(ATTENDANCE_SELECT)
-      .eq("id", timetable_id);
-
-    const { data: timetableIdsData, error: timetableError } = await supabase
-      .from("timetables")
-      .select("id")
-      .eq("id", timetable_id);
-
-    if (timetableError) {
-      throw timetableError;
-    }
-
-    const timetableIds = timetableIdsData.map((item) => item.id);
-
-    const { data: minDateRow } = await supabase
-      .from("attendances")
-      .select("date")
-      .in("timetable_id", timetableIds)
-      .order("date", { ascending: true })
-      .limit(1)
-      .maybeSingle();
-
-    const { data: maxDateRow } = await supabase
-      .from("attendances")
-      .select("date")
-      .in("timetable_id", timetableIds)
-      .order("date", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    if (!minDateRow) {
-      return { finalData: [], minDate: null, maxDate: null };
-    }
-
-    const baseDate = date ? new Date(date) : new Date(maxDateRow?.date);
-    const startOfMonth = new Date(baseDate.getFullYear(), baseDate.getMonth(), 1);
-    const endOfMonth = new Date(baseDate.getFullYear(), baseDate.getMonth() + 1, 0);
-    const startDateStr = toLocalDateString(startOfMonth);
-    const endDateStr = toLocalDateString(endOfMonth);
-    query
-      .gte("attendances.date", startDateStr)
-      .lte("attendances.date", endDateStr);
-
-    const { data: attendanceData, error: attendanceDataError } = await query;
-    if (attendanceDataError) throw new Error(attendanceDataError.message);
-
-    const timetables = attendanceData as unknown as Array<
-      Omit<AttendanceSession, "attendances"> & { attendances: RawAttendance[] }
-    >;
-
-    const finalData = buildFinalData(timetables);
-
-    return {
-      finalData,
-      minDate: minDateRow?.date ?? null,
-      maxDate: maxDateRow?.date ?? null,
-    };
+  static async getTimetableAttendances(timetable_id: string, date?: string | null): Promise<AttendanceCalendarSummaryResponse> {
+    /* One implementation for both scopes: the teacher's timetable view and the
+       admin's batch view read the same calendar, just narrowed differently. */
+    return AttendanceService.getCalendar({ timetableId: timetable_id }, date ?? null);
   }
 
   /** Every class session a given teacher has actually taught, for one month.

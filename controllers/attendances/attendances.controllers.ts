@@ -1,6 +1,41 @@
 import { NextRequest, NextResponse } from "next/server";
-import { AttendanceService } from "@/services/attendances/services";
+import { AttendanceService, type AttendanceScope } from "@/services/attendances/services";
 import { handleError } from "@/lib/errors/error.handler";
+import { readMonthParam, readPathUuid, readUuidParam } from "@/lib/api.util";
+
+/** The reports take either a whole batch or a single session. Both at once is
+ *  ambiguous, so it is rejected rather than silently narrowed. */
+function readScope(request: NextRequest): {
+  scope: AttendanceScope | null;
+  error: NextResponse | null;
+} {
+  const { value: batchId, error: batchError } = readUuidParam(request, "batch_id");
+  if (batchError) return { scope: null, error: batchError };
+
+  const { value: timetableId, error: timetableError } = readUuidParam(request, "timetable_id");
+  if (timetableError) return { scope: null, error: timetableError };
+
+  if (batchId && timetableId) {
+    return {
+      scope: null,
+      error: NextResponse.json(
+        { error: "Provide either batch_id or timetable_id, not both" },
+        { status: 400 }
+      ),
+    };
+  }
+
+  if (batchId) return { scope: { batchId }, error: null };
+  if (timetableId) return { scope: { timetableId }, error: null };
+
+  return {
+    scope: null,
+    error: NextResponse.json(
+      { error: "Provide either batch_id or timetable_id" },
+      { status: 400 }
+    ),
+  };
+}
 
 export class AttendanceController {
   static async createAttendance(request: NextRequest) {
@@ -13,18 +48,78 @@ export class AttendanceController {
       return handleError(error);
     }
   }
+
+  /** The month's sessions and per-date counts. No student identities. */
   static async list(request: NextRequest, { params }: { params: Promise<{ batchId: string }> }) {
     const { batchId } = await params;
-    const urlParms = request.nextUrl.searchParams;
-    const date = urlParms.get("date") ?? null;
+    const { id, error } = readPathUuid(batchId, "batch id");
+    if (error) return error;
+
+    const { date, error: dateError } = readMonthParam(request);
+    if (dateError) return dateError;
 
     try {
-      const { finalData, minDate, maxDate } = await AttendanceService.getAttendances(batchId, date)
-      return NextResponse.json({ finalData, minDate, maxDate })
+      const data = await AttendanceService.getCalendar({ batchId: id! }, date ?? null)
+      return NextResponse.json(data)
     } catch (error) {
       return handleError(error);
     }
   }
+
+  /** One date's students, fetched when the date row is opened. */
+  static async session(request: NextRequest) {
+    const { value: timetableId, error } = readUuidParam(request, "timetable_id");
+    if (error) return error;
+    if (!timetableId) {
+      return NextResponse.json({ error: "The timetable_id parameter is required" }, { status: 400 });
+    }
+
+    const { date, error: dateError } = readMonthParam(request);
+    if (dateError) return dateError;
+    if (!date) {
+      return NextResponse.json({ error: "The date parameter is required" }, { status: 400 });
+    }
+
+    try {
+      const students = await AttendanceService.getSessionRoster(timetableId, date);
+      return NextResponse.json(students);
+    } catch (error) {
+      return handleError(error);
+    }
+  }
+
+  /** Present/late/absent per module, fetched when the summary is opened. */
+  static async summary(request: NextRequest) {
+    const { scope, error } = readScope(request);
+    if (error) return error;
+
+    const { date, error: dateError } = readMonthParam(request);
+    if (dateError) return dateError;
+
+    try {
+      const modules = await AttendanceService.getModuleSummary(scope!, date ?? null);
+      return NextResponse.json(modules);
+    } catch (error) {
+      return handleError(error);
+    }
+  }
+
+  /** Per-student rates per module, fetched when that section is opened. */
+  static async rates(request: NextRequest) {
+    const { scope, error } = readScope(request);
+    if (error) return error;
+
+    const { date, error: dateError } = readMonthParam(request);
+    if (dateError) return dateError;
+
+    try {
+      const students = await AttendanceService.getStudentRates(scope!, date ?? null);
+      return NextResponse.json(students);
+    } catch (error) {
+      return handleError(error);
+    }
+  }
+
 
   static async update(request: NextRequest) {
     const params = request.nextUrl.searchParams;

@@ -26,6 +26,16 @@ export type ModuleRatio = {
   total: number
 }
 
+/** Month totals across every session, for the single headline figure. */
+export type AttendanceTotals = {
+  present: number
+  late: number
+  absent: number
+  total: number
+  /** Present marks as a share of held sessions, one decimal. */
+  percentage: number
+}
+
 /** Three states a mark can take. Each maps to an existing token so the colours
  *  follow the theme: petrol for present, violet for late, danger for absent. */
 export const ATTENDANCE_STATUS = {
@@ -150,4 +160,25 @@ export function buildRatios(sessions: AttendanceSession[], studentId: string): M
       }
     })
     .filter((row) => row.total > 0)
+}
+
+/** Collapses the per-session rows into one month figure. Late is counted
+ *  separately, not as attendance, so the percentage matches the "present"
+ *  reading used everywhere else in the register. */
+export function summariseRatios(ratios: ModuleRatio[]): AttendanceTotals {
+  const totals = ratios.reduce(
+    (accumulator, row) => ({
+      present: accumulator.present + row.present,
+      late: accumulator.late + row.late,
+      absent: accumulator.absent + row.absent,
+      total: accumulator.total + row.total,
+    }),
+    { present: 0, late: 0, absent: 0, total: 0 }
+  )
+
+  return {
+    ...totals,
+    percentage:
+      totals.total > 0 ? Math.round((totals.present / totals.total) * 1000) / 10 : 0,
+  }
 }
