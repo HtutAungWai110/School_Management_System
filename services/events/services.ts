@@ -8,6 +8,7 @@ import type {
   EventAnnouncementType,
   EventRegistration,
   EventRegistrationPage,
+  RegisteredEventPage,
 } from "@/types/event-announcement.type";
 import type { AnnouncementAttachments, AnnouncementAuthor } from "@/types/announcement.type";
 
@@ -511,6 +512,92 @@ export class EventsService {
     }
 
     return { registered: true };
+  }
+
+  /**
+   * The signed-in user's own registrations, newest first.
+   *
+   * The event rows are read in a second query because a registration stores
+   * only ids; authors and totals are then decorated exactly as on the feed.
+   * `event_registrations` already hides other people's rows, so the profile
+   * filter is a guard against a future policy change, not the access rule.
+   */
+  static async listRegistered(
+    page: number,
+    limit: number
+  ): Promise<RegisteredEventPage> {
+    const supabase = await createClient();
+    const userId = await signedInUserId(supabase);
+    const from = (page - 1) * limit;
+
+    const { data, error, count } = await supabase
+      .from("event_registrations")
+      .select("id, event_id, message, created_at", { count: "exact" })
+      .eq("profile_id", userId)
+      /* `id` breaks ties so simultaneous registrations keep their page. */
+      .order("created_at", { ascending: false })
+      .order("id", { ascending: true })
+      .range(from, from + limit - 1);
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    const registrations = (data ?? []) as {
+      id: string;
+      event_id: string;
+      message: string | null;
+      created_at: string;
+    }[];
+
+    const total = count ?? 0;
+    const totalPages = Math.max(1, Math.ceil(total / limit));
+
+    if (registrations.length === 0) {
+      return { data: [], page, limit, total, totalPages };
+    }
+
+    const { data: eventRows, error: eventError } = await supabase
+      .from("event_announcements")
+      .select(EVENT_SELECT)
+      .in(
+        "id",
+        registrations.map((registration) => registration.event_id)
+      );
+
+    if (eventError) {
+      throw new Error(eventError.message);
+    }
+
+    const events = await decorate(
+      supabase,
+      (eventRows ?? []) as unknown as EventAnnouncementRow[]
+    );
+    const byId = new Map(events.map((event) => [event.id, event]));
+
+    return {
+      /* Registration order is the order of the list: a seat whose post was
+         deleted is skipped rather than rendered as an empty row. */
+      data: registrations.flatMap((registration) => {
+        const event = byId.get(registration.event_id);
+        if (!event) return [];
+
+        return [
+          {
+            ...event,
+            registration: {
+              id: registration.id,
+              message: registration.message,
+              created_at: registration.created_at,
+            },
+          },
+        ];
+      }),
+      page,
+      limit,
+      total,
+      totalPages,
+    };
   }
 
   /**

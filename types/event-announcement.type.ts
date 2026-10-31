@@ -63,3 +63,23 @@ export type EventRegistrationPage = {
   total: number;
   totalPages: number;
 };
+
+/** The caller's own seat: what they wrote and when they claimed it. */
+export type EventRegistrationSummary = {
+  id: string;
+  message: string | null;
+  created_at: string;
+};
+
+/** An event the signed-in student or teacher is registered for. */
+export type RegisteredEvent = EventAnnouncement & {
+  registration: EventRegistrationSummary;
+};
+
+export type RegisteredEventPage = {
+  data: RegisteredEvent[];
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+};

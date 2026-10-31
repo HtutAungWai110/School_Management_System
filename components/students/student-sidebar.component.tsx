@@ -11,6 +11,7 @@ import {
   Layers,
   ClipboardList,
   CheckSquare,
+  Ticket,
   Menu,
   X,
   Settings
@@ -26,6 +27,7 @@ const NAV_LINKS = [
   { href: "/student/dashboard/batches", label: "Batches", icon: Layers },
   { href: "/student/dashboard/assignments", label: "Assignments", icon: ClipboardList },
   { href: "/student/dashboard/attendance", label: "Attendance", icon: CheckSquare },
+  { href: "/student/dashboard/registered-events", label: "Registered Events", icon: Ticket },
   { href: "/student/dashboard/settings", label: "Settings", icon: Settings }
 ]
 

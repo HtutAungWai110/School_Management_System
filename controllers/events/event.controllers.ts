@@ -207,6 +207,19 @@ export class EventAnnouncementsController {
     return registerForEvent(request, params);
   }
 
+  /** The signed-in student's or teacher's own seats, newest registration first. */
+  static async listRegistered(request: NextRequest) {
+    const page = readPage(request.nextUrl.searchParams.get("page"));
+    const limit = readLimit(request.nextUrl.searchParams.get("limit"));
+
+    try {
+      const data = await EventsService.listRegistered(page, limit);
+      return NextResponse.json(data);
+    } catch (error) {
+      return handleError(error);
+    }
+  }
+
   static async listRegistrations(
     request: NextRequest,
     { params }: { params: Promise<{ id: string }> }
