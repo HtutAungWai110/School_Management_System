@@ -3,7 +3,7 @@ import { TimetablesService } from "@/services/timetables/services";
 import { NotificationsService } from "@/services/notifications/services";
 import { createClient } from "@/lib/supabase/server.client";
 import { handleError } from "@/lib/errors/error.handler";
-import { readIdParams } from "@/lib/api.util";
+import { readIdParams, readUuidParam } from "@/lib/api.util";
 import { first } from "@/lib/supabase.util";
 import type { TimetableSessionRef } from "@/lib/notification.util";
 import { TIMETABLE_STATUS_OPTIONS, type TimetableStatus } from "@/types/timetable.type";
@@ -101,6 +101,64 @@ export class TimetableController {
 
     try {
       const data = await TimetablesService.list(page, limit, batchId, ids);
+      return NextResponse.json(data);
+    } catch (error) {
+      return handleError(error);
+    }
+  }
+
+  /**
+   * Which rooms are free in one day/time window, plus whether the teacher or
+   * the batch is already booked then. Powers the classroom step of the
+   * scheduling wizard, where the room is chosen last.
+   */
+  static async windowAvailability(request: NextRequest) {
+    const params = request.nextUrl.searchParams;
+
+    const day = Number(params.get("day_of_week"));
+    if (!Number.isInteger(day) || day < 1 || day > 7) {
+      return NextResponse.json(
+        { error: "Day of week must be a number between 1 and 7" },
+        { status: 400 }
+      );
+    }
+
+    const start = params.get("start_time")?.trim() ?? "";
+    const end = params.get("end_time")?.trim() ?? "";
+    const TIME = /^([01]\d|2[0-3]):[0-5]\d$/;
+
+    if (!TIME.test(start) || !TIME.test(end)) {
+      return NextResponse.json(
+        { error: "Start and end times must be formatted as HH:MM" },
+        { status: 400 }
+      );
+    }
+
+    if (end <= start) {
+      return NextResponse.json(
+        { error: "End time must be after start time" },
+        { status: 400 }
+      );
+    }
+
+    const { value: teacherId, error: teacherError } = readUuidParam(request, "teacher_id");
+    if (teacherError) return teacherError;
+
+    const { value: batchId, error: batchError } = readUuidParam(request, "batch_id");
+    if (batchError) return batchError;
+
+    const { value: excludeId, error: excludeError } = readUuidParam(request, "exclude_id");
+    if (excludeError) return excludeError;
+
+    try {
+      const data = await TimetablesService.getWindowAvailability({
+        dayOfWeek: day,
+        start,
+        end,
+        teacherId,
+        batchId,
+        excludeId,
+      });
       return NextResponse.json(data);
     } catch (error) {
       return handleError(error);

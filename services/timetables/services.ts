@@ -1,6 +1,11 @@
 import { createClient } from "@/lib/supabase/server.client";
 import { HttpError } from "@/lib/errors/http.error";
-import { DAY_OF_WEEK_LABELS, type TimetableStatus } from "@/types/timetable.type";
+import {
+  DAY_OF_WEEK_LABELS,
+  type ClassWindowSlot,
+  type TimetableStatus,
+  type TimetableWindowAvailability,
+} from "@/types/timetable.type";
 
 const TIMETABLE_SELECT = `
   id,
@@ -408,6 +413,84 @@ export class TimetablesService {
     }
 
     return data ?? [];
+  }
+
+  /**
+   * Who already holds a room, the teacher, or the batch in one day/time window.
+   *
+   * The scheduling wizard now picks the classroom last, so it needs the inverse
+   * of `getClassAvailability`: one call answers every room for the chosen slot
+   * instead of one room's whole week. Overlap is resolved the same way the
+   * create/update checks resolve it — an inclusive range in SQL, then a strict
+   * comparison on the `HH:MM` values.
+   */
+  static async getWindowAvailability({
+    dayOfWeek,
+    start,
+    end,
+    teacherId,
+    batchId,
+    excludeId,
+  }: {
+    dayOfWeek: number;
+    start: string;
+    end: string;
+    teacherId?: string;
+    batchId?: string;
+    excludeId?: string;
+  }): Promise<TimetableWindowAvailability> {
+    const supabase = await createClient();
+
+    const { data, error } = await supabase
+      .from("timetables")
+      .select(`
+        id,
+        class_id,
+        teacher_id,
+        batch_id,
+        day_of_week,
+        start_time,
+        end_time,
+        modules (
+          id,
+          code,
+          title
+        ),
+        batches (
+          id,
+          batch_name
+        ),
+        profiles (
+          id,
+          full_name
+        )
+      `)
+      .eq("day_of_week", dayOfWeek)
+      .eq("status", "ongoing")
+      .lte("start_time", end)
+      .gte("end_time", start)
+      .order("start_time", { ascending: true });
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    const overlapping = ((data ?? []) as unknown as ClassWindowSlot[]).filter(
+      (slot) =>
+        slot.id !== excludeId &&
+        start < slot.end_time.slice(0, 5) &&
+        end > slot.start_time.slice(0, 5)
+    );
+
+    return {
+      classSlots: overlapping,
+      teacherConflict: teacherId
+        ? (overlapping.find((slot) => slot.teacher_id === teacherId) ?? null)
+        : null,
+      batchConflict: batchId
+        ? (overlapping.find((slot) => slot.batch_id === batchId) ?? null)
+        : null,
+    };
   }
 
   static async getBatchAvailability(batchId: string) {

@@ -9,13 +9,19 @@ import { ArrowLeft, ArrowRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog.component"
 import { refetchData } from "@/lib/action.action"
+import { getClassroomLabel } from "@/lib/utils.util"
+import { formatTimeOfDay, timeSlotOptions, timeSlotValue } from "@/lib/timetable.util"
 import { ModulesPanelShell } from "@/components/modules_level/modules-panel-shell.component"
 import type { BatchOption } from "@/types/batch.type"
 import type { Class } from "@/types/class.type"
-import { DAY_OF_WEEK_LABELS, TIMETABLE_STATUS_OPTIONS } from "@/types/timetable.type"
+import {
+  DAY_OF_WEEK_LABELS,
+  DAY_OF_WEEK_OPTIONS,
+  TIMETABLE_STATUS_OPTIONS,
+} from "@/types/timetable.type"
 import { SingleCombobox, type Option } from "./single-combobox.component"
-import { TimeSlotGrid, type TimeSlot } from "./time-slot-grid.component"
-import { useTimetableAvailability } from "./use-timetable-availability.hook"
+import { ClassPicker, ScheduleConflicts } from "./class-picker.component"
+import { useClassAvailability } from "./use-class-availability.hook"
 import { useBatchModules, useBatchTeacherPairs } from "./use-batch-modules.hook"
 
 const SLIDE_VARIANTS = {
@@ -23,6 +29,12 @@ const SLIDE_VARIANTS = {
   center: { x: 0, opacity: 1 },
   exit: (direction: number) => ({ x: direction >= 0 ? -64 : 64, opacity: 0 }),
 }
+
+/** Monday, 9:00 – 12:00: the slot most sessions are created for, so the
+ *  classroom step opens on something usable instead of empty comboboxes. */
+const DEFAULT_DAY = "1"
+const DEFAULT_START = "09:00"
+const DEFAULT_END = "12:00"
 
 interface TimetableFormValues {
   batch_id: string
@@ -62,22 +74,40 @@ export function TimetableCreatePanel({
   } = useForm<TimetableFormValues>({
     defaultValues: {
       status: "ongoing",
+      day_of_week: DEFAULT_DAY,
+      start_time: DEFAULT_START,
+      end_time: DEFAULT_END,
       ...(fixedBatchId ? { batch_id: fixedBatchId } : {}),
     },
   })
 
   const watched = useWatch({ control })
 
+  /* `useWatch` reports partial values; the comboboxes always hold a value, so
+     these fallbacks keep the slot (and its availability request) well formed
+     on the first render. */
+  const dayOfWeek = watched.day_of_week ?? DEFAULT_DAY
+  const startTime = watched.start_time ?? DEFAULT_START
+  const endTime = watched.end_time ?? DEFAULT_END
+
+  const timeSlots = timeSlotOptions(startTime, endTime)
+  const selectedTimeSlot = timeSlotValue(startTime, endTime)
+
   const batchModules = useBatchModules(watched.batch_id)
   const batchTeacherPairs = useBatchTeacherPairs(watched.batch_id)
 
-  const availability = useTimetableAvailability({
-    classId: watched.class_id,
+  const availability = useClassAvailability({
+    dayOfWeek,
+    startTime,
+    endTime,
     teacherId: watched.teacher_id,
     batchId: watched.batch_id,
+    /* Step 1 has no day or time to answer for yet, and the defaults would
+       only be thrown away on the way to step 2. */
+    enabled: step === 1,
   })
 
-  const dayLabel = DAY_OF_WEEK_LABELS[Number(watched.day_of_week)]
+  const dayLabel = DAY_OF_WEEK_LABELS[Number(dayOfWeek)]
 
   const selectedBatch = batches.find((batch) => batch.id === watched.batch_id) ?? null
   const selectedBatchModule = batchModules.find((module) => module.id === watched.module_id) ?? null
@@ -108,24 +138,33 @@ export function TimetableCreatePanel({
     return Array.from(uniqueTeachers.values())
   })()
 
-  const classOptions: Option[] = classes.map((classItem) => ({
-    value: classItem.id,
-    label: classItem.class_number ? `Class ${classItem.class_number}` : (classItem.location ?? "Class"),
-  }))
-
   const statusOptions: Option[] = TIMETABLE_STATUS_OPTIONS
 
   const detailsComplete = !!(
     watched.batch_id &&
     watched.module_id &&
     watched.teacher_id &&
-    watched.class_id &&
     watched.status
   )
 
-  const hasSelection = !!(watched.day_of_week && watched.start_time && watched.end_time)
+  const teacherConflict = availability.data?.teacherConflict ?? null
+  const batchConflict = availability.data?.batchConflict ?? null
+  const slotBlocked = !!teacherConflict || !!batchConflict
 
-  const showGrid = !!watched.class_id && !availability.isLoading && !availability.error
+  /* A room chosen for one slot may be taken in the next: the selection is
+     dropped rather than carried into a request the server would reject. */
+  const classSlots = availability.data?.classSlots ?? []
+  const selectedRoomId = watched.class_id ?? ""
+  const selectedRoomBusy = classSlots.some((slot) => slot.class_id === selectedRoomId)
+  const chosenRoomId = selectedRoomBusy ? "" : selectedRoomId
+
+  const slotComplete =
+    !!chosenRoomId &&
+    !availability.isLoading &&
+    !!startTime &&
+    !!endTime &&
+    endTime > startTime &&
+    !slotBlocked
 
   function goNext() {
     setDirection(1)
@@ -137,14 +176,13 @@ export function TimetableCreatePanel({
     setStep(0)
   }
 
-  function selectSlot(dayOfWeek: number, slot: TimeSlot) {
-    setValue("day_of_week", String(dayOfWeek), { shouldValidate: true })
+  function changeTimeSlot(value: string) {
+    const slot = timeSlots.find((option) => option.value === value)
+    if (!slot) return
+
     setValue("start_time", slot.start, { shouldValidate: true })
     setValue("end_time", slot.end, { shouldValidate: true })
   }
-
-  const isSelected = (dayOfWeek: number, startTime: string) =>
-    Number(watched.day_of_week) === dayOfWeek && watched.start_time === startTime
 
   async function onSubmit(data: TimetableFormValues) {
     setSubmitError(null)
@@ -179,15 +217,19 @@ export function TimetableCreatePanel({
     }
   }
 
+  const roomLabel = getClassroomLabel(chosenRoomId, classes)
+
   return (
     <>
       <ModulesPanelShell
         title="Create timetable"
-        subtitle={step === 0 ? "Step 1 of 2 · Session details" : "Step 2 of 2 · Day & time"}
+        subtitle={
+          step === 0 ? "Step 1 of 2 · Session details" : "Step 2 of 2 · Slot & classroom"
+        }
         onClose={onClose}
         className="max-w-[680px]"
       >
-        <form onSubmit={handleSubmit(onSubmit)} className="flex flex-1 flex-col">
+        <form onSubmit={handleSubmit(onSubmit)} className="flex min-h-0 flex-1 flex-col">
           <div className="flex flex-1 flex-col overflow-hidden px-6 py-6">
             <AnimatePresence mode="wait" initial={false} custom={direction}>
               {step === 0 ? (
@@ -206,7 +248,7 @@ export function TimetableCreatePanel({
                       Session details
                     </p>
                     <p className="mt-1 text-[12px] leading-[18px] text-on-surface-variant">
-                      Pick a batch, module, teacher, and class to continue.
+                      Pick a batch, module, teacher, and status to continue.
                     </p>
                   </div>
 
@@ -306,30 +348,6 @@ export function TimetableCreatePanel({
                       </div>
 
                       <div className="space-y-1.5">
-                        <label className="text-sm font-medium text-on-surface" htmlFor="class">
-                          Class
-                        </label>
-                        <Controller
-                          control={control}
-                          name="class_id"
-                          rules={{ required: "Choose a class" }}
-                          render={({ field, fieldState }) => (
-                            <>
-                              <SingleCombobox
-                                options={classOptions}
-                                value={field.value}
-                                onValueChange={field.onChange}
-                                placeholder="Choose a class"
-                                emptyLabel="No class found."
-                                ariaInvalid={!!fieldState.error}
-                              />
-                              {fieldState.error && <p className="text-xs text-destructive">{fieldState.error.message}</p>}
-                            </>
-                          )}
-                        />
-                      </div>
-
-                      <div className="space-y-1.5">
                         <label className="text-sm font-medium text-on-surface" htmlFor="status">
                           Status
                         </label>
@@ -357,44 +375,88 @@ export function TimetableCreatePanel({
                 </motion.div>
               ) : (
                 <motion.div
-                  key="schedule"
+                  key="slot"
                   custom={direction}
                   variants={SLIDE_VARIANTS}
                   initial="enter"
                   animate="center"
                   exit="exit"
                   transition={{ type: "spring", stiffness: 320, damping: 32 }}
-                  className="flex-1 space-y-5 "
+                  className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden"
                 >
-                  <div>
+                  <div className="shrink-0">
                     <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-on-surface-variant">
-                      Day & time
+                      Slot & classroom
                     </p>
                     <p className="mt-1 text-[12px] leading-[18px] text-on-surface-variant">
-                      Choose a free slot for this session.
+                      Choose when the session runs, then pick a classroom that is free
+                      at that time.
                     </p>
                   </div>
 
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <label className="text-sm font-medium text-on-surface">Day & Time</label>
-                      {availability.isLoading && (
-                        <p className="text-xs text-on-surface-variant">Loading availability…</p>
-                      )}
-                      {availability.error && (
-                        <p className="text-xs text-destructive">{availability.error}</p>
+                  <div className="grid shrink-0 grid-cols-1 gap-4 sm:grid-cols-2">
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-medium text-on-surface" htmlFor="day">
+                        Day
+                      </label>
+                      <Controller
+                        control={control}
+                        name="day_of_week"
+                        rules={{ required: "Choose a day" }}
+                        render={({ field, fieldState }) => (
+                          <>
+                            <SingleCombobox
+                              options={DAY_OF_WEEK_OPTIONS}
+                              value={field.value}
+                              onValueChange={field.onChange}
+                              placeholder="Choose a day"
+                              emptyLabel="No day found."
+                              ariaInvalid={!!fieldState.error}
+                            />
+                            {fieldState.error && <p className="text-xs text-destructive">{fieldState.error.message}</p>}
+                          </>
+                        )}
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-medium text-on-surface" htmlFor="time-slot">
+                        Time
+                      </label>
+                      <SingleCombobox
+                        options={timeSlots}
+                        value={selectedTimeSlot}
+                        onValueChange={changeTimeSlot}
+                        placeholder="Choose a time"
+                        emptyLabel="No time found."
+                      />
+                      <p className="text-xs text-on-surface-variant">
+                        Standard blocks: 9:00 AM – 12:00 PM, 1:00 PM – 4:00 PM.
+                      </p>
+                    </div>
+                  </div>
+
+                  <ScheduleConflicts teacher={teacherConflict} batch={batchConflict} />
+
+                  <div className="flex min-h-0 flex-1 flex-col gap-2">
+                    <div className="flex shrink-0 items-center justify-between gap-3">
+                      <label className="text-sm font-medium text-on-surface">Classroom</label>
+                      {startTime && endTime && (
+                        <p className="text-xs text-on-surface-variant">
+                          {dayLabel} · {formatTimeOfDay(startTime)} –{" "}
+                          {formatTimeOfDay(endTime)}
+                        </p>
                       )}
                     </div>
 
-                    {showGrid && (
-                      <TimeSlotGrid
-                        getClassOccupant={availability.getClassOccupant}
-                        getTeacherOccupant={availability.getTeacherOccupant}
-                        getBatchOccupant={availability.getBatchOccupant}
-                        isSelected={isSelected}
-                        onSelectSlot={selectSlot}
-                      />
-                    )}
+                    <ClassPicker
+                      classes={classes}
+                      slots={classSlots}
+                      value={chosenRoomId}
+                      onSelect={(classId) => setValue("class_id", classId, { shouldValidate: true })}
+                      loading={availability.isLoading}
+                      error={availability.error}
+                    />
                   </div>
                 </motion.div>
               )}
@@ -424,7 +486,7 @@ export function TimetableCreatePanel({
                   <ArrowLeft className="w-4 h-4" />
                   Back
                 </Button>
-                <Button type="button" disabled={isSubmitting || !hasSelection} onClick={() => setShowConfirm(true)}>
+                <Button type="button" disabled={isSubmitting || !slotComplete} onClick={() => setShowConfirm(true)}>
                   Create timetable
                 </Button>
               </>
@@ -438,7 +500,7 @@ export function TimetableCreatePanel({
         title="Create timetable?"
         description={
           selectedBatchModule && dayLabel
-            ? `Schedule ${selectedBatchModule.title} on ${dayLabel} from ${watched.start_time} to ${watched.end_time}?`
+            ? `Schedule ${selectedBatchModule.title} in ${roomLabel} on ${dayLabel} from ${formatTimeOfDay(startTime)} to ${formatTimeOfDay(endTime)}?`
             : undefined
         }
         confirmLabel="Create"

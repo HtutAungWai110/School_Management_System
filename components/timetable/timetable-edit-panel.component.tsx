@@ -9,16 +9,19 @@ import { ArrowLeft, ArrowRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog.component"
 import { refetchData } from "@/lib/action.action"
+import { getClassroomLabel } from "@/lib/utils.util"
+import { formatTimeOfDay, timeSlotOptions, timeSlotValue } from "@/lib/timetable.util"
 import { ModulesPanelShell } from "@/components/modules_level/modules-panel-shell.component"
 import type { Class } from "@/types/class.type"
 import {
   DAY_OF_WEEK_LABELS,
+  DAY_OF_WEEK_OPTIONS,
   TIMETABLE_STATUS_OPTIONS,
   type Timetable,
 } from "@/types/timetable.type"
 import { SingleCombobox, type Option } from "./single-combobox.component"
-import { TimeSlotGrid, type TimeSlot } from "./time-slot-grid.component"
-import { useTimetableAvailability } from "./use-timetable-availability.hook"
+import { ClassPicker, ScheduleConflicts } from "./class-picker.component"
+import { useClassAvailability } from "./use-class-availability.hook"
 import { useBatchModules } from "./use-batch-modules.hook"
 
 const SLIDE_VARIANTS = {
@@ -67,25 +70,29 @@ export function TimetableEditPanel({ timetable, classes, onClose }: TimetableEdi
 
   const watched = useWatch({ control })
 
-  const watchedClassId = watched.class_id
-  const watchedStart = watched.start_time
-  const watchedEnd = watched.end_time
+  /* `useWatch` reports partial values; the comboboxes always hold one, so
+     falling back to the session keeps the availability request well formed. */
+  const watchedClassId = watched.class_id ?? timetable.class_id
+  const watchedStart = watched.start_time ?? timetable.start_time.slice(0, 5)
+  const watchedEnd = watched.end_time ?? timetable.end_time.slice(0, 5)
+  const watchedDay = watched.day_of_week ?? String(timetable.day_of_week)
 
   const batchModules = useBatchModules(timetable.batch_id)
 
-  const availability = useTimetableAvailability({
-    classId: watchedClassId,
+  const availability = useClassAvailability({
+    dayOfWeek: watchedDay,
+    startTime: watchedStart,
+    endTime: watchedEnd,
     teacherId: timetable.teacher_id,
     batchId: timetable.batch_id,
     excludeId: timetable.id,
+    enabled: step === 1,
   })
 
-  const dayLabel = DAY_OF_WEEK_LABELS[Number(watched.day_of_week)]
+  const dayLabel = DAY_OF_WEEK_LABELS[Number(watchedDay)]
 
-  const classOptions: Option[] = classes.map((classItem) => ({
-    value: classItem.id,
-    label: classItem.class_number ? `Class ${classItem.class_number}` : (classItem.location ?? "Class"),
-  }))
+  const timeSlots = timeSlotOptions(watchedStart, watchedEnd)
+  const selectedTimeSlot = timeSlotValue(watchedStart, watchedEnd)
 
   const moduleOptions: Option[] = batchModules.map((module) => ({
     value: module.id,
@@ -94,11 +101,25 @@ export function TimetableEditPanel({ timetable, classes, onClose }: TimetableEdi
 
   const statusOptions: Option[] = TIMETABLE_STATUS_OPTIONS
 
-  const detailsComplete = !!(
-    watched.module_id &&
-    watchedClassId &&
-    watched.status
-  )
+  const detailsComplete = !!(watched.module_id && watched.status)
+
+  const teacherConflict = availability.data?.teacherConflict ?? null
+  const batchConflict = availability.data?.batchConflict ?? null
+  const slotBlocked = !!teacherConflict || !!batchConflict
+
+  /* A room chosen for one slot may be taken in the next: the selection is
+     dropped rather than carried into a request the server would reject. */
+  const classSlots = availability.data?.classSlots ?? []
+  const selectedRoomBusy = classSlots.some((slot) => slot.class_id === watchedClassId)
+  const chosenRoomId = selectedRoomBusy ? "" : watchedClassId
+
+  const slotComplete =
+    !!chosenRoomId &&
+    !availability.isLoading &&
+    !!watchedStart &&
+    !!watchedEnd &&
+    watchedEnd > watchedStart &&
+    !slotBlocked
 
   function goNext() {
     setDirection(1)
@@ -110,21 +131,20 @@ export function TimetableEditPanel({ timetable, classes, onClose }: TimetableEdi
     setStep(0)
   }
 
-  function selectSlot(dayOfWeek: number, slot: TimeSlot) {
-    setValue("day_of_week", String(dayOfWeek), { shouldValidate: true })
+  function changeTimeSlot(value: string) {
+    const slot = timeSlots.find((option) => option.value === value)
+    if (!slot) return
+
     setValue("start_time", slot.start, { shouldValidate: true })
     setValue("end_time", slot.end, { shouldValidate: true })
   }
 
-  const isSelected = (dayOfWeek: number, startTime: string) =>
-    Number(watched.day_of_week) === dayOfWeek && watched.start_time === startTime
-
   const hasChanges =
     watched.module_id !== timetable.module_id ||
     watchedClassId !== timetable.class_id ||
-    Number(watched.day_of_week) !== timetable.day_of_week ||
-    watched.start_time !== timetable.start_time.slice(0, 5) ||
-    watched.end_time !== timetable.end_time.slice(0, 5) ||
+    Number(watchedDay) !== timetable.day_of_week ||
+    watchedStart !== timetable.start_time.slice(0, 5) ||
+    watchedEnd !== timetable.end_time.slice(0, 5) ||
     watched.status !== (timetable.status ?? "ongoing")
 
   async function onSubmit(data: TimetableEditFormValues) {
@@ -165,8 +185,7 @@ export function TimetableEditPanel({ timetable, classes, onClose }: TimetableEdi
     }
   }
 
-  const showGrid =
-    !!watchedClassId && !availability.isLoading && !availability.error
+  const roomLabel = getClassroomLabel(chosenRoomId, classes)
 
   return (
     <>
@@ -175,12 +194,12 @@ export function TimetableEditPanel({ timetable, classes, onClose }: TimetableEdi
         subtitle={
           step === 0
             ? "Step 1 of 2 · Session details"
-            : `Step 2 of 2 · ${DAY_OF_WEEK_LABELS[timetable.day_of_week] ?? "Unknown"} · ${timetable.start_time.slice(0, 5)} – ${timetable.end_time.slice(0, 5)}`
+            : "Step 2 of 2 · Slot & classroom"
         }
         onClose={onClose}
         className="max-w-[680px]"
       >
-        <form onSubmit={handleSubmit(onSubmit)} className="flex flex-1 flex-col">
+        <form onSubmit={handleSubmit(onSubmit)} className="flex min-h-0 flex-1 flex-col">
           <div className="flex flex-1 flex-col overflow-hidden px-6 py-6">
             <AnimatePresence mode="wait" initial={false} custom={direction}>
               {step === 0 ? (
@@ -199,7 +218,7 @@ export function TimetableEditPanel({ timetable, classes, onClose }: TimetableEdi
                       Session details
                     </p>
                     <p className="mt-1 text-[12px] leading-[18px] text-on-surface-variant">
-                      Update the module, class, or status for this session.
+                      Update the module or status, then choose when and where it runs.
                     </p>
                   </div>
 
@@ -245,29 +264,6 @@ export function TimetableEditPanel({ timetable, classes, onClose }: TimetableEdi
                         </div>
                       </div>
                       <div className="space-y-1.5">
-                        <label className="text-sm font-medium text-on-surface" htmlFor="edit-class">
-                          Class
-                        </label>
-                        <Controller
-                          control={control}
-                          name="class_id"
-                          rules={{ required: "Choose a class" }}
-                          render={({ field, fieldState }) => (
-                            <>
-                              <SingleCombobox
-                                options={classOptions}
-                                value={field.value}
-                                onValueChange={field.onChange}
-                                placeholder="Choose a class"
-                                emptyLabel="No class found."
-                                ariaInvalid={!!fieldState.error}
-                              />
-                              {fieldState.error && <p className="text-xs text-destructive">{fieldState.error.message}</p>}
-                            </>
-                          )}
-                        />
-                      </div>
-                      <div className="space-y-1.5">
                         <label className="text-sm font-medium text-on-surface" htmlFor="edit-status">
                           Status
                         </label>
@@ -295,49 +291,89 @@ export function TimetableEditPanel({ timetable, classes, onClose }: TimetableEdi
                 </motion.div>
               ) : (
                 <motion.div
-                  key="schedule"
+                  key="slot"
                   custom={direction}
                   variants={SLIDE_VARIANTS}
                   initial="enter"
                   animate="center"
                   exit="exit"
                   transition={{ type: "spring", stiffness: 320, damping: 32 }}
-                  className="flex-1 space-y-5 overflow-y-auto"
+                  className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden"
                 >
-                  <div>
+                  <div className="shrink-0">
                     <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-on-surface-variant">
-                      Day & time
+                      Slot & classroom
                     </p>
                     <p className="mt-1 text-[12px] leading-[18px] text-on-surface-variant">
-                      Move this session to a free slot. The current slot is highlighted.
+                      Move this session to a free slot, then pick an available classroom.
+                      The current room is marked.
                     </p>
                   </div>
 
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <label className="text-sm font-medium text-on-surface">Day & Time</label>
-                      {!watchedClassId && (
-                        <p className="text-xs text-on-surface-variant">Select a class first</p>
-                      )}
-                      {availability.isLoading && (
-                        <p className="text-xs text-on-surface-variant">Loading availability…</p>
-                      )}
-                      {availability.error && (
-                        <p className="text-xs text-destructive">{availability.error}</p>
+                  <div className="grid shrink-0 grid-cols-1 gap-4 sm:grid-cols-2">
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-medium text-on-surface" htmlFor="edit-day">
+                        Day
+                      </label>
+                      <Controller
+                        control={control}
+                        name="day_of_week"
+                        rules={{ required: "Choose a day" }}
+                        render={({ field, fieldState }) => (
+                          <>
+                            <SingleCombobox
+                              options={DAY_OF_WEEK_OPTIONS}
+                              value={field.value}
+                              onValueChange={field.onChange}
+                              placeholder="Choose a day"
+                              emptyLabel="No day found."
+                              ariaInvalid={!!fieldState.error}
+                            />
+                            {fieldState.error && <p className="text-xs text-destructive">{fieldState.error.message}</p>}
+                          </>
+                        )}
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-medium text-on-surface" htmlFor="edit-time-slot">
+                        Time
+                      </label>
+                      <SingleCombobox
+                        options={timeSlots}
+                        value={selectedTimeSlot}
+                        onValueChange={changeTimeSlot}
+                        placeholder="Choose a time"
+                        emptyLabel="No time found."
+                      />
+                      <p className="text-xs text-on-surface-variant">
+                        Standard blocks: 9:00 AM – 12:00 PM, 1:00 PM – 4:00 PM.
+                      </p>
+                    </div>
+                  </div>
+
+                  <ScheduleConflicts teacher={teacherConflict} batch={batchConflict} />
+
+                  <div className="flex min-h-0 flex-1 flex-col gap-2">
+                    <div className="flex shrink-0 items-center justify-between gap-3">
+                      <label className="text-sm font-medium text-on-surface">Classroom</label>
+                      {watchedStart && watchedEnd && (
+                        <p className="text-xs text-on-surface-variant">
+                          {dayLabel} · {formatTimeOfDay(watchedStart)} –{" "}
+                          {formatTimeOfDay(watchedEnd)}
+                        </p>
                       )}
                     </div>
 
-                    {showGrid && (
-                      <TimeSlotGrid
-                        getClassOccupant={availability.getClassOccupant}
-                        getTeacherOccupant={availability.getTeacherOccupant}
-                        getBatchOccupant={availability.getBatchOccupant}
-                        isSelected={isSelected}
-                        onSelectSlot={selectSlot}
-                        originalDayOfWeek={timetable.day_of_week}
-                        originalStartTime={timetable.start_time.slice(0, 5)}
-                      />
-                    )}
+                    <ClassPicker
+                      classes={classes}
+                      slots={classSlots}
+                      value={chosenRoomId}
+                      onSelect={(classId) => setValue("class_id", classId, { shouldValidate: true })}
+                      loading={availability.isLoading}
+                      error={availability.error}
+                      originalClassId={timetable.class_id}
+                    />
                   </div>
                 </motion.div>
               )}
@@ -367,7 +403,11 @@ export function TimetableEditPanel({ timetable, classes, onClose }: TimetableEdi
                   <ArrowLeft className="w-4 h-4" />
                   Back
                 </Button>
-                <Button type="button" disabled={isSubmitting || !hasChanges} onClick={() => setShowConfirm(true)}>
+                <Button
+                  type="button"
+                  disabled={isSubmitting || !hasChanges || !slotComplete}
+                  onClick={() => setShowConfirm(true)}
+                >
                   Save changes
                 </Button>
               </>
@@ -381,9 +421,7 @@ export function TimetableEditPanel({ timetable, classes, onClose }: TimetableEdi
         title="Update session?"
         description={
           dayLabel
-            ? `Move this session to ${dayLabel}${
-                watchedStart ? ` at ${watchedStart}` : ""
-              }${watchedEnd ? ` – ${watchedEnd}` : ""}?`
+            ? `Move this session to ${roomLabel} on ${dayLabel} from ${watchedStart} to ${watchedEnd}?`
             : undefined
         }
         confirmLabel="Save"

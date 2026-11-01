@@ -65,6 +65,34 @@ export type BatchAvailabilitySlot = {
   classes: { id: string; class_number: string | null; location: string | null } | null;
 };
 
+/** A session already holding a room in the day/time window being scheduled.
+ *
+ *  Carries the foreign keys as well as the joined labels, so the client can
+ *  both name the occupant and tell whether it collides with the chosen teacher
+ *  or batch. */
+export type ClassWindowSlot = {
+  id: string;
+  class_id: string;
+  teacher_id: string;
+  batch_id: string;
+  day_of_week: number;
+  start_time: string;
+  end_time: string;
+  modules: TimetableModule | null;
+  batches: TimetableBatch | null;
+  profiles: TimetableTeacher | null;
+};
+
+/** Everything the classroom step needs for one day/time window. */
+export type TimetableWindowAvailability = {
+  /** Every session occupying a room in the window. */
+  classSlots: ClassWindowSlot[];
+  /** Set when the chosen teacher is already teaching then. */
+  teacherConflict: ClassWindowSlot | null;
+  /** Set when the chosen batch already has a session then. */
+  batchConflict: ClassWindowSlot | null;
+};
+
 export const DAY_OF_WEEK_LABELS: Record<number, string> = {
   1: "Monday",
   2: "Tuesday",
