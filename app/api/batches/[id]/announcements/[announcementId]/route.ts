@@ -15,7 +15,7 @@ export const GET = async (
  *  the bucket first and sent as public urls. Images dropped from the payload
  *  are deleted from the bucket after the row is saved, so a failed update can
  *  never strand an announcement without its pictures. */
-export const PATCH = async (
+export const PUT = async (
   request: NextRequest,
   { params }: { params: Promise<{ id: string; announcementId: string }> }
 ) => {

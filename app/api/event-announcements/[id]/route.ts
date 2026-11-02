@@ -9,8 +9,9 @@ export const GET = (
   return EventAnnouncementsController.getById(request, { params });
 };
 
-/** Edits the post. Author-only; the service re-checks `author_id`. */
-export const PATCH = (
+/** Replaces the post: the body carries the whole post, not a field patch.
+ *  Author-only; the service re-checks `author_id`. */
+export const PUT = (
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) => {

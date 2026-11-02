@@ -253,7 +253,7 @@ export default function ProfileAvatarUpload({ profile }: { profile: Profile }) {
     } = supabase.storage.from(BUCKET).getPublicUrl(path)
 
     const res = await fetch(`/api/profile/${profile.id}`, {
-      method: "PATCH",
+      method: "PUT",
       credentials: "include",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ avatar_url: publicUrl }),

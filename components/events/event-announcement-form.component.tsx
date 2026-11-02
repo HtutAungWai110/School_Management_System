@@ -262,7 +262,7 @@ export function EventAnnouncementForm({
         : "/api/event-announcements";
 
       const response = await fetch(endpoint, {
-        method: announcement ? "PATCH" : "POST",
+        method: announcement ? "PUT" : "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

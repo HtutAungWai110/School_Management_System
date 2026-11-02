@@ -132,7 +132,7 @@ export function ModulesLevelsPanel({ module, levels, onClose }: ModulesLevelsPan
 
     try {
       const res = await fetch(`/api/modules_level/${module.id}`, {
-        method: "PATCH",
+        method: "PUT",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),

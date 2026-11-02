@@ -179,7 +179,7 @@ export function AccountCompletionReminder({ settingsHref }: { settingsHref: stri
 
     try {
       const res = await fetch(`/api/profile/${profile.id}`, {
-        method: "PATCH",
+        method: "PUT",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
